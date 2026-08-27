@@ -50,6 +50,8 @@ export interface ClientGameState {
   currentBet: number;
   winnerId: string | null;
   redealReason: string | null;
+  // 구사류 재경기가 거듭될수록 배로 불어나는 다음 판 앤티 배수
+  nextAnteMultiplier: number;
 }
 
 export interface RestartVotesInfo {
