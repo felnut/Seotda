@@ -1055,7 +1055,7 @@ export default function Home() {
         </p>
 
         <div className="w-full max-w-2xl">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-stretch">
             {/* 7. 방 만들기 */}
             <section className="animate-fade-up w-full rounded-2xl border border-white/10 bg-white/3 p-6 shadow-xl shadow-black/30 sm:flex-1 sm:p-8">
               <h2 className="mb-1 text-lg font-semibold">방 만들기</h2>
