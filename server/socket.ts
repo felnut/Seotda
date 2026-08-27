@@ -24,10 +24,23 @@ const DISCONNECT_GRACE_MS = 30_000;
 // 구사류로 재경기가 확정된 뒤, 화면에 사유를 보여주고 다시 시작하기까지의 대기 시간
 const REDEAL_DELAY_MS = 2_500;
 
+const MAX_NAME_LENGTH = 8;
+
 interface JoinedPlayer {
   id: string;
+  name: string;
   // 접속이 끊긴 동안에는 null (유예 시간 내 재접속 대기 중)
   socketId: string | null;
+}
+
+// 사용자가 입력한 닉네임을 정리한다. 비어있거나 없으면 null을 반환해
+// 호출부에서 기본 이름("플레이어 N")을 쓰도록 한다.
+function sanitizeName(name: unknown): string | null {
+  if (typeof name !== "string") return null;
+
+  const trimmed = name.trim().slice(0, MAX_NAME_LENGTH);
+
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 interface Room {
@@ -193,75 +206,92 @@ function createRoomId(): string {
 io.on("connection", (socket) => {
   console.log("연결:", socket.id);
 
-  socket.on("create-room", (maxPlayers: number) => {
-    const roomId = createRoomId();
+  socket.on(
+    "create-room",
+    ({ maxPlayers, name }: { maxPlayers: number; name?: string }) => {
+      const roomId = createRoomId();
 
-    const safeMaxPlayers = Number.isInteger(maxPlayers)
-      ? Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, maxPlayers))
-      : MIN_PLAYERS;
+      const safeMaxPlayers = Number.isInteger(maxPlayers)
+        ? Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, maxPlayers))
+        : MIN_PLAYERS;
 
-    const room: Room = {
-      maxPlayers: safeMaxPlayers,
-      joinedPlayers: [{ id: "player-1", socketId: socket.id }],
-      game: null,
-      disconnectTimers: new Map(),
-      restartVotes: new Set(),
-    };
+      const room: Room = {
+        maxPlayers: safeMaxPlayers,
+        joinedPlayers: [
+          {
+            id: "player-1",
+            name: sanitizeName(name) ?? "플레이어 1",
+            socketId: socket.id,
+          },
+        ],
+        game: null,
+        disconnectTimers: new Map(),
+        restartVotes: new Set(),
+      };
 
-    rooms.set(roomId, room);
+      rooms.set(roomId, room);
 
-    socket.join(roomId);
+      socket.join(roomId);
 
-    socket.emit("room-created", {
-      roomId,
-      playerId: "player-1",
-      playerCount: room.joinedPlayers.length,
-      maxPlayers: room.maxPlayers,
-    });
-  });
+      socket.emit("room-created", {
+        roomId,
+        playerId: "player-1",
+        playerCount: room.joinedPlayers.length,
+        maxPlayers: room.maxPlayers,
+      });
+    },
+  );
 
-  socket.on("join-room", (roomId: string) => {
-    const room = rooms.get(roomId);
+  socket.on(
+    "join-room",
+    ({ roomId, name }: { roomId: string; name?: string }) => {
+      const room = rooms.get(roomId);
 
-    if (!room) {
-      socket.emit("error-message", {
-        message: "존재하지 않는 방입니다.",
+      if (!room) {
+        socket.emit("error-message", {
+          message: "존재하지 않는 방입니다.",
+        });
+
+        return;
+      }
+
+      if (room.game) {
+        socket.emit("error-message", {
+          message: "이미 게임이 시작된 방입니다.",
+        });
+
+        return;
+      }
+
+      if (room.joinedPlayers.length >= room.maxPlayers) {
+        socket.emit("error-message", {
+          message: "방이 가득 찼습니다.",
+        });
+
+        return;
+      }
+
+      const playerIndex = room.joinedPlayers.length + 1;
+      const playerId = `player-${playerIndex}`;
+
+      room.joinedPlayers.push({
+        id: playerId,
+        name: sanitizeName(name) ?? `플레이어 ${playerIndex}`,
+        socketId: socket.id,
       });
 
-      return;
-    }
+      socket.join(roomId);
 
-    if (room.game) {
-      socket.emit("error-message", {
-        message: "이미 게임이 시작된 방입니다.",
+      socket.emit("room-joined", {
+        roomId,
+        playerId,
+        playerCount: room.joinedPlayers.length,
+        maxPlayers: room.maxPlayers,
       });
 
-      return;
-    }
-
-    if (room.joinedPlayers.length >= room.maxPlayers) {
-      socket.emit("error-message", {
-        message: "방이 가득 찼습니다.",
-      });
-
-      return;
-    }
-
-    const playerId = `player-${room.joinedPlayers.length + 1}`;
-
-    room.joinedPlayers.push({ id: playerId, socketId: socket.id });
-
-    socket.join(roomId);
-
-    socket.emit("room-joined", {
-      roomId,
-      playerId,
-      playerCount: room.joinedPlayers.length,
-      maxPlayers: room.maxPlayers,
-    });
-
-    broadcastPlayersUpdated(roomId, room);
-  });
+      broadcastPlayersUpdated(roomId, room);
+    },
+  );
 
   // 새로고침 등으로 끊겼던 세션을 복구합니다.
   socket.on(
@@ -311,7 +341,7 @@ io.on("connection", (socket) => {
     }
 
     if (!room.game) {
-      const names = room.joinedPlayers.map((_, index) => `플레이어 ${index + 1}`);
+      const names = room.joinedPlayers.map((player) => player.name);
 
       room.game = new SeotdaGame(names);
     }
