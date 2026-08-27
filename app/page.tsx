@@ -20,6 +20,8 @@ import { evaluateHand, getDisplayHandName } from "@/lib/seotda/ranking";
 import { auth, db } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/useAuth";
 import { PROFILES_COLLECTION, UserProfile } from "@/lib/profile";
+import { RANKINGS_COLLECTION, RankingEntry } from "@/lib/ranking";
+import { STARTING_CHIPS } from "@/lib/seotda/game";
 import { RankingModal } from "./components/RankingModal";
 import { GoogleSignInButton } from "./components/GoogleSignInButton";
 
@@ -31,8 +33,7 @@ const SOCKET_URL =
   process.env.NEXT_PUBLIC_SOCKET_URL ?? "http://localhost:3001";
 
 const socket: Socket =
-  socketCache.__seotdaSocket ??
-  (socketCache.__seotdaSocket = io(SOCKET_URL));
+  socketCache.__seotdaSocket ?? (socketCache.__seotdaSocket = io(SOCKET_URL));
 
 const SESSION_STORAGE_KEY = "seotda-session";
 
@@ -99,7 +100,9 @@ function CardBack({
       className={`animate-fade-up flex aspect-2/3 shrink-0 items-center justify-center rounded-lg border border-white/15 bg-linear-to-br from-zinc-800 to-zinc-900 shadow-lg shadow-black/40 ${CARD_SIZE_CLASS[size]}`}
       style={{ animationDelay: `${index * 80}ms` }}
     >
-      <span className="text-[22.5px] font-bold text-white/30 sm:text-3xl">?</span>
+      <span className="text-[22.5px] font-bold text-white/30 sm:text-3xl">
+        ?
+      </span>
     </div>
   );
 }
@@ -234,7 +237,9 @@ function HandGuidePanel({
                       )}
                     </p>
                     <p className="text-[15px] text-zinc-400">{entry.months}</p>
-                    <p className="text-[15px] text-emerald-400">{entry.effect}</p>
+                    <p className="text-[15px] text-emerald-400">
+                      {entry.effect}
+                    </p>
                   </div>
                 </li>
               );
@@ -455,7 +460,9 @@ function PlayerPanel({
         <div className="flex items-center gap-2 sm:gap-3">
           <div
             className={`flex shrink-0 items-center justify-center rounded-full bg-linear-to-br from-amber-400/80 to-amber-600/80 font-bold text-zinc-900 ${
-              compact ? "h-6 w-6 text-[15px]" : "h-8 w-8 text-[17.5px] sm:h-9 sm:w-9"
+              compact
+                ? "h-6 w-6 text-[15px]"
+                : "h-8 w-8 text-[17.5px] sm:h-9 sm:w-9"
             }`}
           >
             {player.name.charAt(0)}
@@ -495,10 +502,10 @@ function PlayerPanel({
           {player.lastAction &&
             player.status !== "folded" &&
             !player.lastAction.startsWith("베팅") && (
-            <span className="animate-pop-in rounded-full bg-blue-500/15 px-2.5 py-0.5 text-[14px] font-bold text-blue-300">
-              {player.lastAction}
-            </span>
-          )}
+              <span className="animate-pop-in rounded-full bg-blue-500/15 px-2.5 py-0.5 text-[14px] font-bold text-blue-300">
+                {player.lastAction}
+              </span>
+            )}
 
           {isCurrent && (
             <span className="rounded-full bg-amber-400 px-2.5 py-0.5 text-[14px] font-bold text-zinc-900">
@@ -830,6 +837,9 @@ export default function Home() {
   // 프로필 페이지에서 설정한 닉네임. 없으면 구글 계정 이름으로 대체 표시한다.
   const [profileName, setProfileName] = useState<string | null>(null);
 
+  // 로그인 계정의 지속 보유 칩(뱅크롤). 로비로 돌아올 때마다 최신값을 다시 불러온다.
+  const [chips, setChips] = useState<number | null>(null);
+
   // 상대방이 참가하면 자동 시작까지 남은 초 (null이면 카운트다운 중이 아님)
   const [autoStartCountdown, setAutoStartCountdown] = useState<number | null>(
     null,
@@ -865,6 +875,29 @@ export default function Home() {
       cancelled = true;
     };
   }, [user]);
+
+  useEffect(() => {
+    if (!user || !db || roomId) return;
+
+    const firestore = db;
+    let cancelled = false;
+
+    getDoc(doc(firestore, RANKINGS_COLLECTION, user.uid))
+      .then((snapshot) => {
+        if (cancelled) return;
+
+        const entry = snapshot.data() as RankingEntry | undefined;
+
+        setChips(entry?.money ?? STARTING_CHIPS);
+      })
+      .catch((err) => {
+        console.error("보유 칩을 불러오지 못했습니다:", err);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, roomId]);
 
   const signOutOfGoogle = () => {
     if (!auth) return;
@@ -986,7 +1019,11 @@ export default function Home() {
   // 방이 정원만큼 차면 10초 카운트다운을 시작하고, 방을 나가거나
   // 게임이 이미 시작되면(gameState 생김) 취소한다.
   useEffect(() => {
-    if (playerCount < MIN_ROOM_PLAYERS || playerCount !== maxPlayers || gameState) {
+    if (
+      playerCount < MIN_ROOM_PLAYERS ||
+      playerCount !== maxPlayers ||
+      gameState
+    ) {
       setAutoStartCountdown(null);
       return;
     }
@@ -1209,6 +1246,12 @@ export default function Home() {
               >
                 {profileName ?? user.displayName ?? "플레이어"}님
               </Link>
+
+              {user && chips !== null && (
+                <span className="rounded-lg border border-amber-400/20 bg-amber-400/5 px-2.5 py-1 text-[13.5px] font-semibold text-amber-300">
+                  칩 {chips.toLocaleString()}
+                </span>
+              )}
 
               <button
                 type="button"
