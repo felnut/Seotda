@@ -48,7 +48,11 @@ async function resolveJoiningPlayer(
   requestedName: string | undefined,
 ): Promise<{ uid: string | null; name: string | null; startingChips: number }> {
   if (!idToken || !adminAuth || !adminDb) {
-    return { uid: null, name: sanitizeName(requestedName), startingChips: STARTING_CHIPS };
+    return {
+      uid: null,
+      name: sanitizeName(requestedName),
+      startingChips: STARTING_CHIPS,
+    };
   }
 
   try {
@@ -75,7 +79,11 @@ async function resolveJoiningPlayer(
     };
   } catch (err) {
     console.warn("idToken 검증 실패, 게스트로 진행합니다:", err);
-    return { uid: null, name: sanitizeName(requestedName), startingChips: STARTING_CHIPS };
+    return {
+      uid: null,
+      name: sanitizeName(requestedName),
+      startingChips: STARTING_CHIPS,
+    };
   }
 }
 
@@ -208,7 +216,8 @@ async function syncRankingStats(room: Room) {
         const snapshot = await tx.get(docRef);
         const existing = snapshot.data() as RankingEntry | undefined;
 
-        const wins = (existing?.wins ?? 0) + (gamePlayer.id === winnerId ? 1 : 0);
+        const wins =
+          (existing?.wins ?? 0) + (gamePlayer.id === winnerId ? 1 : 0);
         const gamesPlayed = (existing?.gamesPlayed ?? 0) + 1;
 
         const entry: RankingEntry = {
@@ -307,7 +316,9 @@ function beginRestart(room: Room) {
     .players.filter((player) => player.chips === 0 && !player.isSpectator);
 
   if (bankruptPlayers.length > 0) {
-    room.pendingBankruptcy = new Set(bankruptPlayers.map((player) => player.id));
+    room.pendingBankruptcy = new Set(
+      bankruptPlayers.map((player) => player.id),
+    );
     broadcastBankruptcyNotice(room);
     return;
   }
@@ -396,10 +407,15 @@ io.on("connection", (socket) => {
 
   socket.on(
     "create-room",
-    async (
-      { maxPlayers, name, idToken }:
-        { maxPlayers: number; name?: string; idToken?: string },
-    ) => {
+    async ({
+      maxPlayers,
+      name,
+      idToken,
+    }: {
+      maxPlayers: number;
+      name?: string;
+      idToken?: string;
+    }) => {
       const roomId = createRoomId();
 
       const safeMaxPlayers = Number.isInteger(maxPlayers)
@@ -441,10 +457,15 @@ io.on("connection", (socket) => {
 
   socket.on(
     "join-room",
-    async (
-      { roomId, name, idToken }:
-        { roomId: string; name?: string; idToken?: string },
-    ) => {
+    async ({
+      roomId,
+      name,
+      idToken,
+    }: {
+      roomId: string;
+      name?: string;
+      idToken?: string;
+    }) => {
       const room = rooms.get(roomId);
 
       if (!room) {

@@ -41,7 +41,9 @@ export default function ProfilePage() {
 
         const profile = snapshot.data() as UserProfile | undefined;
 
-        setName(profile?.name ?? user.displayName?.slice(0, MAX_NAME_LENGTH) ?? "");
+        setName(
+          profile?.name ?? user.displayName?.slice(0, MAX_NAME_LENGTH) ?? "",
+        );
       })
       .catch((err) => {
         if (cancelled) return;
@@ -76,7 +78,9 @@ export default function ProfilePage() {
 
     const firestore = db;
 
-    setDoc(doc(firestore, PROFILES_COLLECTION, user.uid), profile, { merge: true })
+    setDoc(doc(firestore, PROFILES_COLLECTION, user.uid), profile, {
+      merge: true,
+    })
       .then(() => {
         setName(trimmed);
         setSaved(true);

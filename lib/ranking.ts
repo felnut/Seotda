@@ -35,7 +35,8 @@ export const RANKING_METRICS: RankingMetric[] = [
   {
     field: "winRate",
     label: "승률",
-    format: (e) => `${Math.round(e.winRate * 100)}% (${e.gamesPlayed}전 ${e.wins}승)`,
+    format: (e) =>
+      `${Math.round(e.winRate * 100)}% (${e.gamesPlayed}전 ${e.wins}승)`,
   },
   {
     field: "gamesPlayed",

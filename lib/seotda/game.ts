@@ -744,10 +744,7 @@ export class SeotdaGame {
 
     // 다이로 이겨서 족보를 직접 고르지 못했다면, 공개용으로 가장 높은
     // 조합을 자동으로 확정해준다 (판정에는 영향 없음 — 상대가 없으므로).
-    if (
-      winner.cards?.length === 3 &&
-      winner.selectedIndices === null
-    ) {
+    if (winner.cards?.length === 3 && winner.selectedIndices === null) {
       winner.selectedIndices = this.bestPairIndices(winner.cards);
     }
 
@@ -815,9 +812,7 @@ export class SeotdaGame {
     const remainder = this.state.pot - halfPot;
 
     const runnerUp = this.state.players
-      .filter(
-        (player) => player.id !== winner.id && player.status !== "folded",
-      )
+      .filter((player) => player.id !== winner.id && player.status !== "folded")
       .map((player) => ({
         player,
         result: this.getComparableHandResult(player),

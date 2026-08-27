@@ -121,9 +121,7 @@ export function RankingModal({
           )}
 
           {!loading && error && (
-            <p className="py-8 text-center text-[15px] text-red-400">
-              {error}
-            </p>
+            <p className="py-8 text-center text-[15px] text-red-400">{error}</p>
           )}
 
           {!loading && !error && entries.length === 0 && (
