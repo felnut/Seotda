@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { io, Socket } from "socket.io-client";
+import { signOut } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 import {
   BankruptcyNotice,
   ClientGameState,
@@ -14,6 +17,11 @@ import {
 } from "@/types/seotda";
 import { HAND_GUIDE, SPECIAL_HAND_GUIDE } from "@/lib/seotda/handGuide";
 import { evaluateHand, getDisplayHandName } from "@/lib/seotda/ranking";
+import { auth, db } from "@/lib/firebase/client";
+import { useAuth } from "@/lib/useAuth";
+import { PROFILES_COLLECTION, UserProfile } from "@/lib/profile";
+import { RankingModal } from "./components/RankingModal";
+import { GoogleSignInButton } from "./components/GoogleSignInButton";
 
 // 개발 모드의 Fast Refresh로 이 모듈이 다시 실행돼도
 // 소켓 연결이 중복 생성되지 않도록 globalThis에 캐시한다.
@@ -814,6 +822,13 @@ export default function Home() {
   const [hasDecidedBankruptcy, setHasDecidedBankruptcy] = useState(false);
 
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [isRankingOpen, setIsRankingOpen] = useState(false);
+
+  // 로그인한 계정 — null이면 게스트. 랭킹은 로그인했을 때만 집계된다.
+  const user = useAuth();
+
+  // 프로필 페이지에서 설정한 닉네임. 없으면 구글 계정 이름으로 대체 표시한다.
+  const [profileName, setProfileName] = useState<string | null>(null);
 
   // 상대방이 참가하면 자동 시작까지 남은 초 (null이면 카운트다운 중이 아님)
   const [autoStartCountdown, setAutoStartCountdown] = useState<number | null>(
@@ -822,6 +837,42 @@ export default function Home() {
 
   // 족보 선택 단계에서 아직 서버에 확정 제출하지 않은 임시 선택
   const [pendingSelection, setPendingSelection] = useState<number[]>([]);
+
+  useEffect(() => {
+    if (!user || !db) return;
+
+    const firestore = db;
+    let cancelled = false;
+
+    getDoc(doc(firestore, PROFILES_COLLECTION, user.uid))
+      .then((snapshot) => {
+        if (cancelled) return;
+
+        const profile = snapshot.data() as UserProfile | undefined;
+        const name = profile?.name ?? user.displayName?.slice(0, 8) ?? null;
+
+        setProfileName(name);
+
+        if (name) {
+          setDisplayName((prev) => prev || name);
+        }
+      })
+      .catch((err) => {
+        console.error("프로필을 불러오지 못했습니다:", err);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const signOutOfGoogle = () => {
+    if (!auth) return;
+
+    signOut(auth).catch((err) => {
+      console.error("로그아웃 실패:", err);
+    });
+  };
 
   useEffect(() => {
     socket.on("room-created", (info: RoomInfo) => {
@@ -957,17 +1008,20 @@ export default function Home() {
   }, [autoStartCountdown, roomId]);
 
   // 7. 방 만들기
-  const createRoom = () => {
+  const createRoom = async () => {
     setError("");
+
+    const idToken = user ? await user.getIdToken() : undefined;
 
     socket.emit("create-room", {
       maxPlayers: createMaxPlayers,
       name: displayName.trim() || undefined,
+      idToken,
     });
   };
 
   // 8. 방 참가
-  const joinRoom = () => {
+  const joinRoom = async () => {
     const code = joinCode.trim().toUpperCase();
 
     if (!code) {
@@ -977,9 +1031,12 @@ export default function Home() {
 
     setError("");
 
+    const idToken = user ? await user.getIdToken() : undefined;
+
     socket.emit("join-room", {
       roomId: code,
       name: displayName.trim() || undefined,
+      idToken,
     });
   };
 
@@ -1134,7 +1191,38 @@ export default function Home() {
    */
   if (!roomId) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center px-4 py-12">
+      <main className="relative flex min-h-screen flex-col items-center justify-center px-4 py-12">
+        <div className="absolute top-4 right-4 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsRankingOpen(true)}
+            className="rounded-lg border border-white/10 bg-white/3 px-3 py-1.5 text-[13.5px] font-medium text-zinc-300 transition hover:bg-white/10"
+          >
+            랭킹
+          </button>
+
+          {user ? (
+            <div className="flex items-center gap-2">
+              <Link
+                href="/profile"
+                className="text-[13.5px] text-zinc-400 underline-offset-2 hover:text-zinc-200 hover:underline"
+              >
+                {profileName ?? user.displayName ?? "플레이어"}님
+              </Link>
+
+              <button
+                type="button"
+                onClick={signOutOfGoogle}
+                className="rounded-lg border border-white/10 bg-white/3 px-3 py-1.5 text-[13.5px] font-medium text-zinc-300 transition hover:bg-white/10"
+              >
+                로그아웃
+              </button>
+            </div>
+          ) : (
+            <GoogleSignInButton onError={setError} />
+          )}
+        </div>
+
         <h1 className="mb-1 text-[45px] font-bold tracking-tight text-amber-400">
           섯다
         </h1>
@@ -1242,6 +1330,11 @@ export default function Home() {
             </p>
           )}
         </div>
+
+        <RankingModal
+          open={isRankingOpen}
+          onClose={() => setIsRankingOpen(false)}
+        />
       </main>
     );
   }

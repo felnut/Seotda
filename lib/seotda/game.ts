@@ -55,18 +55,23 @@ export class SeotdaGame {
   // 이번 베팅 라운드에서 행동을 완료한 플레이어
   private actedPlayers = new Set<string>();
 
-  constructor(playerNames: string[] = ["플레이어 1", "플레이어 2"]) {
+  constructor(
+    players: { name: string; chips?: number }[] = [
+      { name: "플레이어 1" },
+      { name: "플레이어 2" },
+    ],
+  ) {
     this.state = {
       phase: "waiting",
 
-      players: playerNames.map((name, index) => ({
+      players: players.map((player, index) => ({
         id: `player-${index + 1}`,
-        name,
+        name: player.name,
         cards: null,
         revealedCardIndex: null,
         selectedIndices: null,
         status: "playing",
-        chips: STARTING_CHIPS,
+        chips: player.chips ?? STARTING_CHIPS,
         bet: 0,
         lastAction: null,
         isSpectator: false,
