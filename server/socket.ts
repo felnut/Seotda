@@ -86,6 +86,7 @@ function createClientGameState(
         status: player.status,
         chips: player.chips,
         bet: player.bet,
+        lastAction: player.lastAction,
       };
     }),
 
