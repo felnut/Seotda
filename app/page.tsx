@@ -11,7 +11,7 @@ import {
   VisibleCard,
 } from "@/types/seotda";
 import { HAND_GUIDE, SPECIAL_HAND_GUIDE } from "@/lib/seotda/handGuide";
-import { evaluateHand } from "@/lib/seotda/ranking";
+import { evaluateHand, getDisplayHandName } from "@/lib/seotda/ranking";
 
 // 개발 모드의 Fast Refresh로 이 모듈이 다시 실행돼도
 // 소켓 연결이 중복 생성되지 않도록 globalThis에 캐시한다.
@@ -108,13 +108,6 @@ function MiniCard({ cardId, alt }: { cardId: string; alt: string }) {
   );
 }
 
-const SPECIAL_HAND_NAME_MAP: Record<string, string> = {
-  gusa: "구사",
-  "meongtunguri-gusa": "멍텅구리 구사",
-  ddaengjabi: "땡잡이",
-  "amhaeng-eosa": "암행어사",
-};
-
 // 족보 가이드에서 하이라이팅할 족보 이름들을 계산한다.
 // 아직 족보를 확정하지 않았다면(3장 중 2장 선택 전) 가능한 조합을 모두 보여주고,
 // 확정했다면(또는 카드가 2장뿐이라 조합이 하나뿐이면) 그 하나만 보여준다.
@@ -134,7 +127,7 @@ function getGuideHighlights(
     const result = evaluateHand([card1, card2]);
 
     if (result.special !== "none") {
-      specialNames.add(SPECIAL_HAND_NAME_MAP[result.special]);
+      specialNames.add(getDisplayHandName(result));
     } else {
       normalNames.add(result.name);
     }
@@ -349,10 +342,12 @@ function getPossibleHands(cards: VisibleCard[]) {
   return CARD_PAIRS.filter(([i, j]) => cards[i]?.card && cards[j]?.card).map(
     ([i, j]) => ({
       indices: [i, j] as [number, number],
-      name: evaluateHand([
-        cards[i].card as SeotdaCard,
-        cards[j].card as SeotdaCard,
-      ]).name,
+      name: getDisplayHandName(
+        evaluateHand([
+          cards[i].card as SeotdaCard,
+          cards[j].card as SeotdaCard,
+        ]),
+      ),
     }),
   );
 }

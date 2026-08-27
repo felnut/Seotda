@@ -4,6 +4,8 @@ import { SeotdaCard } from "@/types/seotda";
 
 export type PlayerStatus = "playing" | "folded" | "winner" | "loser";
 
+export const STARTING_CHIPS = 10_000;
+
 export interface Player {
   id: string;
   name: string;
@@ -58,7 +60,7 @@ export class SeotdaGame {
         revealedCardIndex: null,
         selectedIndices: null,
         status: "playing",
-        chips: 1000,
+        chips: STARTING_CHIPS,
         bet: 0,
         totalBetThisHand: 0,
       })),
@@ -78,7 +80,12 @@ export class SeotdaGame {
     return this.state;
   }
 
-  start(): void {
+  /**
+   * @param resetChips "다시하기"로 새 게임을 시작할 때(true)는 칩을 시작 금액으로
+   * 되돌린다. 구사 재경기 등 같은 게임 중 재딜일 때(기본값 false)는 기존 칩을
+   * 그대로 유지한다.
+   */
+  start(resetChips: boolean = false): void {
     if (
       this.state.phase !== "waiting" &&
       this.state.phase !== "finished" &&
@@ -87,13 +94,16 @@ export class SeotdaGame {
       throw new Error("이미 시작된 게임입니다.");
     }
 
+    // 이전 판의 승자가 다음 판의 선(첫 베팅 순서)이 된다.
+    // 승자가 없었다면(첫 판, 재경기) 기존처럼 0번부터 시작한다.
+    const previousWinnerId = this.state.winnerId;
+
     this.state.deck.reset();
 
     this.state.pot = 0;
     this.state.currentBet = 0;
     this.state.winnerId = null;
     this.state.redealReason = null;
-    this.state.currentPlayerIndex = 0;
 
     this.actedPlayers.clear();
 
@@ -104,6 +114,10 @@ export class SeotdaGame {
       player.status = "playing";
       player.bet = 0;
       player.totalBetThisHand = 0;
+
+      if (resetChips) {
+        player.chips = STARTING_CHIPS;
+      }
     }
 
     this.state.phase = "dealing";
@@ -111,7 +125,12 @@ export class SeotdaGame {
     this.dealInitialCards();
 
     this.state.phase = "betting1";
-    this.state.currentPlayerIndex = 0;
+
+    const winnerIndex = previousWinnerId
+      ? this.state.players.findIndex((player) => player.id === previousWinnerId)
+      : -1;
+
+    this.state.currentPlayerIndex = winnerIndex >= 0 ? winnerIndex : 0;
   }
 
   private dealInitialCards(): void {

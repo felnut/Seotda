@@ -83,6 +83,25 @@ export interface HandResult {
   special: SpecialHand;
 }
 
+// 구사류 특수 족보는 evaluateHand()의 name이 항상 "망통"으로 나오므로,
+// 화면에 보여줄 실제 이름은 이 매핑을 거쳐야 한다.
+export const SPECIAL_HAND_DISPLAY_NAME: Record<
+  Exclude<SpecialHand, "none">,
+  string
+> = {
+  gusa: "구사",
+  "meongtunguri-gusa": "멍텅구리 구사",
+  ddaengjabi: "땡잡이",
+  "amhaeng-eosa": "암행어사",
+};
+
+// 화면에 보여줄 족보 이름 — 구사류면 특수 족보 이름을, 아니면 일반 족보 이름을 반환한다.
+export function getDisplayHandName(result: HandResult): string {
+  return result.special === "none"
+    ? result.name
+    : SPECIAL_HAND_DISPLAY_NAME[result.special];
+}
+
 //두 카드의 월을 오름차순으로 반환
 function getMonths(cards: [SeotdaCard, SeotdaCard]): [number, number] {
   const [card1, card2] = cards;
