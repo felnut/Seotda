@@ -58,9 +58,15 @@ export interface RestartVotesInfo {
   votedPlayerIds: string[];
 }
 
+export interface RoomPlayerInfo {
+  id: string;
+  name: string;
+}
+
 export interface RoomInfo {
   roomId: string;
   playerId: string;
   playerCount: number;
   maxPlayers: number;
+  players: RoomPlayerInfo[];
 }

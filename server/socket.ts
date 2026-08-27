@@ -131,10 +131,19 @@ function broadcastGameState(room: Room) {
   }
 }
 
+// 대기실 등에서 참가자 이름을 보여주기 위한 목록
+function roomPlayersPayload(room: Room) {
+  return room.joinedPlayers.map((player) => ({
+    id: player.id,
+    name: player.name,
+  }));
+}
+
 function broadcastPlayersUpdated(roomId: string, room: Room) {
   io.to(roomId).emit("players-updated", {
     count: room.joinedPlayers.length,
     maxPlayers: room.maxPlayers,
+    players: roomPlayersPayload(room),
   });
 }
 
@@ -238,6 +247,7 @@ io.on("connection", (socket) => {
         playerId: "player-1",
         playerCount: room.joinedPlayers.length,
         maxPlayers: room.maxPlayers,
+        players: roomPlayersPayload(room),
       });
     },
   );
@@ -287,6 +297,7 @@ io.on("connection", (socket) => {
         playerId,
         playerCount: room.joinedPlayers.length,
         maxPlayers: room.maxPlayers,
+        players: roomPlayersPayload(room),
       });
 
       broadcastPlayersUpdated(roomId, room);
@@ -317,6 +328,7 @@ io.on("connection", (socket) => {
         playerId,
         playerCount: room.joinedPlayers.length,
         maxPlayers: room.maxPlayers,
+        players: roomPlayersPayload(room),
       });
 
       broadcastPlayersUpdated(roomId, room);
