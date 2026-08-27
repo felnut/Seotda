@@ -1,8 +1,11 @@
 import { createServer } from "http";
 import { Server } from "socket.io";
-import { SeotdaGame } from "@/lib/seotda/game";
+import { SeotdaGame, STARTING_CHIPS } from "@/lib/seotda/game";
 import { getDisplayHandName } from "@/lib/seotda/ranking";
 import { ClientGameState } from "@/types/seotda";
+import { adminAuth, adminDb } from "@/lib/firebase/admin";
+import { RANKINGS_COLLECTION, RankingEntry } from "@/lib/ranking";
+import { PROFILES_COLLECTION, UserProfile } from "@/lib/profile";
 
 const httpServer = createServer();
 
@@ -31,6 +34,49 @@ interface JoinedPlayer {
   name: string;
   // 접속이 끊긴 동안에는 null (유예 시간 내 재접속 대기 중)
   socketId: string | null;
+  // 로그인한 계정과 연결됐다면 Firebase uid, 게스트라면 null
+  uid: string | null;
+  // 이 방에 처음 입장했을 때의 칩 — 로그인 계정이면 Firestore에 저장된
+  // 지속 뱅크롤, 게스트면 STARTING_CHIPS
+  startingChips: number;
+}
+
+// 로그인 토큰을 검증하고, 계정에 연결된 지속 뱅크롤/닉네임을 조회한다.
+// 토큰이 없거나 검증에 실패하면 게스트로 취급해 입장 자체는 막지 않는다.
+async function resolveJoiningPlayer(
+  idToken: string | undefined,
+  requestedName: string | undefined,
+): Promise<{ uid: string | null; name: string | null; startingChips: number }> {
+  if (!idToken || !adminAuth || !adminDb) {
+    return { uid: null, name: sanitizeName(requestedName), startingChips: STARTING_CHIPS };
+  }
+
+  try {
+    const decoded = await adminAuth.verifyIdToken(idToken);
+    const uid = decoded.uid;
+
+    const [rankingSnapshot, profileSnapshot] = await Promise.all([
+      adminDb.collection(RANKINGS_COLLECTION).doc(uid).get(),
+      adminDb.collection(PROFILES_COLLECTION).doc(uid).get(),
+    ]);
+    const existing = rankingSnapshot.data() as RankingEntry | undefined;
+    const profile = profileSnapshot.data() as UserProfile | undefined;
+
+    const name =
+      sanitizeName(requestedName) ??
+      sanitizeName(profile?.name) ??
+      sanitizeName(decoded.name) ??
+      sanitizeName(existing?.name);
+
+    return {
+      uid,
+      name,
+      startingChips: existing?.money ?? STARTING_CHIPS,
+    };
+  } catch (err) {
+    console.warn("idToken 검증 실패, 게스트로 진행합니다:", err);
+    return { uid: null, name: sanitizeName(requestedName), startingChips: STARTING_CHIPS };
+  }
 }
 
 // 사용자가 입력한 닉네임을 정리한다. 비어있거나 없으면 null을 반환해
@@ -132,7 +178,53 @@ function broadcastGameState(room: Room) {
 
   if (room.game.getState().phase === "finished") {
     broadcastRestartVotes(room);
+    syncRankingStats(room).catch((err) => {
+      console.error("랭킹 동기화 실패:", err);
+    });
   }
+}
+
+// 판이 끝날 때마다 로그인한(uid가 있는) 참가자의 랭킹 통계를 Firestore에 반영한다.
+// 관전자는 그 판에 참여하지 않았으므로 집계에서 제외한다.
+async function syncRankingStats(room: Room) {
+  if (!room.game || !adminDb) return;
+
+  const db = adminDb;
+  const gamePlayers = room.game.getState().players;
+  const winnerId = room.game.getState().winnerId;
+
+  const linkedPlayers = room.joinedPlayers.filter((p) => p.uid);
+
+  await Promise.all(
+    linkedPlayers.map(async (joined) => {
+      const gamePlayer = gamePlayers.find((p) => p.id === joined.id);
+
+      if (!gamePlayer || gamePlayer.isSpectator) return;
+
+      const uid = joined.uid as string;
+      const docRef = db.collection(RANKINGS_COLLECTION).doc(uid);
+
+      await db.runTransaction(async (tx) => {
+        const snapshot = await tx.get(docRef);
+        const existing = snapshot.data() as RankingEntry | undefined;
+
+        const wins = (existing?.wins ?? 0) + (gamePlayer.id === winnerId ? 1 : 0);
+        const gamesPlayed = (existing?.gamesPlayed ?? 0) + 1;
+
+        const entry: RankingEntry = {
+          name: joined.name,
+          money: gamePlayer.chips,
+          peakChips: Math.max(existing?.peakChips ?? 0, gamePlayer.chips),
+          wins,
+          gamesPlayed,
+          winRate: gamesPlayed > 0 ? wins / gamesPlayed : 0,
+          updatedAt: Date.now(),
+        };
+
+        tx.set(docRef, entry);
+      });
+    }),
+  );
 }
 
 // 대기실 등에서 참가자 이름을 보여주기 위한 목록
@@ -304,20 +396,27 @@ io.on("connection", (socket) => {
 
   socket.on(
     "create-room",
-    ({ maxPlayers, name }: { maxPlayers: number; name?: string }) => {
+    async (
+      { maxPlayers, name, idToken }:
+        { maxPlayers: number; name?: string; idToken?: string },
+    ) => {
       const roomId = createRoomId();
 
       const safeMaxPlayers = Number.isInteger(maxPlayers)
         ? Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, maxPlayers))
         : MIN_PLAYERS;
 
+      const resolved = await resolveJoiningPlayer(idToken, name);
+
       const room: Room = {
         maxPlayers: safeMaxPlayers,
         joinedPlayers: [
           {
             id: "player-1",
-            name: sanitizeName(name) ?? "플레이어 1",
+            name: resolved.name ?? "플레이어 1",
             socketId: socket.id,
+            uid: resolved.uid,
+            startingChips: resolved.startingChips,
           },
         ],
         game: null,
@@ -342,7 +441,10 @@ io.on("connection", (socket) => {
 
   socket.on(
     "join-room",
-    ({ roomId, name }: { roomId: string; name?: string }) => {
+    async (
+      { roomId, name, idToken }:
+        { roomId: string; name?: string; idToken?: string },
+    ) => {
       const room = rooms.get(roomId);
 
       if (!room) {
@@ -371,7 +473,8 @@ io.on("connection", (socket) => {
 
       const playerIndex = room.joinedPlayers.length + 1;
       const playerId = `player-${playerIndex}`;
-      const resolvedName = sanitizeName(name) ?? `플레이어 ${playerIndex}`;
+      const resolved = await resolveJoiningPlayer(idToken, name);
+      const resolvedName = resolved.name ?? `플레이어 ${playerIndex}`;
 
       if (room.joinedPlayers.some((p) => p.name === resolvedName)) {
         socket.emit("error-message", {
@@ -385,6 +488,8 @@ io.on("connection", (socket) => {
         id: playerId,
         name: resolvedName,
         socketId: socket.id,
+        uid: resolved.uid,
+        startingChips: resolved.startingChips,
       });
 
       socket.join(roomId);
@@ -454,9 +559,12 @@ io.on("connection", (socket) => {
     }
 
     if (!room.game) {
-      const names = room.joinedPlayers.map((player) => player.name);
+      const players = room.joinedPlayers.map((player) => ({
+        name: player.name,
+        chips: player.startingChips,
+      }));
 
-      room.game = new SeotdaGame(names);
+      room.game = new SeotdaGame(players);
     }
 
     room.game.start();
