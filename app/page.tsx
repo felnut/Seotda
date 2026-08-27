@@ -7,6 +7,7 @@ import {
   ClientGameState,
   ClientPlayer,
   RoomInfo,
+  RoomPlayerInfo,
   SeotdaCard,
   VisibleCard,
 } from "@/types/seotda";
@@ -769,6 +770,7 @@ export default function Home() {
 
   const [playerCount, setPlayerCount] = useState(0);
   const [maxPlayers, setMaxPlayers] = useState(MIN_ROOM_PLAYERS);
+  const [roomPlayers, setRoomPlayers] = useState<RoomPlayerInfo[]>([]);
 
   // 방 만들기 화면에서 고르는 정원 (아직 만들어진 방의 값이 아님)
   const [createMaxPlayers, setCreateMaxPlayers] = useState(MIN_ROOM_PLAYERS);
@@ -799,6 +801,7 @@ export default function Home() {
       setPlayerId(info.playerId);
       setPlayerCount(info.playerCount);
       setMaxPlayers(info.maxPlayers);
+      setRoomPlayers(info.players);
       setError("");
       saveSession({ roomId: info.roomId, playerId: info.playerId });
     });
@@ -808,6 +811,7 @@ export default function Home() {
       setPlayerId(info.playerId);
       setPlayerCount(info.playerCount);
       setMaxPlayers(info.maxPlayers);
+      setRoomPlayers(info.players);
       setError("");
       saveSession({ roomId: info.roomId, playerId: info.playerId });
     });
@@ -818,9 +822,18 @@ export default function Home() {
 
     socket.on(
       "players-updated",
-      ({ count, maxPlayers }: { count: number; maxPlayers: number }) => {
+      ({
+        count,
+        maxPlayers,
+        players,
+      }: {
+        count: number;
+        maxPlayers: number;
+        players: RoomPlayerInfo[];
+      }) => {
         setPlayerCount(count);
         setMaxPlayers(maxPlayers);
+        setRoomPlayers(players);
 
         if (count < MIN_ROOM_PLAYERS) {
           setError("함께할 플레이어가 부족합니다.");
@@ -964,6 +977,7 @@ export default function Home() {
     setGameState(null);
     setPlayerCount(0);
     setMaxPlayers(MIN_ROOM_PLAYERS);
+    setRoomPlayers([]);
     setPendingSelection([]);
     setIsGuideOpen(false);
     setError("");
@@ -1184,12 +1198,15 @@ export default function Home() {
   if (!gameState) {
     const seats = Array.from({ length: maxPlayers }, (_, index) => {
       const seatId = `player-${index + 1}`;
+      const filled = index + 1 <= playerCount;
 
       return {
         id: seatId,
-        name: `플레이어 ${index + 1}`,
+        name:
+          roomPlayers.find((player) => player.id === seatId)?.name ??
+          `플레이어 ${index + 1}`,
         isMe: seatId === playerId,
-        filled: index + 1 <= playerCount,
+        filled,
       };
     });
 
