@@ -20,6 +20,8 @@ export interface Player {
   bet: number;
   // 이번 베팅 라운드에서 마지막으로 취한 행동 (화면 표시용)
   lastAction: string | null;
+  // 파산 후 관전을 선택한 플레이어 — 이후 판부터 카드도, 베팅도 하지 않는다.
+  isSpectator: boolean;
 }
 
 export type GamePhase =
@@ -67,6 +69,7 @@ export class SeotdaGame {
         chips: STARTING_CHIPS,
         bet: 0,
         lastAction: null,
+        isSpectator: false,
       })),
 
       currentPlayerIndex: 0,
@@ -122,7 +125,8 @@ export class SeotdaGame {
       player.cards = null;
       player.revealedCardIndex = null;
       player.selectedIndices = null;
-      player.status = "playing";
+      // 관전자는 파산 후 관전을 선택한 플레이어 — 계속 관전 상태를 유지한다.
+      player.status = player.isSpectator ? "folded" : "playing";
       player.bet = 0;
       player.lastAction = null;
 
@@ -133,9 +137,12 @@ export class SeotdaGame {
 
     // 시작금(앤티) 자동 징수 — 칩이 부족하면 있는 만큼만 낸다(파산 처리는
     // 베팅 단계에서 자동으로 진행된다). 구사 재경기 직후라면 앤티가 배가 된다.
+    // 관전자는 앤티를 내지 않는다.
     const ante = ANTE * this.state.nextAnteMultiplier;
 
     for (const player of this.state.players) {
+      if (player.isSpectator) continue;
+
       const paid = Math.min(ante, player.chips);
 
       player.chips -= paid;
@@ -152,11 +159,26 @@ export class SeotdaGame {
       ? this.state.players.findIndex((player) => player.id === previousWinnerId)
       : -1;
 
-    this.state.currentPlayerIndex = winnerIndex >= 0 ? winnerIndex : 0;
+    let startIndex = winnerIndex >= 0 ? winnerIndex : 0;
+
+    // 선(先)이 관전자로 전환됐을 수 있으므로, 실제로 참여 중인 다음 플레이어를 찾는다.
+    for (let i = 0; i < this.state.players.length; i++) {
+      if (this.state.players[startIndex].status === "playing") break;
+
+      startIndex = (startIndex + 1) % this.state.players.length;
+    }
+
+    this.state.currentPlayerIndex = startIndex;
   }
 
   private dealInitialCards(): void {
     for (const player of this.state.players) {
+      // 관전자는 카드를 받지 않는다.
+      if (player.isSpectator) {
+        player.cards = null;
+        continue;
+      }
+
       const cards = this.state.deck.draw(2);
 
       player.cards = [cards[0], cards[1]];
@@ -686,6 +708,21 @@ export class SeotdaGame {
     const [i, j] = player.selectedIndices;
 
     return evaluateHand([player.cards[i], player.cards[j]]);
+  }
+
+  /**
+   * 파산한 플레이어를 관전자로 전환합니다.
+   *
+   * 관전자는 이후 판부터 카드를 받지 않고 앤티도 내지 않으며, 자연히
+   * 베팅 차례도 돌아오지 않습니다. 한 판이 끝난 뒤(다시하기 전)에만
+   * 전환할 수 있습니다.
+   */
+  setSpectator(playerId: string): void {
+    if (this.state.phase !== "finished") {
+      throw new Error("지금은 관전 여부를 바꿀 수 없습니다.");
+    }
+
+    this.findPlayer(playerId).isSpectator = true;
   }
 
   /**

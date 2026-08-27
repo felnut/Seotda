@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { io, Socket } from "socket.io-client";
 import {
+  BankruptcyNotice,
   ClientGameState,
   ClientPlayer,
   RoomInfo,
@@ -340,17 +341,24 @@ const CARD_PAIRS: [number, number][] = [
 ];
 
 function getPossibleHands(cards: VisibleCard[]) {
-  return CARD_PAIRS.filter(([i, j]) => cards[i]?.card && cards[j]?.card).map(
-    ([i, j]) => ({
+  const hands = CARD_PAIRS.filter(
+    ([i, j]) => cards[i]?.card && cards[j]?.card,
+  ).map(([i, j]) => {
+    const result = evaluateHand([
+      cards[i].card as SeotdaCard,
+      cards[j].card as SeotdaCard,
+    ]);
+
+    return {
       indices: [i, j] as [number, number],
-      name: getDisplayHandName(
-        evaluateHand([
-          cards[i].card as SeotdaCard,
-          cards[j].card as SeotdaCard,
-        ]),
-      ),
-    }),
-  );
+      name: getDisplayHandName(result),
+      rank: result.rank,
+    };
+  });
+
+  const bestRank = Math.max(...hands.map((hand) => hand.rank));
+
+  return hands.map((hand) => ({ ...hand, isBest: hand.rank === bestRank }));
 }
 
 const PHASE_LABEL: Partial<Record<ClientGameState["phase"], string>> = {
@@ -490,7 +498,13 @@ function PlayerPanel({
             </span>
           )}
 
-          {player.status === "folded" && (
+          {player.isSpectator && (
+            <span className="rounded-full bg-white/5 px-2.5 py-0.5 text-[14px] font-bold text-zinc-400">
+              관전 중
+            </span>
+          )}
+
+          {!player.isSpectator && player.status === "folded" && (
             <span className="rounded-full bg-white/5 px-2.5 py-0.5 text-[14px] font-bold text-zinc-400">
               다이
             </span>
@@ -594,13 +608,21 @@ function PlayerPanel({
         player.cards.length === 3 &&
         player.cards.every((visibleCard) => visibleCard.card) && (
           <div className="mt-1.5 flex flex-wrap items-center justify-center gap-1">
-            {getPossibleHands(player.cards).map(({ indices, name }) => (
+            {getPossibleHands(player.cards).map(({ indices, name, isBest }) => (
               <span
                 key={`${indices[0]}-${indices[1]}`}
-                className="rounded-full bg-white/5 px-2 py-0.5 text-[14px] text-zinc-400"
+                className={`rounded-full px-2 py-0.5 text-[14px] transition ${
+                  isBest
+                    ? "border border-amber-400/60 bg-amber-400/10 text-amber-300 ring-1 ring-amber-400/40"
+                    : "border border-transparent bg-white/5 text-zinc-400"
+                }`}
               >
                 {indices[0] + 1}+{indices[1] + 1}{" "}
-                <span className="font-semibold text-zinc-200">{name}</span>
+                <span
+                  className={`font-semibold ${isBest ? "text-amber-200" : "text-zinc-200"}`}
+                >
+                  {name}
+                </span>
               </span>
             ))}
           </div>
@@ -785,6 +807,12 @@ export default function Home() {
   const [restartVotes, setRestartVotes] = useState(0);
   const [restartVotesTotal, setRestartVotesTotal] = useState(0);
 
+  // 다시하기 시 파산한 플레이어가 있으면 전원에게 한 번 뜨는 알림.
+  // 내가 그 대상이면 관전/나가기를 직접 골라야 한다.
+  const [bankruptcyNotice, setBankruptcyNotice] =
+    useState<BankruptcyNotice | null>(null);
+  const [hasDecidedBankruptcy, setHasDecidedBankruptcy] = useState(false);
+
   const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   // 상대방이 참가하면 자동 시작까지 남은 초 (null이면 카운트다운 중이 아님)
@@ -847,6 +875,8 @@ export default function Home() {
       setHasVotedRestart(false);
       setRestartVotes(0);
       setRestartVotesTotal(0);
+      setBankruptcyNotice(null);
+      setHasDecidedBankruptcy(false);
 
       if (state.phase !== "select") {
         setPendingSelection([]);
@@ -861,6 +891,11 @@ export default function Home() {
       },
     );
 
+    socket.on("bankruptcy-notice", (notice: BankruptcyNotice) => {
+      setBankruptcyNotice(notice);
+      setHasDecidedBankruptcy(false);
+    });
+
     socket.on("error-message", ({ message }: { message: string }) => {
       setError(message);
       setHasVotedRestart(false);
@@ -873,6 +908,7 @@ export default function Home() {
       socket.off("players-updated");
       socket.off("game-state");
       socket.off("restart-votes-updated");
+      socket.off("bankruptcy-notice");
       socket.off("error-message");
     };
   }, []);
@@ -954,6 +990,26 @@ export default function Home() {
     socket.emit("start-game", roomId);
   };
 
+  // 방을 나갈 때 로컬에 남아있던 방/게임 상태를 정리한다.
+  const resetRoomState = () => {
+    clearSession();
+
+    setRoomId("");
+    setPlayerId("");
+    setGameState(null);
+    setPlayerCount(0);
+    setMaxPlayers(MIN_ROOM_PLAYERS);
+    setRoomPlayers([]);
+    setPendingSelection([]);
+    setIsGuideOpen(false);
+    setError("");
+    setHasVotedRestart(false);
+    setRestartVotes(0);
+    setRestartVotesTotal(0);
+    setBankruptcyNotice(null);
+    setHasDecidedBankruptcy(false);
+  };
+
   // 10. 방 나가기
   const leaveRoom = () => {
     if (!roomId) return;
@@ -970,20 +1026,7 @@ export default function Home() {
     }
 
     socket.emit("leave-room", roomId);
-    clearSession();
-
-    setRoomId("");
-    setPlayerId("");
-    setGameState(null);
-    setPlayerCount(0);
-    setMaxPlayers(MIN_ROOM_PLAYERS);
-    setRoomPlayers([]);
-    setPendingSelection([]);
-    setIsGuideOpen(false);
-    setError("");
-    setHasVotedRestart(false);
-    setRestartVotes(0);
-    setRestartVotesTotal(0);
+    resetRoomState();
   };
 
   // 다시하기 투표 — 참가자 전원이 동의해야 실제로 재시작된다.
@@ -994,6 +1037,18 @@ export default function Home() {
     setHasVotedRestart(true);
 
     socket.emit("restart-game", roomId);
+  };
+
+  // 파산했을 때 다음 판을 관전할지, 방을 나갈지 선택한다.
+  const decideBankruptcy = (choice: "spectate" | "leave") => {
+    if (!roomId || hasDecidedBankruptcy) return;
+
+    setHasDecidedBankruptcy(true);
+    socket.emit("bankruptcy-decision", { roomId, choice });
+
+    if (choice === "leave") {
+      resetRoomState();
+    }
   };
 
   const bet = () => {
@@ -1346,7 +1401,45 @@ export default function Home() {
         </div>
 
         <div className="shrink-0 pt-2">
-          {gameState.phase === "finished" && (
+          {gameState.phase === "finished" && bankruptcyNotice && (
+            <div className="animate-pop-in flex flex-col items-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 p-3 text-center">
+              <p className="text-[17.5px] font-semibold text-amber-300">
+                {bankruptcyNotice.playerNames.join(", ")}님이 파산했습니다.
+              </p>
+
+              {bankruptcyNotice.playerIds.includes(playerId) ? (
+                hasDecidedBankruptcy ? (
+                  <p className="text-[15px] text-zinc-400">
+                    선택을 처리하는 중...
+                  </p>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => decideBankruptcy("spectate")}
+                      className="rounded-xl border border-white/15 bg-white/5 px-5 py-2 text-[15px] font-semibold text-zinc-200 transition hover:scale-[1.03] hover:bg-white/10 active:scale-95"
+                    >
+                      관전하기
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => decideBankruptcy("leave")}
+                      className="rounded-xl border border-red-500/40 bg-red-500/10 px-5 py-2 text-[15px] font-semibold text-red-300 transition hover:scale-[1.03] hover:bg-red-500/20 active:scale-95"
+                    >
+                      나가기
+                    </button>
+                  </div>
+                )
+              ) : (
+                <p className="text-[15px] text-zinc-400">
+                  관전 또는 나가기를 선택하는 중입니다...
+                </p>
+              )}
+            </div>
+          )}
+
+          {gameState.phase === "finished" && !bankruptcyNotice && (
             <div className="flex flex-col items-center gap-1.5 pb-1">
               <button
                 type="button"

@@ -50,6 +50,8 @@ interface Room {
   disconnectTimers: Map<string, ReturnType<typeof setTimeout>>;
   // 게임 종료 후 "다시하기"에 동의한 플레이어 id 목록
   restartVotes: Set<string>;
+  // 다시하기 전, 파산해서 관전/나가기 결정을 아직 하지 않은 플레이어 id 목록
+  pendingBankruptcy: Set<string>;
 }
 
 const rooms = new Map<string, Room>();
@@ -100,6 +102,7 @@ function createClientGameState(
         chips: player.chips,
         bet: player.bet,
         lastAction: player.lastAction,
+        isSpectator: player.isSpectator,
       };
     }),
 
@@ -162,9 +165,33 @@ function broadcastRestartVotes(room: Room) {
   }
 }
 
-// 모든 참가자가 다시하기에 동의했으면 새 판을 시작한다.
+// 현재 관전/나가기 결정을 기다리고 있는 파산 플레이어 정보를 만든다.
+function bankruptcyNoticePayload(room: Room) {
+  const playerIds = Array.from(room.pendingBankruptcy);
+
+  const playerNames = room.joinedPlayers
+    .filter((player) => room.pendingBankruptcy.has(player.id))
+    .map((player) => player.name);
+
+  return { playerIds, playerNames };
+}
+
+function broadcastBankruptcyNotice(room: Room) {
+  const payload = bankruptcyNoticePayload(room);
+
+  for (const player of room.joinedPlayers) {
+    if (!player.socketId) continue;
+
+    io.to(player.socketId).emit("bankruptcy-notice", payload);
+  }
+}
+
+// 모든 참가자가 다시하기에 동의했으면 파산자 유무를 확인한 뒤 새 판을 시작한다.
 function tryStartVotedRestart(room: Room) {
   if (!room.game || room.game.getState().phase !== "finished") return;
+
+  // 이미 파산자의 관전/나가기 결정을 기다리는 중이라면 새로 시작하지 않는다.
+  if (room.pendingBankruptcy.size > 0) return;
 
   if (
     room.restartVotes.size > 0 &&
@@ -172,11 +199,54 @@ function tryStartVotedRestart(room: Room) {
     room.joinedPlayers.length >= MIN_PLAYERS
   ) {
     room.restartVotes.clear();
-    room.game.start(true);
-    broadcastGameState(room);
+    beginRestart(room);
   } else {
     broadcastRestartVotes(room);
   }
+}
+
+// 다시하기가 확정된 뒤 실제로 새 판을 시작한다. 파산한 플레이어가 있다면
+// 먼저 전원에게 한 번 알리고, 그 플레이어들이 관전/나가기를 고를 때까지 기다린다.
+function beginRestart(room: Room) {
+  if (!room.game) return;
+
+  const bankruptPlayers = room.game
+    .getState()
+    .players.filter((player) => player.chips === 0 && !player.isSpectator);
+
+  if (bankruptPlayers.length > 0) {
+    room.pendingBankruptcy = new Set(bankruptPlayers.map((player) => player.id));
+    broadcastBankruptcyNotice(room);
+    return;
+  }
+
+  // 칩은 초기화하지 않고 그대로 이어서 시작한다.
+  room.game.start(false);
+  broadcastGameState(room);
+}
+
+// 파산자 전원이 관전/나가기를 결정하면 이어서 새 판을 시작한다.
+function resumeRestartAfterBankruptcy(room: Room) {
+  if (room.pendingBankruptcy.size > 0 || !room.game) return;
+
+  const playableCount = room.game
+    .getState()
+    .players.filter((player) => !player.isSpectator).length;
+
+  if (playableCount < MIN_PLAYERS) {
+    for (const player of room.joinedPlayers) {
+      if (!player.socketId) continue;
+
+      io.to(player.socketId).emit("error-message", {
+        message: "게임을 계속할 인원이 부족합니다.",
+      });
+    }
+
+    return;
+  }
+
+  room.game.start(false);
+  broadcastGameState(room);
 }
 
 function findPlayerIdBySocket(room: Room, socketId: string): string | null {
@@ -198,6 +268,18 @@ function removePlayerFromRoom(roomId: string, room: Room, playerId: string) {
   room.joinedPlayers = room.joinedPlayers.filter((p) => p.id !== playerId);
   room.restartVotes.delete(playerId);
 
+  // 관전/나가기를 결정하지 못한 채 나갔다면, 게임에서도 관전자로 처리해
+  // 다음 판에 카드를 받거나 베팅 차례가 도는 일이 없도록 한다.
+  const wasPendingBankruptcy = room.pendingBankruptcy.delete(playerId);
+
+  if (wasPendingBankruptcy && room.game) {
+    try {
+      room.game.setSpectator(playerId);
+    } catch {
+      // 이미 다음 판이 시작되는 등 예외 상황은 무시한다.
+    }
+  }
+
   if (room.joinedPlayers.length === 0) {
     rooms.delete(roomId);
     return;
@@ -205,8 +287,12 @@ function removePlayerFromRoom(roomId: string, room: Room, playerId: string) {
 
   broadcastPlayersUpdated(roomId, room);
 
-  // 남은 인원만으로 이미 만장일치라면(예: 미투표자가 방을 나간 경우) 바로 재시작
-  tryStartVotedRestart(room);
+  if (wasPendingBankruptcy) {
+    resumeRestartAfterBankruptcy(room);
+  } else {
+    // 남은 인원만으로 이미 만장일치라면(예: 미투표자가 방을 나간 경우) 바로 재시작
+    tryStartVotedRestart(room);
+  }
 }
 
 function createRoomId(): string {
@@ -237,6 +323,7 @@ io.on("connection", (socket) => {
         game: null,
         disconnectTimers: new Map(),
         restartVotes: new Set(),
+        pendingBankruptcy: new Set(),
       };
 
       rooms.set(roomId, room);
@@ -337,6 +424,10 @@ io.on("connection", (socket) => {
       if (room.game) {
         socket.emit("game-state", createClientGameState(room.game, playerId));
       }
+
+      if (room.pendingBankruptcy.size > 0) {
+        socket.emit("bankruptcy-notice", bankruptcyNoticePayload(room));
+      }
     },
   );
 
@@ -396,6 +487,40 @@ io.on("connection", (socket) => {
 
     tryStartVotedRestart(room);
   });
+
+  // 파산한 플레이어가 다음 판을 관전할지, 방을 나갈지 결정한다.
+  socket.on(
+    "bankruptcy-decision",
+    ({ roomId, choice }: { roomId: string; choice: "spectate" | "leave" }) => {
+      const room = rooms.get(roomId);
+
+      if (!room || !room.game) return;
+
+      const playerId = findPlayerIdBySocket(room, socket.id);
+
+      if (!playerId || !room.pendingBankruptcy.has(playerId)) return;
+
+      room.pendingBankruptcy.delete(playerId);
+
+      try {
+        room.game.setSpectator(playerId);
+      } catch (error) {
+        socket.emit("error-message", {
+          message:
+            error instanceof Error
+              ? error.message
+              : "관전 처리에 실패했습니다.",
+        });
+      }
+
+      if (choice === "leave") {
+        socket.leave(roomId);
+        removePlayerFromRoom(roomId, room, playerId);
+      }
+
+      resumeRestartAfterBankruptcy(room);
+    },
+  );
 
   socket.on("bet", ({ roomId, amount }: { roomId: string; amount: number }) => {
     const room = rooms.get(roomId);
