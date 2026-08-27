@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/useAuth";
 import { PROFILES_COLLECTION, UserProfile } from "@/lib/profile";
+import { RANKINGS_COLLECTION } from "@/lib/ranking";
 import { GoogleSignInButton } from "@/app/components/GoogleSignInButton";
 
 const MAX_NAME_LENGTH = 8;
@@ -73,10 +74,18 @@ export default function ProfilePage() {
 
     const profile: UserProfile = { name: trimmed, updatedAt: Date.now() };
 
-    setDoc(doc(db, PROFILES_COLLECTION, user.uid), profile, { merge: true })
+    const firestore = db;
+
+    setDoc(doc(firestore, PROFILES_COLLECTION, user.uid), profile, { merge: true })
       .then(() => {
         setName(trimmed);
         setSaved(true);
+
+        // 이미 랭킹에 기록이 있는 계정이면 표시 이름도 바로 갱신한다.
+        // 아직 한 판도 안 한 계정은 랭킹 문서가 없어서 실패하는데, 그건 정상이라 무시한다.
+        updateDoc(doc(firestore, RANKINGS_COLLECTION, user.uid), {
+          name: trimmed,
+        }).catch(() => {});
       })
       .catch((err) => {
         console.error("프로필 저장에 실패했습니다:", err);
