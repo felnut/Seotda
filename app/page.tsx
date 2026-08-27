@@ -773,6 +773,9 @@ export default function Home() {
   // 방 만들기 화면에서 고르는 정원 (아직 만들어진 방의 값이 아님)
   const [createMaxPlayers, setCreateMaxPlayers] = useState(MIN_ROOM_PLAYERS);
 
+  // 방 만들기/참가 시 사용할 닉네임 (비워두면 서버가 기본 이름을 붙여준다)
+  const [displayName, setDisplayName] = useState("");
+
   const [error, setError] = useState("");
 
   // 게임 종료 후 "다시하기"에 내가 동의했는지, 그리고 전체 동의 현황
@@ -908,7 +911,10 @@ export default function Home() {
   const createRoom = () => {
     setError("");
 
-    socket.emit("create-room", createMaxPlayers);
+    socket.emit("create-room", {
+      maxPlayers: createMaxPlayers,
+      name: displayName.trim() || undefined,
+    });
   };
 
   // 8. 방 참가
@@ -922,7 +928,10 @@ export default function Home() {
 
     setError("");
 
-    socket.emit("join-room", code);
+    socket.emit("join-room", {
+      roomId: code,
+      name: displayName.trim() || undefined,
+    });
   };
 
   // 9. 게임 시작
@@ -979,6 +988,16 @@ export default function Home() {
     socket.emit("bet", {
       roomId,
       amount: 100,
+    });
+  };
+
+  // 하프 — 현재 판돈의 절반을 베팅한다.
+  const betHalf = () => {
+    if (!roomId || !gameState) return;
+
+    socket.emit("bet", {
+      roomId,
+      amount: Math.max(1, Math.floor(gameState.pot / 2)),
     });
   };
 
@@ -1054,6 +1073,20 @@ export default function Home() {
         <p className="mb-10 text-[17.5px] text-zinc-500">
           전통 카드 게임을 온라인으로
         </p>
+
+        <div className="mb-6 w-full max-w-sm">
+          <label className="mb-1.5 block text-[13px] font-medium text-zinc-500">
+            닉네임 (선택)
+          </label>
+
+          <input
+            value={displayName}
+            onChange={(event) => setDisplayName(event.target.value)}
+            placeholder="입력하지 않으면 기본 이름이 부여됩니다"
+            maxLength={8}
+            className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-[17.5px] text-white outline-none transition focus:border-amber-400/50 focus:ring-2 focus:ring-amber-400/20"
+          />
+        </div>
 
         <div className="w-full max-w-2xl">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-stretch">
@@ -1322,7 +1355,7 @@ export default function Home() {
 
           {(gameState.phase === "betting1" ||
             gameState.phase === "betting2") && (
-            <div className="animate-fade-up grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-center sm:gap-3">
+            <div className="animate-fade-up grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:justify-center sm:gap-3">
               {gameState.currentBet === 0 ? (
                 <>
                   <button
@@ -1335,6 +1368,18 @@ export default function Home() {
                     className="rounded-xl bg-blue-500/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-blue-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
                   >
                     베트
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={betHalf}
+                    disabled={
+                      gameState.players[gameState.currentPlayerIndex]?.id !==
+                      playerId
+                    }
+                    className="rounded-xl bg-blue-500/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-blue-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                  >
+                    하프
                   </button>
 
                   <button
@@ -1384,7 +1429,7 @@ export default function Home() {
                   gameState.players[gameState.currentPlayerIndex]?.id !==
                   playerId
                 }
-                className="col-span-2 rounded-xl border border-red-500/40 bg-red-500/10 px-5 py-2.5 text-[17.5px] font-semibold text-red-300 transition hover:scale-[1.02] hover:bg-red-500/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:col-span-1 sm:px-7 sm:py-3"
+                className="col-span-3 rounded-xl border border-red-500/40 bg-red-500/10 px-5 py-2.5 text-[17.5px] font-semibold text-red-300 transition hover:scale-[1.02] hover:bg-red-500/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:col-span-1 sm:px-7 sm:py-3"
               >
                 다이
               </button>

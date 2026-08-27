@@ -6,6 +6,9 @@ export type PlayerStatus = "playing" | "folded" | "winner" | "loser";
 
 export const STARTING_CHIPS = 10_000;
 
+// 매 판 시작 시 자동으로 내는 시작금(앤티)
+export const ANTE = 100;
+
 export interface Player {
   id: string;
   name: string;
@@ -122,6 +125,16 @@ export class SeotdaGame {
       if (resetChips) {
         player.chips = STARTING_CHIPS;
       }
+    }
+
+    // 시작금(앤티) 자동 징수 — 칩이 부족하면 있는 만큼만 낸다(파산 처리는
+    // 베팅 단계에서 자동으로 진행된다).
+    for (const player of this.state.players) {
+      const ante = Math.min(ANTE, player.chips);
+
+      player.chips -= ante;
+      player.totalBetThisHand += ante;
+      this.state.pot += ante;
     }
 
     this.state.phase = "dealing";
@@ -521,8 +534,10 @@ export class SeotdaGame {
      *
      * 다음 단계로 넘어간다 (첫 베팅 -> 카드 공개, 두 번째 베팅 -> 족보 선택)
      */
+    // 파산한(칩이 0인) 플레이어는 더 이상 베팅을 맞출 수 없으므로
+    // 맞췄는지 여부와 무관하게 라운드 종료 조건을 통과한 것으로 본다.
     const allMatched = activePlayers.every(
-      (player) => player.bet === this.state.currentBet,
+      (player) => player.bet === this.state.currentBet || player.chips === 0,
     );
 
     const allActed = activePlayers.every((player) =>
@@ -549,6 +564,15 @@ export class SeotdaGame {
     } while (this.state.players[nextIndex].status !== "playing");
 
     this.state.currentPlayerIndex = nextIndex;
+
+    // 파산한 플레이어는 베팅에 참여할 수 없으므로 자동으로 차례를 넘긴다.
+    const nextPlayer = this.state.players[nextIndex];
+
+    if (nextPlayer.chips === 0 && !this.actedPlayers.has(nextPlayer.id)) {
+      nextPlayer.lastAction = "올인 (자동 패스)";
+      this.actedPlayers.add(nextPlayer.id);
+      this.nextTurn();
+    }
   }
 
   /**
@@ -617,7 +641,7 @@ export class SeotdaGame {
       }
     }
 
-    winner.chips += this.state.pot;
+    this.awardPot(winner);
 
     this.state.winnerId = winner.id;
     this.state.phase = "finished";
@@ -689,7 +713,7 @@ export class SeotdaGame {
 
     winner.status = "winner";
 
-    winner.chips += this.state.pot;
+    this.awardPot(winner);
 
     for (const player of this.state.players) {
       if (player.id !== winner.id) {
@@ -727,5 +751,71 @@ export class SeotdaGame {
     }
 
     return best;
+  }
+
+  /**
+   * 승자에게 판돈을 지급합니다.
+   *
+   * 승자가 파산 상태(칩 0)로 승리했다면, 다른 참가자들이 이번 판에 낸
+   * 돈으로 쌓인 판돈을 혼자 다 가져가는 게 불공평하므로 절반만 가져가고
+   * 나머지 절반은 다이하지 않고 남아있던 플레이어 중 패의 순위가 두 번째로
+   * 높은 사람에게 준다. (다이한 플레이어는 2등 후보에서 제외한다. 다이로
+   * 이겨서 남은 플레이어가 아무도 없다면 승자가 전액을 가져간다.)
+   */
+  private awardPot(winner: Player): void {
+    if (winner.chips > 0) {
+      winner.chips += this.state.pot;
+      return;
+    }
+
+    const halfPot = Math.floor(this.state.pot / 2);
+    const remainder = this.state.pot - halfPot;
+
+    const runnerUp = this.state.players
+      .filter(
+        (player) => player.id !== winner.id && player.status !== "folded",
+      )
+      .map((player) => ({
+        player,
+        result: this.getComparableHandResult(player),
+      }))
+      .filter(
+        (entry): entry is { player: Player; result: HandResult } =>
+          entry.result !== null,
+      )
+      .sort((a, b) => {
+        if (a.result.rank !== b.result.rank) {
+          return b.result.rank - a.result.rank;
+        }
+
+        return b.result.value - a.result.value;
+      })[0]?.player;
+
+    winner.chips += halfPot;
+
+    if (runnerUp) {
+      runnerUp.chips += remainder;
+    } else {
+      // 비교할 상대가 없다면(예: 1명뿐인 방) 그냥 전액 지급한다.
+      winner.chips += remainder;
+    }
+  }
+
+  /**
+   * 다이 여부와 무관하게, 플레이어가 가진 카드 기준 최선의 족보를 계산합니다.
+   * (파산 승자의 판돈을 나눌 2등을 가리기 위한 용도)
+   */
+  private getComparableHandResult(player: Player): HandResult | null {
+    if (!player.cards || player.cards.length < 2) {
+      return null;
+    }
+
+    if (player.cards.length === 2) {
+      return evaluateHand([player.cards[0], player.cards[1]]);
+    }
+
+    const [i, j] = player.selectedIndices ?? this.bestPairIndices(player.cards);
+
+    return evaluateHand([player.cards[i], player.cards[j]]);
   }
 }
