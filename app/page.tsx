@@ -1054,85 +1054,83 @@ export default function Home() {
           전통 카드 게임을 온라인으로
         </p>
 
-        <div className="w-full max-w-sm space-y-6">
-          {/* 7. 방 만들기 */}
-          <section className="animate-fade-up rounded-2xl border border-white/10 bg-white/3 p-6 shadow-xl shadow-black/30 sm:p-8">
-            <h2 className="mb-1 text-lg font-semibold">방 만들기</h2>
+        <div className="w-full max-w-2xl">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+            {/* 7. 방 만들기 */}
+            <section className="animate-fade-up w-full rounded-2xl border border-white/10 bg-white/3 p-6 shadow-xl shadow-black/30 sm:flex-1 sm:p-8">
+              <h2 className="mb-1 text-lg font-semibold">방 만들기</h2>
 
-            <p className="mb-3 text-sm text-zinc-400">
-              새로운 게임 방을 생성합니다.
-            </p>
+              <p className="mb-3 text-sm text-zinc-400">
+                새로운 게임 방을 생성합니다.
+              </p>
 
-            <p className="mb-2 text-xs font-medium text-zinc-500">인원 수</p>
+              <p className="mb-2 text-xs font-medium text-zinc-500">
+                인원 수
+              </p>
 
-            <div className="mb-5 flex gap-2">
-              {Array.from(
-                { length: MAX_ROOM_PLAYERS - MIN_ROOM_PLAYERS + 1 },
-                (_, index) => MIN_ROOM_PLAYERS + index,
-              ).map((count) => (
-                <button
-                  key={count}
-                  type="button"
-                  onClick={() => setCreateMaxPlayers(count)}
-                  className={`flex-1 rounded-lg border py-2 text-sm font-semibold transition ${
-                    createMaxPlayers === count
-                      ? "border-amber-400/60 bg-amber-400/15 text-amber-300"
-                      : "border-white/10 bg-white/3 text-zinc-400 hover:border-white/20"
-                  }`}
-                >
-                  {count}
-                </button>
-              ))}
-            </div>
+              <div className="mb-5 flex gap-2">
+                {Array.from(
+                  { length: MAX_ROOM_PLAYERS - MIN_ROOM_PLAYERS + 1 },
+                  (_, index) => MIN_ROOM_PLAYERS + index,
+                ).map((count) => (
+                  <button
+                    key={count}
+                    type="button"
+                    onClick={() => setCreateMaxPlayers(count)}
+                    className={`flex-1 rounded-lg border py-2 text-sm font-semibold transition ${
+                      createMaxPlayers === count
+                        ? "border-amber-400/60 bg-amber-400/15 text-amber-300"
+                        : "border-white/10 bg-white/3 text-zinc-400 hover:border-white/20"
+                    }`}
+                  >
+                    {count}
+                  </button>
+                ))}
+              </div>
 
-            <button
-              type="button"
-              onClick={createRoom}
-              className="w-full rounded-xl bg-amber-400 px-6 py-3.5 text-sm font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-amber-300 active:scale-[0.98]"
+              <button
+                type="button"
+                onClick={createRoom}
+                className="w-full rounded-xl bg-amber-400 px-6 py-3.5 text-sm font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-amber-300 active:scale-[0.98]"
+              >
+                방 만들기
+              </button>
+            </section>
+
+            {/* 8. 방 참가 */}
+            <section
+              className="animate-fade-up w-full rounded-2xl border border-white/10 bg-white/3 p-6 shadow-xl shadow-black/30 sm:flex-1 sm:p-8"
+              style={{ animationDelay: "80ms" }}
             >
-              방 만들기
-            </button>
-          </section>
+              <h2 className="mb-4 text-lg font-semibold">방 참가</h2>
 
-          <div className="flex items-center gap-3 text-xs text-zinc-600">
-            <div className="h-px flex-1 bg-white/10" />
-            또는
-            <div className="h-px flex-1 bg-white/10" />
+              <input
+                value={joinCode}
+                onChange={(event) =>
+                  setJoinCode(event.target.value.toUpperCase())
+                }
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    joinRoom();
+                  }
+                }}
+                placeholder="방 코드 입력"
+                maxLength={6}
+                className="mb-4 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-center text-lg font-semibold tracking-[0.3em] text-white outline-none transition focus:border-amber-400/50 focus:ring-2 focus:ring-amber-400/20"
+              />
+
+              <button
+                type="button"
+                onClick={joinRoom}
+                className="w-full rounded-xl bg-emerald-500 px-6 py-3.5 text-sm font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-emerald-400 active:scale-[0.98]"
+              >
+                참가
+              </button>
+            </section>
           </div>
 
-          {/* 8. 방 참가 */}
-          <section
-            className="animate-fade-up rounded-2xl border border-white/10 bg-white/3 p-6 shadow-xl shadow-black/30 sm:p-8"
-            style={{ animationDelay: "80ms" }}
-          >
-            <h2 className="mb-4 text-lg font-semibold">방 참가</h2>
-
-            <input
-              value={joinCode}
-              onChange={(event) =>
-                setJoinCode(event.target.value.toUpperCase())
-              }
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  joinRoom();
-                }
-              }}
-              placeholder="방 코드 입력"
-              maxLength={6}
-              className="mb-4 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-center text-lg font-semibold tracking-[0.3em] text-white outline-none transition focus:border-amber-400/50 focus:ring-2 focus:ring-amber-400/20"
-            />
-
-            <button
-              type="button"
-              onClick={joinRoom}
-              className="w-full rounded-xl bg-emerald-500 px-6 py-3.5 text-sm font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-emerald-400 active:scale-[0.98]"
-            >
-              참가
-            </button>
-          </section>
-
           {error && (
-            <p className="animate-fade-up rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-center text-sm font-medium text-red-300">
+            <p className="animate-fade-up mt-6 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-center text-sm font-medium text-red-300">
               {error}
             </p>
           )}
