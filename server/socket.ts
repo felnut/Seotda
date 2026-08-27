@@ -112,6 +112,7 @@ function createClientGameState(
     winnerId: state.winnerId,
 
     redealReason: state.redealReason,
+    nextAnteMultiplier: state.nextAnteMultiplier,
   };
 }
 

@@ -1365,8 +1365,8 @@ export default function Home() {
 
           {gameState.phase === "redeal" && (
             <p className="animate-fade-up mx-auto max-w-md rounded-xl border border-amber-400/30 bg-amber-400/10 p-3 text-center text-[17.5px] font-semibold text-amber-300">
-              {gameState.redealReason ?? "구사"}! 무승부로 카드를 다시
-              나눕니다...
+              {gameState.redealReason ?? "구사"}! 판돈은 그대로 묻고, 다음 판
+              앤티가 {gameState.nextAnteMultiplier}배가 됩니다...
             </p>
           )}
 

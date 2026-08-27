@@ -18,9 +18,6 @@ export interface Player {
   status: PlayerStatus;
   chips: number;
   bet: number;
-  // 이번 판(재경기 여부 판단/환불용)에 실제로 낸 총 베팅액. 베팅 라운드가
-  // 바뀌어도 초기화되지 않고, 새 판이 시작될 때만 0으로 리셋된다.
-  totalBetThisHand: number;
   // 이번 베팅 라운드에서 마지막으로 취한 행동 (화면 표시용)
   lastAction: string | null;
 }
@@ -46,6 +43,8 @@ export interface GameState {
   winnerId: string | null;
   // 구사/멍텅구리 구사로 재경기가 될 때 그 사유
   redealReason: string | null;
+  // 구사류로 재경기가 거듭될수록 배로 불어나는 다음 판 앤티 배수 (묻고 더블)
+  nextAnteMultiplier: number;
 }
 
 export class SeotdaGame {
@@ -67,7 +66,6 @@ export class SeotdaGame {
         status: "playing",
         chips: STARTING_CHIPS,
         bet: 0,
-        totalBetThisHand: 0,
         lastAction: null,
       })),
 
@@ -79,6 +77,7 @@ export class SeotdaGame {
 
       winnerId: null,
       redealReason: null,
+      nextAnteMultiplier: 1,
     };
   }
 
@@ -104,9 +103,15 @@ export class SeotdaGame {
     // 승자가 없었다면(첫 판, 재경기) 기존처럼 0번부터 시작한다.
     const previousWinnerId = this.state.winnerId;
 
+    // 구사류로 인한 재경기라면 판돈은 묻어두고(그대로 두고) 앤티만 배로 걷는다.
+    const isRedealContinuation = this.state.phase === "redeal";
+
     this.state.deck.reset();
 
-    this.state.pot = 0;
+    if (!isRedealContinuation) {
+      this.state.pot = 0;
+    }
+
     this.state.currentBet = 0;
     this.state.winnerId = null;
     this.state.redealReason = null;
@@ -119,7 +124,6 @@ export class SeotdaGame {
       player.selectedIndices = null;
       player.status = "playing";
       player.bet = 0;
-      player.totalBetThisHand = 0;
       player.lastAction = null;
 
       if (resetChips) {
@@ -128,13 +132,14 @@ export class SeotdaGame {
     }
 
     // 시작금(앤티) 자동 징수 — 칩이 부족하면 있는 만큼만 낸다(파산 처리는
-    // 베팅 단계에서 자동으로 진행된다).
-    for (const player of this.state.players) {
-      const ante = Math.min(ANTE, player.chips);
+    // 베팅 단계에서 자동으로 진행된다). 구사 재경기 직후라면 앤티가 배가 된다.
+    const ante = ANTE * this.state.nextAnteMultiplier;
 
-      player.chips -= ante;
-      player.totalBetThisHand += ante;
-      this.state.pot += ante;
+    for (const player of this.state.players) {
+      const paid = Math.min(ante, player.chips);
+
+      player.chips -= paid;
+      this.state.pot += paid;
     }
 
     this.state.phase = "dealing";
@@ -224,7 +229,6 @@ export class SeotdaGame {
 
     player.chips -= amount;
     player.bet += amount;
-    player.totalBetThisHand += amount;
     player.lastAction = `베팅 ${amount.toLocaleString()}`;
 
     this.state.pot += amount;
@@ -296,7 +300,6 @@ export class SeotdaGame {
 
     player.chips -= requiredAmount;
     player.bet += requiredAmount;
-    player.totalBetThisHand += requiredAmount;
     player.lastAction = "콜";
 
     this.state.pot += requiredAmount;
@@ -351,7 +354,6 @@ export class SeotdaGame {
 
     player.chips -= additionalAmount;
     player.bet = amount;
-    player.totalBetThisHand += additionalAmount;
 
     this.state.pot += additionalAmount;
     this.state.currentBet = amount;
@@ -648,18 +650,14 @@ export class SeotdaGame {
   }
 
   /**
-   * 구사류 특수 족보로 인한 무효 처리
+   * 구사류 특수 족보로 인한 무효 처리 — "묻고 더블"
    *
-   * 이번 판에 각자 낸 베팅을 그대로 돌려주고(순손익 0), 곧바로 재경기 상태로
-   * 전환한다. 실제 재경기(카드 재분배)는 서버 쪽에서 잠시 뒤 start()를
-   * 호출해 진행한다.
+   * 판돈은 환불하지 않고 그대로 묻어두며(다음 판 판돈에 합산), 다음 판의
+   * 앤티가 두 배가 된다. 연속으로 구사가 나면 앤티는 계속 배로 불어난다.
+   * 실제 재경기(카드 재분배)는 서버 쪽에서 잠시 뒤 start()를 호출해 진행한다.
    */
   private voidHandForRedeal(reason: string): void {
-    for (const player of this.state.players) {
-      player.chips += player.totalBetThisHand;
-    }
-
-    this.state.pot = 0;
+    this.state.nextAnteMultiplier *= 2;
     this.state.redealReason = reason;
     this.state.phase = "redeal";
   }
@@ -763,6 +761,9 @@ export class SeotdaGame {
    * 이겨서 남은 플레이어가 아무도 없다면 승자가 전액을 가져간다.)
    */
   private awardPot(winner: Player): void {
+    // 실제로 승부가 갈렸으니 다음 판을 위해 앤티 배수를 원래대로 되돌린다.
+    this.state.nextAnteMultiplier = 1;
+
     if (winner.chips > 0) {
       winner.chips += this.state.pot;
       return;
