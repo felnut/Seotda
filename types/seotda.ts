@@ -38,6 +38,7 @@ export type GamePhase =
   | "betting2"
   | "select"
   | "showdown"
+  | "redeal"
   | "finished";
 
 export interface ClientGameState {
@@ -49,10 +50,18 @@ export interface ClientGameState {
   pot: number;
   currentBet: number;
   winnerId: string | null;
+  redealReason: string | null;
+}
+
+export interface RestartVotesInfo {
+  votes: number;
+  total: number;
+  votedPlayerIds: string[];
 }
 
 export interface RoomInfo {
   roomId: string;
   playerId: string;
   playerCount: number;
+  maxPlayers: number;
 }

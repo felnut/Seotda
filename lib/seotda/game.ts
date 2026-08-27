@@ -13,6 +13,9 @@ export interface Player {
   status: PlayerStatus;
   chips: number;
   bet: number;
+  // 이번 판(재경기 여부 판단/환불용)에 실제로 낸 총 베팅액. 베팅 라운드가
+  // 바뀌어도 초기화되지 않고, 새 판이 시작될 때만 0으로 리셋된다.
+  totalBetThisHand: number;
 }
 
 export type GamePhase =
@@ -23,6 +26,7 @@ export type GamePhase =
   | "betting2"
   | "select"
   | "showdown"
+  | "redeal"
   | "finished";
 
 export interface GameState {
@@ -33,6 +37,8 @@ export interface GameState {
   currentBet: number;
   deck: Deck;
   winnerId: string | null;
+  // 구사/멍텅구리 구사로 재경기가 될 때 그 사유
+  redealReason: string | null;
 }
 
 export class SeotdaGame {
@@ -54,6 +60,7 @@ export class SeotdaGame {
         status: "playing",
         chips: 1000,
         bet: 0,
+        totalBetThisHand: 0,
       })),
 
       currentPlayerIndex: 0,
@@ -63,6 +70,7 @@ export class SeotdaGame {
       deck: new Deck(),
 
       winnerId: null,
+      redealReason: null,
     };
   }
 
@@ -71,7 +79,11 @@ export class SeotdaGame {
   }
 
   start(): void {
-    if (this.state.phase !== "waiting" && this.state.phase !== "finished") {
+    if (
+      this.state.phase !== "waiting" &&
+      this.state.phase !== "finished" &&
+      this.state.phase !== "redeal"
+    ) {
       throw new Error("이미 시작된 게임입니다.");
     }
 
@@ -80,6 +92,7 @@ export class SeotdaGame {
     this.state.pot = 0;
     this.state.currentBet = 0;
     this.state.winnerId = null;
+    this.state.redealReason = null;
     this.state.currentPlayerIndex = 0;
 
     this.actedPlayers.clear();
@@ -90,6 +103,7 @@ export class SeotdaGame {
       player.selectedIndices = null;
       player.status = "playing";
       player.bet = 0;
+      player.totalBetThisHand = 0;
     }
 
     this.state.phase = "dealing";
@@ -174,6 +188,7 @@ export class SeotdaGame {
 
     player.chips -= amount;
     player.bet += amount;
+    player.totalBetThisHand += amount;
 
     this.state.pot += amount;
     this.state.currentBet = player.bet;
@@ -242,6 +257,7 @@ export class SeotdaGame {
 
     player.chips -= requiredAmount;
     player.bet += requiredAmount;
+    player.totalBetThisHand += requiredAmount;
 
     this.state.pot += requiredAmount;
 
@@ -295,6 +311,7 @@ export class SeotdaGame {
 
     player.chips -= additionalAmount;
     player.bet = amount;
+    player.totalBetThisHand += additionalAmount;
 
     this.state.pot += additionalAmount;
     this.state.currentBet = amount;
@@ -529,6 +546,18 @@ export class SeotdaGame {
       }),
     );
 
+    // 구사 / 멍텅구리 구사는 승패를 가리지 않고 판을 무효로 하여 재경기한다.
+    for (const player of activePlayers) {
+      const special = evaluateHand(selectedPairs.get(player.id)!).special;
+
+      if (special === "gusa" || special === "meongtunguri-gusa") {
+        this.voidHandForRedeal(
+          special === "meongtunguri-gusa" ? "멍텅구리 구사" : "구사",
+        );
+        return;
+      }
+    }
+
     let winner = activePlayers[0];
 
     for (let i = 1; i < activePlayers.length; i++) {
@@ -556,6 +585,23 @@ export class SeotdaGame {
 
     this.state.winnerId = winner.id;
     this.state.phase = "finished";
+  }
+
+  /**
+   * 구사류 특수 족보로 인한 무효 처리
+   *
+   * 이번 판에 각자 낸 베팅을 그대로 돌려주고(순손익 0), 곧바로 재경기 상태로
+   * 전환한다. 실제 재경기(카드 재분배)는 서버 쪽에서 잠시 뒤 start()를
+   * 호출해 진행한다.
+   */
+  private voidHandForRedeal(reason: string): void {
+    for (const player of this.state.players) {
+      player.chips += player.totalBetThisHand;
+    }
+
+    this.state.pot = 0;
+    this.state.redealReason = reason;
+    this.state.phase = "redeal";
   }
 
   /**

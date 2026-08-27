@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { io, Socket } from "socket.io-client";
 import {
@@ -23,6 +23,24 @@ const SOCKET_URL =
 const socket: Socket =
   socketCache.__seotdaSocket ??
   (socketCache.__seotdaSocket = io(SOCKET_URL));
+
+const SESSION_STORAGE_KEY = "seotda-session";
+
+const MIN_ROOM_PLAYERS = 2;
+const MAX_ROOM_PLAYERS = 6;
+
+interface StoredSession {
+  roomId: string;
+  playerId: string;
+}
+
+function saveSession(session: StoredSession) {
+  sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+}
+
+function clearSession() {
+  sessionStorage.removeItem(SESSION_STORAGE_KEY);
+}
 
 // compact: 상대방 카드처럼 화면 공간을 아끼는 작은 크기 / cozy: 내 카드처럼 강조되는 큰 크기
 type CardSize = "compact" | "cozy";
@@ -51,6 +69,10 @@ function Card({ card, index = 0, size = "cozy" }: CardProps) {
         sizes="(min-width: 1024px) 80px, (min-width: 640px) 64px, 44px"
         className="object-cover"
       />
+
+      <span className="absolute top-0.5 left-0.5 flex h-4 min-w-4 items-center justify-center rounded bg-black/70 px-0.5 text-[9px] font-bold text-white">
+        {card.month}
+      </span>
     </div>
   );
 }
@@ -86,13 +108,69 @@ function MiniCard({ cardId, alt }: { cardId: string; alt: string }) {
   );
 }
 
+const SPECIAL_HAND_NAME_MAP: Record<string, string> = {
+  gusa: "구사",
+  "meongtunguri-gusa": "멍텅구리 구사",
+  ddaengjabi: "땡잡이",
+  "amhaeng-eosa": "암행어사",
+};
+
+// 족보 가이드에서 하이라이팅할 족보 이름들을 계산한다.
+// 아직 족보를 확정하지 않았다면(3장 중 2장 선택 전) 가능한 조합을 모두 보여주고,
+// 확정했다면(또는 카드가 2장뿐이라 조합이 하나뿐이면) 그 하나만 보여준다.
+function getGuideHighlights(
+  cards: SeotdaCard[],
+  selectedIndices: [number, number] | null,
+) {
+  const normalNames = new Set<string>();
+  const specialNames = new Set<string>();
+
+  const addFromPair = (i: number, j: number) => {
+    const card1 = cards[i];
+    const card2 = cards[j];
+
+    if (!card1 || !card2) return;
+
+    const result = evaluateHand([card1, card2]);
+
+    if (result.special !== "none") {
+      specialNames.add(SPECIAL_HAND_NAME_MAP[result.special]);
+    } else {
+      normalNames.add(result.name);
+    }
+  };
+
+  if (cards.length === 2) {
+    addFromPair(0, 1);
+  } else if (cards.length === 3) {
+    if (selectedIndices) {
+      addFromPair(selectedIndices[0], selectedIndices[1]);
+    } else {
+      addFromPair(0, 1);
+      addFromPair(0, 2);
+      addFromPair(1, 2);
+    }
+  }
+
+  return { normalNames, specialNames };
+}
+
 function HandGuidePanel({
   open,
   onClose,
+  myCards,
+  selectedIndices,
 }: {
   open: boolean;
   onClose: () => void;
+  myCards: SeotdaCard[];
+  selectedIndices: [number, number] | null;
 }) {
+  const { normalNames, specialNames } = getGuideHighlights(
+    myCards,
+    selectedIndices,
+  );
+
   return (
     <>
       <div
@@ -126,23 +204,38 @@ function HandGuidePanel({
           </p>
 
           <ul className="mb-6 space-y-2">
-            {SPECIAL_HAND_GUIDE.map((entry) => (
-              <li
-                key={entry.name}
-                className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/3 p-3"
-              >
-                <div className="flex gap-1">
-                  <MiniCard cardId={entry.cardIds[0]} alt={entry.name} />
-                  <MiniCard cardId={entry.cardIds[1]} alt={entry.name} />
-                </div>
+            {SPECIAL_HAND_GUIDE.map((entry) => {
+              const isMine = specialNames.has(entry.name);
 
-                <div>
-                  <p className="text-sm font-semibold">{entry.name}</p>
-                  <p className="text-xs text-zinc-400">{entry.months}</p>
-                  <p className="text-xs text-emerald-400">{entry.effect}</p>
-                </div>
-              </li>
-            ))}
+              return (
+                <li
+                  key={entry.name}
+                  className={`flex items-center gap-3 rounded-lg border p-3 transition ${
+                    isMine
+                      ? "border-amber-400/60 bg-amber-400/10 ring-1 ring-amber-400/40"
+                      : "border-white/5 bg-white/3"
+                  }`}
+                >
+                  <div className="flex gap-1">
+                    <MiniCard cardId={entry.cardIds[0]} alt={entry.name} />
+                    <MiniCard cardId={entry.cardIds[1]} alt={entry.name} />
+                  </div>
+
+                  <div>
+                    <p className="flex items-center gap-1.5 text-sm font-semibold">
+                      {entry.name}
+                      {isMine && (
+                        <span className="rounded-full bg-amber-400/20 px-1.5 py-0.5 text-[9px] font-semibold text-amber-300">
+                          내 패
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs text-zinc-400">{entry.months}</p>
+                    <p className="text-xs text-emerald-400">{entry.effect}</p>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
 
           <p className="mb-2 text-xs font-semibold tracking-wide text-amber-400">
@@ -150,22 +243,41 @@ function HandGuidePanel({
           </p>
 
           <ul className="space-y-2 pb-4">
-            {HAND_GUIDE.map((entry) => (
-              <li
-                key={entry.name}
-                className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/3 p-3"
-              >
-                <div className="flex gap-1">
-                  <MiniCard cardId={entry.cardIds[0]} alt={entry.name} />
-                  <MiniCard cardId={entry.cardIds[1]} alt={entry.name} />
-                </div>
+            {HAND_GUIDE.map((entry, index) => {
+              const isMine = normalNames.has(entry.name);
 
-                <div>
-                  <p className="text-sm font-semibold">{entry.name}</p>
-                  <p className="text-xs text-zinc-400">{entry.months}</p>
-                </div>
-              </li>
-            ))}
+              return (
+                <li
+                  key={entry.name}
+                  className={`flex items-center gap-3 rounded-lg border p-3 transition ${
+                    isMine
+                      ? "border-amber-400/60 bg-amber-400/10 ring-1 ring-amber-400/40"
+                      : "border-white/5 bg-white/3"
+                  }`}
+                >
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/5 text-xs font-bold text-zinc-400">
+                    {index + 1}
+                  </span>
+
+                  <div className="flex gap-1">
+                    <MiniCard cardId={entry.cardIds[0]} alt={entry.name} />
+                    <MiniCard cardId={entry.cardIds[1]} alt={entry.name} />
+                  </div>
+
+                  <div>
+                    <p className="flex items-center gap-1.5 text-sm font-semibold">
+                      {entry.name}
+                      {isMine && (
+                        <span className="rounded-full bg-amber-400/20 px-1.5 py-0.5 text-[9px] font-semibold text-amber-300">
+                          내 패
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs text-zinc-400">{entry.months}</p>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </div>
       </aside>
@@ -173,7 +285,7 @@ function HandGuidePanel({
   );
 }
 
-function CopyRoomCodeButton({ roomId }: { roomId: string }) {
+function RoomCodeBadge({ roomId }: { roomId: string }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -206,13 +318,22 @@ function CopyRoomCodeButton({ roomId }: { roomId: string }) {
       type="button"
       onClick={handleCopy}
       aria-label="방 코드 복사"
-      className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition hover:scale-[1.03] active:scale-95 sm:px-3 ${
+      className={`rounded-lg border px-2.5 py-1 text-right transition hover:scale-[1.03] active:scale-95 sm:px-3 ${
         copied
-          ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300"
-          : "border-white/10 bg-white/3 text-zinc-400 hover:border-amber-400/40 hover:text-amber-300"
+          ? "border-emerald-400/40 bg-emerald-400/10"
+          : "border-white/10 bg-white/3 hover:border-amber-400/40"
       }`}
     >
-      {copied ? "복사됨" : "복사"}
+      <span className="block text-[9px] text-zinc-500 sm:text-[10px]">
+        방 코드{" "}
+      </span>
+      <span
+        className={`text-xs font-bold tracking-widest sm:text-sm ${
+          copied ? "text-emerald-300" : ""
+        }`}
+      >
+        {copied ? "복사됨" : roomId}
+      </span>
     </button>
   );
 }
@@ -240,6 +361,7 @@ const PHASE_LABEL: Partial<Record<ClientGameState["phase"], string>> = {
   reveal: "카드 공개 단계",
   select: "족보 선택 단계",
   showdown: "쇼다운",
+  redeal: "재경기",
   finished: "게임 종료",
 };
 
@@ -449,18 +571,21 @@ function PlayerPanel({
           );
         })}
 
-        {/* 자기 족보: 카드 옆에 바로 표시해 공간을 아낀다 */}
-        {isMe && player.handName && (
-          <div
-            key={player.handName}
-            className="animate-pop-in flex flex-col items-center justify-center rounded-xl border border-amber-400/20 bg-black/20 px-3 py-1.5 text-center sm:px-4"
-          >
-            <p className="text-[9px] font-medium text-zinc-400">내 족보</p>
-            <p className="text-lg font-bold text-amber-300 sm:text-xl">
-              {player.handName}
-            </p>
-          </div>
-        )}
+        {/* 족보 표시: 본인은 항상, 상대는 쇼다운/종료 후 공개된 시점에만 */}
+        {player.handName &&
+          (isMe || phase === "showdown" || phase === "finished") && (
+            <div
+              key={player.handName}
+              className="animate-pop-in flex flex-col items-center justify-center rounded-xl border border-amber-400/20 bg-black/20 px-3 py-1.5 text-center sm:px-4"
+            >
+              <p className="text-[9px] font-medium text-zinc-400">
+                {isMe ? "내 족보" : `${player.name}의 족보`}
+              </p>
+              <p className="text-lg font-bold text-amber-300 sm:text-xl">
+                {player.handName}
+              </p>
+            </div>
+          )}
       </div>
 
       {isMe &&
@@ -585,7 +710,9 @@ function GameBoard({
     gameState.phase === "betting1" || gameState.phase === "betting2";
 
   const me = gameState.players.find((player) => player.id === playerId);
-  const opponent = gameState.players.find((player) => player.id !== playerId);
+  const opponents = gameState.players.filter(
+    (player) => player.id !== playerId,
+  );
 
   const turnLabel = isBettingPhase
     ? `${currentPlayer?.name ?? ""}의 차례`
@@ -593,18 +720,23 @@ function GameBoard({
 
   return (
     <div className="flex flex-1 flex-col justify-center gap-2 sm:gap-3">
-      {opponent && (
-        <PlayerPanel
-          player={opponent}
-          isMe={false}
-          isCurrent={isBettingPhase && opponent.id === currentPlayer?.id}
-          compact
-          phase={gameState.phase}
-          pendingSelection={pendingSelection}
-          onRevealCard={onRevealCard}
-          onToggleSelect={onToggleSelect}
-          onConfirmSelect={onConfirmSelect}
-        />
+      {opponents.length > 0 && (
+        <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto sm:space-y-2">
+          {opponents.map((opponent) => (
+            <PlayerPanel
+              key={opponent.id}
+              player={opponent}
+              isMe={false}
+              isCurrent={isBettingPhase && opponent.id === currentPlayer?.id}
+              compact
+              phase={gameState.phase}
+              pendingSelection={pendingSelection}
+              onRevealCard={onRevealCard}
+              onToggleSelect={onToggleSelect}
+              onConfirmSelect={onConfirmSelect}
+            />
+          ))}
+        </div>
       )}
 
       <PotBadge pot={gameState.pot} turnLabel={turnLabel} />
@@ -635,10 +767,17 @@ export default function Home() {
   const [gameState, setGameState] = useState<ClientGameState | null>(null);
 
   const [playerCount, setPlayerCount] = useState(0);
+  const [maxPlayers, setMaxPlayers] = useState(MIN_ROOM_PLAYERS);
+
+  // 방 만들기 화면에서 고르는 정원 (아직 만들어진 방의 값이 아님)
+  const [createMaxPlayers, setCreateMaxPlayers] = useState(MIN_ROOM_PLAYERS);
 
   const [error, setError] = useState("");
 
-  const [isRestarting, setIsRestarting] = useState(false);
+  // 게임 종료 후 "다시하기"에 내가 동의했는지, 그리고 전체 동의 현황
+  const [hasVotedRestart, setHasVotedRestart] = useState(false);
+  const [restartVotes, setRestartVotes] = useState(0);
+  const [restartVotesTotal, setRestartVotesTotal] = useState(0);
 
   const [isGuideOpen, setIsGuideOpen] = useState(false);
 
@@ -650,63 +789,100 @@ export default function Home() {
   // 족보 선택 단계에서 아직 서버에 확정 제출하지 않은 임시 선택
   const [pendingSelection, setPendingSelection] = useState<number[]>([]);
 
-  // React state 업데이트는 비동기라 동일 이벤트 루프 틱 안의 중복 클릭까지는
-  // 못 막으므로, 즉시 반영되는 ref로 한 번 더 막는다.
-  const isRestartingRef = useRef(false);
-
   useEffect(() => {
     socket.on("room-created", (info: RoomInfo) => {
       setRoomId(info.roomId);
       setPlayerId(info.playerId);
       setPlayerCount(info.playerCount);
+      setMaxPlayers(info.maxPlayers);
       setError("");
+      saveSession({ roomId: info.roomId, playerId: info.playerId });
     });
 
     socket.on("room-joined", (info: RoomInfo) => {
       setRoomId(info.roomId);
       setPlayerId(info.playerId);
       setPlayerCount(info.playerCount);
+      setMaxPlayers(info.maxPlayers);
       setError("");
+      saveSession({ roomId: info.roomId, playerId: info.playerId });
     });
 
-    socket.on("players-updated", ({ count }: { count: number }) => {
-      setPlayerCount(count);
-
-      if (count < 2) {
-        setError("상대방이 방을 나갔습니다.");
-      }
+    socket.on("rejoin-failed", () => {
+      clearSession();
     });
+
+    socket.on(
+      "players-updated",
+      ({ count, maxPlayers }: { count: number; maxPlayers: number }) => {
+        setPlayerCount(count);
+        setMaxPlayers(maxPlayers);
+
+        if (count < MIN_ROOM_PLAYERS) {
+          setError("함께할 플레이어가 부족합니다.");
+        }
+      },
+    );
 
     socket.on("game-state", (state: ClientGameState) => {
       setGameState(state);
       setError("");
-      isRestartingRef.current = false;
-      setIsRestarting(false);
+      setHasVotedRestart(false);
+      setRestartVotes(0);
+      setRestartVotesTotal(0);
 
       if (state.phase !== "select") {
         setPendingSelection([]);
       }
     });
 
+    socket.on(
+      "restart-votes-updated",
+      ({ votes, total }: { votes: number; total: number }) => {
+        setRestartVotes(votes);
+        setRestartVotesTotal(total);
+      },
+    );
+
     socket.on("error-message", ({ message }: { message: string }) => {
       setError(message);
-      isRestartingRef.current = false;
-      setIsRestarting(false);
+      setHasVotedRestart(false);
     });
 
     return () => {
       socket.off("room-created");
       socket.off("room-joined");
+      socket.off("rejoin-failed");
       socket.off("players-updated");
       socket.off("game-state");
+      socket.off("restart-votes-updated");
       socket.off("error-message");
     };
   }, []);
 
-  // 상대방이 참가해 2명이 모이면 10초 카운트다운을 시작하고, 방을 나가거나
+  // 마운트 시 이전에 있던 방이 저장돼 있으면 자동으로 재접속을 시도한다.
+  useEffect(() => {
+    const saved = sessionStorage.getItem(SESSION_STORAGE_KEY);
+
+    if (!saved) return;
+
+    try {
+      const session = JSON.parse(saved) as StoredSession;
+
+      if (session.roomId && session.playerId) {
+        socket.emit("rejoin-room", session);
+      } else {
+        clearSession();
+      }
+    } catch {
+      clearSession();
+    }
+  }, []);
+
+  // 방이 정원만큼 차면 10초 카운트다운을 시작하고, 방을 나가거나
   // 게임이 이미 시작되면(gameState 생김) 취소한다.
   useEffect(() => {
-    if (playerCount !== 2 || gameState) {
+    if (playerCount < MIN_ROOM_PLAYERS || playerCount !== maxPlayers || gameState) {
       setAutoStartCountdown(null);
       return;
     }
@@ -718,7 +894,7 @@ export default function Home() {
     }, 1000);
 
     return () => window.clearInterval(intervalId);
-  }, [playerCount, gameState]);
+  }, [playerCount, maxPlayers, gameState]);
 
   // 카운트다운이 0에 도달하면 자동으로 게임을 시작한다.
   useEffect(() => {
@@ -731,7 +907,7 @@ export default function Home() {
   const createRoom = () => {
     setError("");
 
-    socket.emit("create-room");
+    socket.emit("create-room", createMaxPlayers);
   };
 
   // 8. 방 참가
@@ -771,25 +947,27 @@ export default function Home() {
     }
 
     socket.emit("leave-room", roomId);
+    clearSession();
 
     setRoomId("");
     setPlayerId("");
     setGameState(null);
     setPlayerCount(0);
+    setMaxPlayers(MIN_ROOM_PLAYERS);
     setPendingSelection([]);
     setIsGuideOpen(false);
     setError("");
-    isRestartingRef.current = false;
-    setIsRestarting(false);
+    setHasVotedRestart(false);
+    setRestartVotes(0);
+    setRestartVotesTotal(0);
   };
 
+  // 다시하기 투표 — 참가자 전원이 동의해야 실제로 재시작된다.
   const restartGame = () => {
-    if (!roomId || isRestartingRef.current) return;
-
-    isRestartingRef.current = true;
+    if (!roomId || hasVotedRestart) return;
 
     setError("");
-    setIsRestarting(true);
+    setHasVotedRestart(true);
 
     socket.emit("restart-game", roomId);
   };
@@ -881,9 +1059,31 @@ export default function Home() {
           <section className="animate-fade-up rounded-2xl border border-white/10 bg-white/3 p-6 shadow-xl shadow-black/30 sm:p-8">
             <h2 className="mb-1 text-lg font-semibold">방 만들기</h2>
 
-            <p className="mb-5 text-sm text-zinc-400">
+            <p className="mb-3 text-sm text-zinc-400">
               새로운 게임 방을 생성합니다.
             </p>
+
+            <p className="mb-2 text-xs font-medium text-zinc-500">인원 수</p>
+
+            <div className="mb-5 flex gap-2">
+              {Array.from(
+                { length: MAX_ROOM_PLAYERS - MIN_ROOM_PLAYERS + 1 },
+                (_, index) => MIN_ROOM_PLAYERS + index,
+              ).map((count) => (
+                <button
+                  key={count}
+                  type="button"
+                  onClick={() => setCreateMaxPlayers(count)}
+                  className={`flex-1 rounded-lg border py-2 text-sm font-semibold transition ${
+                    createMaxPlayers === count
+                      ? "border-amber-400/60 bg-amber-400/15 text-amber-300"
+                      : "border-white/10 bg-white/3 text-zinc-400 hover:border-white/20"
+                  }`}
+                >
+                  {count}
+                </button>
+              ))}
+            </div>
 
             <button
               type="button"
@@ -946,10 +1146,19 @@ export default function Home() {
    * — 코드만 덩그러니 보여주지 않고, 실제 게임 화면과 같은 테이블 구도로 대기한다.
    */
   if (!gameState) {
-    const mySeatName = playerId === "player-1" ? "플레이어 1" : "플레이어 2";
-    const opponentSeatName =
-      playerId === "player-1" ? "플레이어 2" : "플레이어 1";
-    const opponentJoined = playerCount === 2;
+    const seats = Array.from({ length: maxPlayers }, (_, index) => {
+      const seatId = `player-${index + 1}`;
+
+      return {
+        id: seatId,
+        name: `플레이어 ${index + 1}`,
+        isMe: seatId === playerId,
+        filled: index + 1 <= playerCount,
+      };
+    });
+
+    const roomFull = playerCount === maxPlayers;
+    const canStart = playerCount >= MIN_ROOM_PLAYERS;
 
     return (
       <main className="flex h-dvh flex-col overflow-hidden px-3 py-2 sm:px-6 sm:py-4">
@@ -960,16 +1169,7 @@ export default function Home() {
             </h1>
 
             <div className="flex items-center gap-2">
-              <div className="rounded-lg border border-white/10 bg-white/3 px-2.5 py-1 text-right sm:px-3">
-                <span className="text-[9px] text-zinc-500 sm:text-[10px]">
-                  방 코드{" "}
-                </span>
-                <span className="text-xs font-bold tracking-widest sm:text-sm">
-                  {roomId}
-                </span>
-              </div>
-
-              <CopyRoomCodeButton roomId={roomId} />
+              <RoomCodeBadge roomId={roomId} />
 
               <button
                 type="button"
@@ -981,17 +1181,26 @@ export default function Home() {
             </div>
           </header>
 
-          <div className="flex min-h-0 flex-1 flex-col justify-center gap-3 sm:gap-4">
-            <SeatCard
-              name={opponentSeatName}
-              isMe={false}
-              filled={opponentJoined}
-            />
+          <div className="flex min-h-0 flex-1 flex-col justify-center gap-3 overflow-y-auto sm:gap-4">
+            <p className="text-center text-xs font-medium text-zinc-500 sm:text-sm">
+              {playerCount} / {maxPlayers}명 참가 중
+            </p>
+
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+              {seats.map((seat) => (
+                <SeatCard
+                  key={seat.id}
+                  name={seat.name}
+                  isMe={seat.isMe}
+                  filled={seat.filled}
+                />
+              ))}
+            </div>
 
             <p className="animate-fade-up text-center text-xs font-medium text-zinc-500 sm:text-sm">
-              {opponentJoined ? (
+              {roomFull ? (
                 <>
-                  두 플레이어가 모두 참가했습니다.
+                  정원이 모두 찼습니다.
                   {autoStartCountdown !== null && (
                     <>
                       {" "}
@@ -1009,8 +1218,6 @@ export default function Home() {
                 "친구에게 방 코드를 알려주고 초대하세요."
               )}
             </p>
-
-            <SeatCard name={mySeatName} isMe filled />
           </div>
 
           <div className="shrink-0 pt-2">
@@ -1018,10 +1225,10 @@ export default function Home() {
             <button
               type="button"
               onClick={startGame}
-              disabled={!opponentJoined}
+              disabled={!canStart}
               className="w-full rounded-xl bg-amber-400 px-6 py-3 text-sm font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-amber-300 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
             >
-              게임 시작
+              게임 시작{!canStart && ` (최소 ${MIN_ROOM_PLAYERS}명 필요)`}
             </button>
 
             {error && (
@@ -1035,6 +1242,13 @@ export default function Home() {
     );
   }
 
+  const myPlayer = gameState.players.find((player) => player.id === playerId);
+
+  const myCards: SeotdaCard[] =
+    myPlayer?.cards
+      .map((visibleCard) => visibleCard.card)
+      .filter((card): card is SeotdaCard => !!card) ?? [];
+
   /*
    * 게임 화면 — 스크롤 없이 한 화면(h-dvh)에 들어오도록 세로 구성
    */
@@ -1047,16 +1261,7 @@ export default function Home() {
           </h1>
 
           <div className="flex items-center gap-2">
-            <div className="rounded-lg border border-white/10 bg-white/3 px-2.5 py-1 text-right sm:px-3">
-              <span className="text-[9px] text-zinc-500 sm:text-[10px]">
-                방 코드{" "}
-              </span>
-              <span className="text-xs font-bold tracking-widest sm:text-sm">
-                {roomId}
-              </span>
-            </div>
-
-            <CopyRoomCodeButton roomId={roomId} />
+            <RoomCodeBadge roomId={roomId} />
 
             <button
               type="button"
@@ -1089,16 +1294,27 @@ export default function Home() {
 
         <div className="shrink-0 pt-2">
           {gameState.phase === "finished" && (
-            <div className="flex justify-center pb-1">
+            <div className="flex flex-col items-center gap-1.5 pb-1">
               <button
                 type="button"
                 onClick={restartGame}
-                disabled={isRestarting}
+                disabled={hasVotedRestart}
                 className="animate-pop-in rounded-xl bg-amber-400 px-6 py-2.5 text-sm font-semibold text-zinc-900 shadow-lg shadow-amber-400/20 transition hover:scale-[1.03] hover:bg-amber-300 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
               >
-                다시 하기
+                {hasVotedRestart ? "동의함 · 대기 중" : "다시 하기"}
               </button>
+
+              <p className="text-xs text-zinc-500">
+                {restartVotes}/{restartVotesTotal}명 동의
+              </p>
             </div>
+          )}
+
+          {gameState.phase === "redeal" && (
+            <p className="animate-fade-up mx-auto max-w-md rounded-xl border border-amber-400/30 bg-amber-400/10 p-3 text-center text-sm font-semibold text-amber-300">
+              {gameState.redealReason ?? "구사"}! 무승부로 카드를 다시
+              나눕니다...
+            </p>
           )}
 
           {(gameState.phase === "betting1" ||
@@ -1183,6 +1399,8 @@ export default function Home() {
       <HandGuidePanel
         open={isGuideOpen}
         onClose={() => setIsGuideOpen(false)}
+        myCards={myCards}
+        selectedIndices={myPlayer?.selectedIndices ?? null}
       />
     </main>
   );
