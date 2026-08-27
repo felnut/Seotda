@@ -70,7 +70,7 @@ function Card({ card, index = 0, size = "cozy" }: CardProps) {
         className="object-cover"
       />
 
-      <span className="absolute top-0.5 left-0.5 flex h-4 min-w-4 items-center justify-center rounded bg-black/70 px-0.5 text-[9px] font-bold text-white">
+      <span className="absolute top-0.5 left-0.5 flex h-6 min-w-6 items-center justify-center rounded bg-black/70 px-1 text-[17.5px] font-bold text-white sm:h-7 sm:min-w-7 sm:text-xl">
         {card.month}
       </span>
     </div>
@@ -89,7 +89,7 @@ function CardBack({
       className={`animate-fade-up flex aspect-2/3 shrink-0 items-center justify-center rounded-lg border border-white/15 bg-linear-to-br from-zinc-800 to-zinc-900 shadow-lg shadow-black/40 ${CARD_SIZE_CLASS[size]}`}
       style={{ animationDelay: `${index * 80}ms` }}
     >
-      <span className="text-lg font-bold text-white/30 sm:text-2xl">?</span>
+      <span className="text-[22.5px] font-bold text-white/30 sm:text-3xl">?</span>
     </div>
   );
 }
@@ -186,7 +186,7 @@ function HandGuidePanel({
         }`}
       >
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-          <h3 className="text-lg font-semibold">족보 가이드</h3>
+          <h3 className="text-[22.5px] font-semibold">족보 가이드</h3>
 
           <button
             type="button"
@@ -199,7 +199,7 @@ function HandGuidePanel({
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
-          <p className="mb-2 text-xs font-semibold tracking-wide text-amber-400">
+          <p className="mb-2 text-[15px] font-semibold tracking-wide text-amber-400">
             특수 족보
           </p>
 
@@ -222,23 +222,23 @@ function HandGuidePanel({
                   </div>
 
                   <div>
-                    <p className="flex items-center gap-1.5 text-sm font-semibold">
+                    <p className="flex items-center gap-1.5 text-[17.5px] font-semibold">
                       {entry.name}
                       {isMine && (
-                        <span className="rounded-full bg-amber-400/20 px-1.5 py-0.5 text-[9px] font-semibold text-amber-300">
+                        <span className="rounded-full bg-amber-400/20 px-1.5 py-0.5 text-[11px] font-semibold text-amber-300">
                           내 패
                         </span>
                       )}
                     </p>
-                    <p className="text-xs text-zinc-400">{entry.months}</p>
-                    <p className="text-xs text-emerald-400">{entry.effect}</p>
+                    <p className="text-[15px] text-zinc-400">{entry.months}</p>
+                    <p className="text-[15px] text-emerald-400">{entry.effect}</p>
                   </div>
                 </li>
               );
             })}
           </ul>
 
-          <p className="mb-2 text-xs font-semibold tracking-wide text-amber-400">
+          <p className="mb-2 text-[15px] font-semibold tracking-wide text-amber-400">
             일반 족보 (높은 순)
           </p>
 
@@ -255,7 +255,7 @@ function HandGuidePanel({
                       : "border-white/5 bg-white/3"
                   }`}
                 >
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/5 text-xs font-bold text-zinc-400">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/5 text-[15px] font-bold text-zinc-400">
                     {index + 1}
                   </span>
 
@@ -265,15 +265,15 @@ function HandGuidePanel({
                   </div>
 
                   <div>
-                    <p className="flex items-center gap-1.5 text-sm font-semibold">
+                    <p className="flex items-center gap-1.5 text-[17.5px] font-semibold">
                       {entry.name}
                       {isMine && (
-                        <span className="rounded-full bg-amber-400/20 px-1.5 py-0.5 text-[9px] font-semibold text-amber-300">
+                        <span className="rounded-full bg-amber-400/20 px-1.5 py-0.5 text-[11px] font-semibold text-amber-300">
                           내 패
                         </span>
                       )}
                     </p>
-                    <p className="text-xs text-zinc-400">{entry.months}</p>
+                    <p className="text-[15px] text-zinc-400">{entry.months}</p>
                   </div>
                 </li>
               );
@@ -324,11 +324,11 @@ function RoomCodeBadge({ roomId }: { roomId: string }) {
           : "border-white/10 bg-white/3 hover:border-amber-400/40"
       }`}
     >
-      <span className="block text-[9px] text-zinc-500 sm:text-[10px]">
+      <span className="block text-[11px] text-zinc-500 sm:text-[13px]">
         방 코드{" "}
       </span>
       <span
-        className={`text-xs font-bold tracking-widest sm:text-sm ${
+        className={`text-[15px] font-bold tracking-widest sm:text-[17.5px] ${
           copied ? "text-emerald-300" : ""
         }`}
       >
@@ -372,18 +372,18 @@ function PotBadge({ pot, turnLabel }: { pot: number; turnLabel: string }) {
         <div className="text-center leading-tight">
           <p
             key={pot}
-            className="animate-pop-in text-xs font-bold text-amber-400 sm:text-sm"
+            className="animate-pop-in text-[15px] font-bold text-amber-400 sm:text-[17.5px]"
           >
             {pot.toLocaleString()}
           </p>
 
-          <p className="text-[8px] font-semibold tracking-widest text-zinc-500">
+          <p className="text-[10px] font-semibold tracking-widest text-zinc-500">
             POT
           </p>
         </div>
       </div>
 
-      <p className="text-xs font-medium text-zinc-400 sm:text-sm">
+      <p className="text-[15px] font-medium text-zinc-400 sm:text-[17.5px]">
         {turnLabel}
       </p>
     </div>
@@ -443,7 +443,7 @@ function PlayerPanel({
         <div className="flex items-center gap-2 sm:gap-3">
           <div
             className={`flex shrink-0 items-center justify-center rounded-full bg-linear-to-br from-amber-400/80 to-amber-600/80 font-bold text-zinc-900 ${
-              compact ? "h-6 w-6 text-xs" : "h-8 w-8 text-sm sm:h-9 sm:w-9"
+              compact ? "h-6 w-6 text-[15px]" : "h-8 w-8 text-[17.5px] sm:h-9 sm:w-9"
             }`}
           >
             {player.name.charAt(0)}
@@ -452,25 +452,25 @@ function PlayerPanel({
           <h2
             className={
               compact
-                ? "text-sm font-semibold"
-                : "text-base font-semibold sm:text-lg"
+                ? "text-[17.5px] font-semibold"
+                : "text-xl font-semibold sm:text-[22.5px]"
             }
           >
             {player.name}
 
             {isMe && (
-              <span className="ml-2 text-xs font-medium text-emerald-400">
+              <span className="ml-2 text-[15px] font-medium text-emerald-400">
                 나
               </span>
             )}
           </h2>
 
-          <span className="text-xs text-zinc-500">
+          <span className="text-[15px] text-zinc-500">
             칩 {player.chips.toLocaleString()}
           </span>
 
           {player.bet > 0 && (
-            <span className="text-xs text-zinc-500">
+            <span className="text-[15px] text-zinc-500">
               베팅{" "}
               <span className="text-zinc-300">
                 {player.bet.toLocaleString()}
@@ -481,25 +481,25 @@ function PlayerPanel({
 
         <div className="flex items-center gap-2">
           {isCurrent && (
-            <span className="rounded-full bg-amber-400 px-2.5 py-0.5 text-[11px] font-bold text-zinc-900">
+            <span className="rounded-full bg-amber-400 px-2.5 py-0.5 text-[14px] font-bold text-zinc-900">
               차례
             </span>
           )}
 
           {phase === "finished" && player.status === "winner" && (
-            <span className="rounded-full bg-emerald-400/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300">
+            <span className="rounded-full bg-emerald-400/15 px-2.5 py-0.5 text-[14px] font-bold text-emerald-300">
               승리
             </span>
           )}
 
           {phase === "finished" && player.status === "loser" && (
-            <span className="rounded-full bg-white/5 px-2.5 py-0.5 text-[11px] font-bold text-zinc-400">
+            <span className="rounded-full bg-white/5 px-2.5 py-0.5 text-[14px] font-bold text-zinc-400">
               패배
             </span>
           )}
 
           {phase === "finished" && player.status === "folded" && (
-            <span className="rounded-full bg-white/5 px-2.5 py-0.5 text-[11px] font-bold text-zinc-400">
+            <span className="rounded-full bg-white/5 px-2.5 py-0.5 text-[14px] font-bold text-zinc-400">
               다이
             </span>
           )}
@@ -538,13 +538,13 @@ function PlayerPanel({
                 </button>
 
                 {index === player.revealedCardIndex && (
-                  <span className="rounded-full bg-amber-400/15 px-1.5 py-0.5 text-[9px] font-semibold text-amber-300">
+                  <span className="rounded-full bg-amber-400/15 px-1.5 py-0.5 text-[11px] font-semibold text-amber-300">
                     공개됨
                   </span>
                 )}
 
                 {player.selectedIndices?.includes(index) && (
-                  <span className="rounded-full bg-emerald-400/15 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-300">
+                  <span className="rounded-full bg-emerald-400/15 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-300">
                     족보로 선택됨
                   </span>
                 )}
@@ -553,7 +553,7 @@ function PlayerPanel({
                   <button
                     type="button"
                     onClick={() => onRevealCard(index)}
-                    className="rounded-full bg-amber-400 px-2.5 py-0.5 text-[10px] font-semibold text-zinc-900 transition hover:scale-105 hover:bg-amber-300 active:scale-95"
+                    className="rounded-full bg-amber-400 px-2.5 py-0.5 text-[13px] font-semibold text-zinc-900 transition hover:scale-105 hover:bg-amber-300 active:scale-95"
                   >
                     이 카드 공개
                   </button>
@@ -578,10 +578,10 @@ function PlayerPanel({
               key={player.handName}
               className="animate-pop-in flex flex-col items-center justify-center rounded-xl border border-amber-400/20 bg-black/20 px-3 py-1.5 text-center sm:px-4"
             >
-              <p className="text-[9px] font-medium text-zinc-400">
+              <p className="text-[11px] font-medium text-zinc-400">
                 {isMe ? "내 족보" : `${player.name}의 족보`}
               </p>
-              <p className="text-lg font-bold text-amber-300 sm:text-xl">
+              <p className="text-[22.5px] font-bold text-amber-300 sm:text-[25px]">
                 {player.handName}
               </p>
             </div>
@@ -595,7 +595,7 @@ function PlayerPanel({
             {getPossibleHands(player.cards).map(({ indices, name }) => (
               <span
                 key={`${indices[0]}-${indices[1]}`}
-                className="rounded-full bg-white/5 px-2 py-0.5 text-[11px] text-zinc-400"
+                className="rounded-full bg-white/5 px-2 py-0.5 text-[14px] text-zinc-400"
               >
                 {indices[0] + 1}+{indices[1] + 1}{" "}
                 <span className="font-semibold text-zinc-200">{name}</span>
@@ -605,20 +605,20 @@ function PlayerPanel({
         )}
 
       {canRevealNow && (
-        <p className="mt-1.5 text-center text-sm text-amber-300">
+        <p className="mt-1.5 text-center text-[17.5px] text-amber-300">
           상대에게 보여줄 카드 한 장을 골라주세요.
         </p>
       )}
 
       {isMe && phase === "reveal" && player.revealedCardIndex !== null && (
-        <p className="mt-1.5 text-center text-sm text-zinc-400">
+        <p className="mt-1.5 text-center text-[17.5px] text-zinc-400">
           상대의 선택을 기다리는 중...
         </p>
       )}
 
       {canSelectNow && (
         <div className="mt-1.5 text-center">
-          <p className="mb-1.5 text-sm text-amber-300">
+          <p className="mb-1.5 text-[17.5px] text-amber-300">
             족보로 쓸 카드 2장을 골라주세요. ({pendingSelection.length}/2)
           </p>
 
@@ -626,7 +626,7 @@ function PlayerPanel({
             type="button"
             onClick={onConfirmSelect}
             disabled={pendingSelection.length !== 2}
-            className="rounded-xl bg-amber-400 px-5 py-1.5 text-sm font-semibold text-zinc-900 transition hover:scale-[1.03] hover:bg-amber-300 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+            className="rounded-xl bg-amber-400 px-5 py-1.5 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.03] hover:bg-amber-300 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
           >
             족보 확정
           </button>
@@ -634,7 +634,7 @@ function PlayerPanel({
       )}
 
       {isMe && phase === "select" && player.hasSelectedHand && (
-        <p className="mt-1.5 text-center text-sm text-zinc-400">
+        <p className="mt-1.5 text-center text-[17.5px] text-zinc-400">
           상대의 선택을 기다리는 중...
         </p>
       )}
@@ -654,11 +654,11 @@ function SeatCard({
   if (!filled) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-white/15 bg-white/2 px-6 py-6 text-center sm:py-8">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full border border-dashed border-white/20 text-sm text-zinc-600 sm:h-10 sm:w-10">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full border border-dashed border-white/20 text-[17.5px] text-zinc-600 sm:h-10 sm:w-10">
           ?
         </div>
 
-        <p className="text-sm text-zinc-500">상대방을 기다리는 중...</p>
+        <p className="text-[17.5px] text-zinc-500">상대방을 기다리는 중...</p>
       </div>
     );
   }
@@ -671,15 +671,15 @@ function SeatCard({
           : "border-white/10 bg-white/3"
       }`}
     >
-      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-amber-400/80 to-amber-600/80 text-sm font-bold text-zinc-900 sm:h-10 sm:w-10">
+      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-amber-400/80 to-amber-600/80 text-[17.5px] font-bold text-zinc-900 sm:h-10 sm:w-10">
         {name.charAt(0)}
       </div>
 
-      <p className="text-sm font-semibold">
+      <p className="text-[17.5px] font-semibold">
         {name}
 
         {isMe && (
-          <span className="ml-1.5 text-xs font-medium text-emerald-400">
+          <span className="ml-1.5 text-[15px] font-medium text-emerald-400">
             나
           </span>
         )}
@@ -1046,25 +1046,25 @@ export default function Home() {
   if (!roomId) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center px-4 py-12">
-        <h1 className="mb-1 text-4xl font-bold tracking-tight text-amber-400">
+        <h1 className="mb-1 text-[45px] font-bold tracking-tight text-amber-400">
           섯다
         </h1>
 
-        <p className="mb-10 text-sm text-zinc-500">
+        <p className="mb-10 text-[17.5px] text-zinc-500">
           전통 카드 게임을 온라인으로
         </p>
 
         <div className="w-full max-w-2xl">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-stretch">
             {/* 7. 방 만들기 */}
-            <section className="animate-fade-up w-full rounded-2xl border border-white/10 bg-white/3 p-6 shadow-xl shadow-black/30 sm:flex-1 sm:p-8">
-              <h2 className="mb-1 text-lg font-semibold">방 만들기</h2>
+            <section className="animate-fade-up flex w-full flex-col rounded-2xl border border-white/10 bg-white/3 p-6 shadow-xl shadow-black/30 sm:flex-1 sm:p-8">
+              <h2 className="mb-1 text-[22.5px] font-semibold">방 만들기</h2>
 
-              <p className="mb-3 text-sm text-zinc-400">
+              <p className="mb-3 text-[17.5px] text-zinc-400">
                 새로운 게임 방을 생성합니다.
               </p>
 
-              <p className="mb-2 text-xs font-medium text-zinc-500">
+              <p className="mb-2 text-[15px] font-medium text-zinc-500">
                 인원 수
               </p>
 
@@ -1077,7 +1077,7 @@ export default function Home() {
                     key={count}
                     type="button"
                     onClick={() => setCreateMaxPlayers(count)}
-                    className={`flex-1 rounded-lg border py-2 text-sm font-semibold transition ${
+                    className={`flex-1 rounded-lg border py-2 text-[17.5px] font-semibold transition ${
                       createMaxPlayers === count
                         ? "border-amber-400/60 bg-amber-400/15 text-amber-300"
                         : "border-white/10 bg-white/3 text-zinc-400 hover:border-white/20"
@@ -1091,7 +1091,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={createRoom}
-                className="w-full rounded-xl bg-amber-400 px-6 py-3.5 text-sm font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-amber-300 active:scale-[0.98]"
+                className="mt-auto w-full rounded-xl bg-amber-400 px-6 py-3.5 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-amber-300 active:scale-[0.98]"
               >
                 방 만들기
               </button>
@@ -1099,10 +1099,14 @@ export default function Home() {
 
             {/* 8. 방 참가 */}
             <section
-              className="animate-fade-up w-full rounded-2xl border border-white/10 bg-white/3 p-6 shadow-xl shadow-black/30 sm:flex-1 sm:p-8"
+              className="animate-fade-up flex w-full flex-col rounded-2xl border border-white/10 bg-white/3 p-6 shadow-xl shadow-black/30 sm:flex-1 sm:p-8"
               style={{ animationDelay: "80ms" }}
             >
-              <h2 className="mb-4 text-lg font-semibold">방 참가</h2>
+              <h2 className="mb-1 text-[22.5px] font-semibold">방 참가</h2>
+
+              <p className="mb-3 text-[17.5px] text-zinc-400">
+                친구에게 받은 방 코드를 입력하세요.
+              </p>
 
               <input
                 value={joinCode}
@@ -1116,13 +1120,13 @@ export default function Home() {
                 }}
                 placeholder="방 코드 입력"
                 maxLength={6}
-                className="mb-4 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-center text-lg font-semibold tracking-[0.3em] text-white outline-none transition focus:border-amber-400/50 focus:ring-2 focus:ring-amber-400/20"
+                className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-center text-[22.5px] font-semibold tracking-[0.3em] text-white outline-none transition focus:border-amber-400/50 focus:ring-2 focus:ring-amber-400/20"
               />
 
               <button
                 type="button"
                 onClick={joinRoom}
-                className="w-full rounded-xl bg-emerald-500 px-6 py-3.5 text-sm font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-emerald-400 active:scale-[0.98]"
+                className="mt-auto w-full rounded-xl bg-emerald-500 px-6 py-3.5 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-emerald-400 active:scale-[0.98]"
               >
                 참가
               </button>
@@ -1130,7 +1134,7 @@ export default function Home() {
           </div>
 
           {error && (
-            <p className="animate-fade-up mt-6 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-center text-sm font-medium text-red-300">
+            <p className="animate-fade-up mt-6 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-center text-[17.5px] font-medium text-red-300">
               {error}
             </p>
           )}
@@ -1162,7 +1166,7 @@ export default function Home() {
       <main className="flex h-dvh flex-col overflow-hidden px-3 py-2 sm:px-6 sm:py-4">
         <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-hidden">
           <header className="mb-2 flex shrink-0 items-center justify-between gap-3 sm:mb-4">
-            <h1 className="text-xl font-bold tracking-tight text-amber-400 sm:text-2xl">
+            <h1 className="text-[25px] font-bold tracking-tight text-amber-400 sm:text-3xl">
               섯다
             </h1>
 
@@ -1172,7 +1176,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={leaveRoom}
-                className="rounded-lg border border-white/10 bg-white/3 px-2.5 py-1.5 text-xs font-semibold text-zinc-400 transition hover:scale-[1.03] hover:border-red-500/40 hover:text-red-300 active:scale-95 sm:px-3"
+                className="rounded-lg border border-white/10 bg-white/3 px-2.5 py-1.5 text-[15px] font-semibold text-zinc-400 transition hover:scale-[1.03] hover:border-red-500/40 hover:text-red-300 active:scale-95 sm:px-3"
               >
                 나가기
               </button>
@@ -1180,7 +1184,7 @@ export default function Home() {
           </header>
 
           <div className="flex min-h-0 flex-1 flex-col justify-center gap-3 overflow-y-auto sm:gap-4">
-            <p className="text-center text-xs font-medium text-zinc-500 sm:text-sm">
+            <p className="text-center text-[15px] font-medium text-zinc-500 sm:text-[17.5px]">
               {playerCount} / {maxPlayers}명 참가 중
             </p>
 
@@ -1195,7 +1199,7 @@ export default function Home() {
               ))}
             </div>
 
-            <p className="animate-fade-up text-center text-xs font-medium text-zinc-500 sm:text-sm">
+            <p className="animate-fade-up text-center text-[15px] font-medium text-zinc-500 sm:text-[17.5px]">
               {roomFull ? (
                 <>
                   정원이 모두 찼습니다.
@@ -1224,13 +1228,13 @@ export default function Home() {
               type="button"
               onClick={startGame}
               disabled={!canStart}
-              className="w-full rounded-xl bg-amber-400 px-6 py-3 text-sm font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-amber-300 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+              className="w-full rounded-xl bg-amber-400 px-6 py-3 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-amber-300 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
             >
               게임 시작{!canStart && ` (최소 ${MIN_ROOM_PLAYERS}명 필요)`}
             </button>
 
             {error && (
-              <p className="animate-fade-up mx-auto mt-2 max-w-md rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-center text-sm font-medium text-red-300">
+              <p className="animate-fade-up mx-auto mt-2 max-w-md rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-center text-[17.5px] font-medium text-red-300">
                 {error}
               </p>
             )}
@@ -1254,7 +1258,7 @@ export default function Home() {
     <main className="flex h-dvh flex-col overflow-hidden px-3 py-2 sm:px-6 sm:py-4">
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-hidden">
         <header className="mb-2 flex shrink-0 items-center justify-between gap-3 sm:mb-4">
-          <h1 className="text-xl font-bold tracking-tight text-amber-400 sm:text-2xl">
+          <h1 className="text-[25px] font-bold tracking-tight text-amber-400 sm:text-3xl">
             섯다
           </h1>
 
@@ -1264,7 +1268,7 @@ export default function Home() {
             <button
               type="button"
               onClick={() => setIsGuideOpen(true)}
-              className="rounded-lg border border-white/10 bg-white/3 px-2.5 py-1.5 text-xs font-semibold text-zinc-300 transition hover:scale-[1.03] hover:border-amber-400/40 hover:text-amber-300 active:scale-95 sm:px-3"
+              className="rounded-lg border border-white/10 bg-white/3 px-2.5 py-1.5 text-[15px] font-semibold text-zinc-300 transition hover:scale-[1.03] hover:border-amber-400/40 hover:text-amber-300 active:scale-95 sm:px-3"
             >
               족보 가이드
             </button>
@@ -1272,7 +1276,7 @@ export default function Home() {
             <button
               type="button"
               onClick={leaveRoom}
-              className="rounded-lg border border-white/10 bg-white/3 px-2.5 py-1.5 text-xs font-semibold text-zinc-400 transition hover:scale-[1.03] hover:border-red-500/40 hover:text-red-300 active:scale-95 sm:px-3"
+              className="rounded-lg border border-white/10 bg-white/3 px-2.5 py-1.5 text-[15px] font-semibold text-zinc-400 transition hover:scale-[1.03] hover:border-red-500/40 hover:text-red-300 active:scale-95 sm:px-3"
             >
               나가기
             </button>
@@ -1297,19 +1301,19 @@ export default function Home() {
                 type="button"
                 onClick={restartGame}
                 disabled={hasVotedRestart}
-                className="animate-pop-in rounded-xl bg-amber-400 px-6 py-2.5 text-sm font-semibold text-zinc-900 shadow-lg shadow-amber-400/20 transition hover:scale-[1.03] hover:bg-amber-300 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+                className="animate-pop-in rounded-xl bg-amber-400 px-6 py-2.5 text-[17.5px] font-semibold text-zinc-900 shadow-lg shadow-amber-400/20 transition hover:scale-[1.03] hover:bg-amber-300 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
               >
                 {hasVotedRestart ? "동의함 · 대기 중" : "다시 하기"}
               </button>
 
-              <p className="text-xs text-zinc-500">
+              <p className="text-[15px] text-zinc-500">
                 {restartVotes}/{restartVotesTotal}명 동의
               </p>
             </div>
           )}
 
           {gameState.phase === "redeal" && (
-            <p className="animate-fade-up mx-auto max-w-md rounded-xl border border-amber-400/30 bg-amber-400/10 p-3 text-center text-sm font-semibold text-amber-300">
+            <p className="animate-fade-up mx-auto max-w-md rounded-xl border border-amber-400/30 bg-amber-400/10 p-3 text-center text-[17.5px] font-semibold text-amber-300">
               {gameState.redealReason ?? "구사"}! 무승부로 카드를 다시
               나눕니다...
             </p>
@@ -1327,7 +1331,7 @@ export default function Home() {
                       gameState.players[gameState.currentPlayerIndex]?.id !==
                       playerId
                     }
-                    className="rounded-xl bg-blue-500/90 px-5 py-2.5 text-sm font-semibold transition hover:scale-[1.03] hover:bg-blue-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                    className="rounded-xl bg-blue-500/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-blue-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
                   >
                     베트
                   </button>
@@ -1339,7 +1343,7 @@ export default function Home() {
                       gameState.players[gameState.currentPlayerIndex]?.id !==
                       playerId
                     }
-                    className="rounded-xl border border-white/15 bg-white/3 px-5 py-2.5 text-sm font-semibold text-zinc-200 transition hover:scale-[1.03] hover:bg-white/10 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                    className="rounded-xl border border-white/15 bg-white/3 px-5 py-2.5 text-[17.5px] font-semibold text-zinc-200 transition hover:scale-[1.03] hover:bg-white/10 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
                   >
                     체크
                   </button>
@@ -1353,7 +1357,7 @@ export default function Home() {
                       gameState.players[gameState.currentPlayerIndex]?.id !==
                       playerId
                     }
-                    className="rounded-xl bg-blue-500/90 px-5 py-2.5 text-sm font-semibold transition hover:scale-[1.03] hover:bg-blue-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                    className="rounded-xl bg-blue-500/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-blue-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
                   >
                     콜
                   </button>
@@ -1365,7 +1369,7 @@ export default function Home() {
                       gameState.players[gameState.currentPlayerIndex]?.id !==
                       playerId
                     }
-                    className="rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition hover:scale-[1.03] hover:bg-amber-300 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                    className="rounded-xl bg-amber-400 px-5 py-2.5 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.03] hover:bg-amber-300 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
                   >
                     레이즈
                   </button>
@@ -1379,7 +1383,7 @@ export default function Home() {
                   gameState.players[gameState.currentPlayerIndex]?.id !==
                   playerId
                 }
-                className="col-span-2 rounded-xl border border-red-500/40 bg-red-500/10 px-5 py-2.5 text-sm font-semibold text-red-300 transition hover:scale-[1.02] hover:bg-red-500/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:col-span-1 sm:px-7 sm:py-3"
+                className="col-span-2 rounded-xl border border-red-500/40 bg-red-500/10 px-5 py-2.5 text-[17.5px] font-semibold text-red-300 transition hover:scale-[1.02] hover:bg-red-500/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:col-span-1 sm:px-7 sm:py-3"
               >
                 다이
               </button>
@@ -1387,7 +1391,7 @@ export default function Home() {
           )}
 
           {error && (
-            <p className="animate-fade-up mx-auto mt-2 max-w-md rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-center text-sm font-medium text-red-300">
+            <p className="animate-fade-up mx-auto mt-2 max-w-md rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-center text-[17.5px] font-medium text-red-300">
               {error}
             </p>
           )}
