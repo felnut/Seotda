@@ -2,10 +2,19 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 랭킹은 누구나 읽을 수 있지만, 기록은 신뢰된 소켓 서버(Admin SDK)만 한다.
+    // 랭킹은 누구나 읽을 수 있다. 통계(칩/승수 등) 기록은 신뢰된 소켓 서버(Admin
+    // SDK)만 하지만, 본인의 표시 이름만은 프로필 변경 시 즉시 반영되도록 직접
+    // 고칠 수 있게 허용한다(다른 필드는 건드릴 수 없다).
     match /rankings/{uid} {
       allow read: if true;
-      allow write: if false;
+      allow create: if false;
+      allow delete: if false;
+      allow update: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["name"])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 8;
     }
 
     // 프로필(닉네임)은 본인만 쓸 수 있고, 랭킹 표시를 위해 누구나 읽을 수 있다.
