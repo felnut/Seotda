@@ -475,9 +475,23 @@ function PlayerPanel({
         </div>
 
         <div className="flex items-center gap-2">
+          {player.lastAction &&
+            player.status !== "folded" &&
+            !player.lastAction.startsWith("베팅") && (
+            <span className="animate-pop-in rounded-full bg-blue-500/15 px-2.5 py-0.5 text-[14px] font-bold text-blue-300">
+              {player.lastAction}
+            </span>
+          )}
+
           {isCurrent && (
             <span className="rounded-full bg-amber-400 px-2.5 py-0.5 text-[14px] font-bold text-zinc-900">
               차례
+            </span>
+          )}
+
+          {player.status === "folded" && (
+            <span className="rounded-full bg-white/5 px-2.5 py-0.5 text-[14px] font-bold text-zinc-400">
+              다이
             </span>
           )}
 
@@ -490,12 +504,6 @@ function PlayerPanel({
           {phase === "finished" && player.status === "loser" && (
             <span className="rounded-full bg-white/5 px-2.5 py-0.5 text-[14px] font-bold text-zinc-400">
               패배
-            </span>
-          )}
-
-          {phase === "finished" && player.status === "folded" && (
-            <span className="rounded-full bg-white/5 px-2.5 py-0.5 text-[14px] font-bold text-zinc-400">
-              다이
             </span>
           )}
         </div>
@@ -573,9 +581,7 @@ function PlayerPanel({
               key={player.handName}
               className="animate-pop-in flex flex-col items-center justify-center rounded-xl border border-amber-400/20 bg-black/20 px-3 py-1.5 text-center sm:px-4"
             >
-              <p className="text-[11px] font-medium text-zinc-400">
-                {isMe ? "내 족보" : `${player.name}의 족보`}
-              </p>
+              <p className="text-[11px] font-medium text-zinc-400">족보</p>
               <p className="text-[22.5px] font-bold text-amber-300 sm:text-[25px]">
                 {player.handName}
               </p>

@@ -18,6 +18,8 @@ export interface Player {
   // 이번 판(재경기 여부 판단/환불용)에 실제로 낸 총 베팅액. 베팅 라운드가
   // 바뀌어도 초기화되지 않고, 새 판이 시작될 때만 0으로 리셋된다.
   totalBetThisHand: number;
+  // 이번 베팅 라운드에서 마지막으로 취한 행동 (화면 표시용)
+  lastAction: string | null;
 }
 
 export type GamePhase =
@@ -63,6 +65,7 @@ export class SeotdaGame {
         chips: STARTING_CHIPS,
         bet: 0,
         totalBetThisHand: 0,
+        lastAction: null,
       })),
 
       currentPlayerIndex: 0,
@@ -114,6 +117,7 @@ export class SeotdaGame {
       player.status = "playing";
       player.bet = 0;
       player.totalBetThisHand = 0;
+      player.lastAction = null;
 
       if (resetChips) {
         player.chips = STARTING_CHIPS;
@@ -208,6 +212,7 @@ export class SeotdaGame {
     player.chips -= amount;
     player.bet += amount;
     player.totalBetThisHand += amount;
+    player.lastAction = `베팅 ${amount.toLocaleString()}`;
 
     this.state.pot += amount;
     this.state.currentBet = player.bet;
@@ -240,6 +245,8 @@ export class SeotdaGame {
     if (this.state.currentBet !== 0) {
       throw new Error("현재 베팅이 진행 중이므로 체크할 수 없습니다.");
     }
+
+    player.lastAction = "체크";
 
     this.actedPlayers.add(player.id);
 
@@ -277,6 +284,7 @@ export class SeotdaGame {
     player.chips -= requiredAmount;
     player.bet += requiredAmount;
     player.totalBetThisHand += requiredAmount;
+    player.lastAction = "콜";
 
     this.state.pot += requiredAmount;
 
@@ -339,6 +347,13 @@ export class SeotdaGame {
     this.actedPlayers.clear();
     this.actedPlayers.add(player.id);
 
+    // 레이즈로 인해 다른 플레이어들은 다시 행동해야 하므로 표시된 행동도 지운다
+    for (const p of this.state.players) {
+      p.lastAction = null;
+    }
+
+    player.lastAction = `레이즈 ${amount.toLocaleString()}`;
+
     this.nextTurn();
   }
 
@@ -355,6 +370,7 @@ export class SeotdaGame {
     this.checkTurn(player);
 
     player.status = "folded";
+    player.lastAction = "다이";
 
     this.actedPlayers.add(player.id);
 
@@ -453,6 +469,7 @@ export class SeotdaGame {
 
     for (const player of this.state.players) {
       player.bet = 0;
+      player.lastAction = null;
     }
 
     this.state.phase = "betting2";
@@ -661,6 +678,15 @@ export class SeotdaGame {
       return;
     }
 
+    // 다이로 이겨서 족보를 직접 고르지 못했다면, 공개용으로 가장 높은
+    // 조합을 자동으로 확정해준다 (판정에는 영향 없음 — 상대가 없으므로).
+    if (
+      winner.cards?.length === 3 &&
+      winner.selectedIndices === null
+    ) {
+      winner.selectedIndices = this.bestPairIndices(winner.cards);
+    }
+
     winner.status = "winner";
 
     winner.chips += this.state.pot;
@@ -675,5 +701,31 @@ export class SeotdaGame {
 
     this.state.winnerId = winner.id;
     this.state.phase = "finished";
+  }
+
+  /**
+   * 3장 중 가장 높은 족보가 되는 2장의 인덱스를 반환합니다.
+   */
+  private bestPairIndices(cards: SeotdaCard[]): [number, number] {
+    const pairs: [number, number][] = [
+      [0, 1],
+      [0, 2],
+      [1, 2],
+    ];
+
+    let best = pairs[0];
+    let bestResult = evaluateHand([cards[best[0]], cards[best[1]]]);
+
+    for (let i = 1; i < pairs.length; i++) {
+      const [a, b] = pairs[i];
+      const result = evaluateHand([cards[a], cards[b]]);
+
+      if (result.rank > bestResult.rank) {
+        best = pairs[i];
+        bestResult = result;
+      }
+    }
+
+    return best;
   }
 }

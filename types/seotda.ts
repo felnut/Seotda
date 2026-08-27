@@ -26,6 +26,7 @@ export interface ClientPlayer {
   status: PlayerStatus;
   chips: number;
   bet: number;
+  lastAction: string | null;
 }
 
 export type GamePhase =
