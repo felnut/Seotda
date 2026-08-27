@@ -1,5 +1,3 @@
-import type { HandName } from "@/lib/seotda/ranking";
-
 export type CardType = "light" | "ten" | "dan" | "pi";
 
 export interface SeotdaCard {
@@ -21,7 +19,7 @@ export interface ClientPlayer {
   id: string;
   name: string;
   cards: VisibleCard[];
-  handName: HandName | null;
+  handName: string | null;
   revealedCardIndex: number | null;
   selectedIndices: [number, number] | null;
   hasSelectedHand: boolean;

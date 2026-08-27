@@ -1,6 +1,7 @@
 import { createServer } from "http";
 import { Server } from "socket.io";
 import { SeotdaGame } from "@/lib/seotda/game";
+import { getDisplayHandName } from "@/lib/seotda/ranking";
 import { ClientGameState } from "@/types/seotda";
 
 const httpServer = createServer();
@@ -78,7 +79,7 @@ function createClientGameState(
         id: player.id,
         name: player.name,
         cards,
-        handName: handResult?.name ?? null,
+        handName: handResult ? getDisplayHandName(handResult) : null,
         revealedCardIndex: player.revealedCardIndex,
         selectedIndices: alwaysRevealed ? player.selectedIndices : null,
         hasSelectedHand: player.selectedIndices !== null,
@@ -147,7 +148,7 @@ function tryStartVotedRestart(room: Room) {
     room.joinedPlayers.length >= MIN_PLAYERS
   ) {
     room.restartVotes.clear();
-    room.game.start();
+    room.game.start(true);
     broadcastGameState(room);
   } else {
     broadcastRestartVotes(room);
