@@ -371,10 +371,19 @@ io.on("connection", (socket) => {
 
       const playerIndex = room.joinedPlayers.length + 1;
       const playerId = `player-${playerIndex}`;
+      const resolvedName = sanitizeName(name) ?? `플레이어 ${playerIndex}`;
+
+      if (room.joinedPlayers.some((p) => p.name === resolvedName)) {
+        socket.emit("error-message", {
+          message: "이미 같은 이름의 참가자가 있습니다.",
+        });
+
+        return;
+      }
 
       room.joinedPlayers.push({
         id: playerId,
-        name: sanitizeName(name) ?? `플레이어 ${playerIndex}`,
+        name: resolvedName,
         socketId: socket.id,
       });
 
