@@ -97,6 +97,20 @@ function sanitizeName(name: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+// 이름 뒤에 붙일 주격 조사(이/가)를 받침 유무에 따라 골라 붙인다.
+// 한글이 아닌 이름(영문 닉네임 등)은 무난하게 "가"를 붙인다.
+function withSubjectParticle(name: string): string {
+  const lastChar = name.charCodeAt(name.length - 1);
+
+  if (lastChar >= 0xac00 && lastChar <= 0xd7a3) {
+    const hasBatchim = (lastChar - 0xac00) % 28 !== 0;
+
+    return `${name}${hasBatchim ? "이" : "가"}`;
+  }
+
+  return `${name}가`;
+}
+
 interface Room {
   maxPlayers: number;
   joinedPlayers: JoinedPlayer[];
@@ -116,10 +130,13 @@ function createClientGameState(
 ): ClientGameState {
   const state = game.getState();
 
-  return {
-    phase: state.phase,
+  // 방을 나간 플레이어는 화면 목록에서 완전히 제외한다.
+  const currentPlayerId =
+    state.players[state.currentPlayerIndex]?.id ?? null;
 
-    players: state.players.map((player) => {
+  const players = state.players
+    .filter((player) => !player.hasLeft)
+    .map((player) => {
       const isMe = player.id === playerId;
 
       const alwaysRevealed =
@@ -162,9 +179,16 @@ function createClientGameState(
         lastAction: player.lastAction,
         isSpectator: player.isSpectator,
       };
-    }),
+    });
 
-    currentPlayerIndex: state.currentPlayerIndex,
+  return {
+    phase: state.phase,
+
+    players,
+
+    // 나간 플레이어가 걸러지며 배열 인덱스가 바뀌었을 수 있으니, id를
+    // 기준으로 걸러진 배열에서의 인덱스를 다시 찾는다.
+    currentPlayerIndex: players.findIndex((p) => p.id === currentPlayerId),
 
     pot: state.pot,
 
@@ -372,18 +396,20 @@ function clearDisconnectTimer(room: Room, playerId: string) {
 function removePlayerFromRoom(roomId: string, room: Room, playerId: string) {
   clearDisconnectTimer(room, playerId);
 
+  const leavingPlayer = room.joinedPlayers.find((p) => p.id === playerId);
+
   room.joinedPlayers = room.joinedPlayers.filter((p) => p.id !== playerId);
   room.restartVotes.delete(playerId);
 
-  // 관전/나가기를 결정하지 못한 채 나갔다면, 게임에서도 관전자로 처리해
-  // 다음 판에 카드를 받거나 베팅 차례가 도는 일이 없도록 한다.
   const wasPendingBankruptcy = room.pendingBankruptcy.delete(playerId);
 
-  if (wasPendingBankruptcy && room.game) {
+  if (room.game) {
     try {
-      room.game.setSpectator(playerId);
+      // 진행 중인 판이라면 다이로 처리해 판돈을 잃게 하고, 이후 판부터는
+      // 완전히 제외한다(관전자로도 남지 않고 화면에서도 사라진다).
+      room.game.leaveGame(playerId);
     } catch {
-      // 이미 다음 판이 시작되는 등 예외 상황은 무시한다.
+      // 이미 게임에 없는 플레이어 등 예외 상황은 무시한다.
     }
   }
 
@@ -392,7 +418,17 @@ function removePlayerFromRoom(roomId: string, room: Room, playerId: string) {
     return;
   }
 
+  if (leavingPlayer) {
+    io.to(roomId).emit("player-left", {
+      message: `${withSubjectParticle(leavingPlayer.name)} 나갔습니다.`,
+    });
+  }
+
   broadcastPlayersUpdated(roomId, room);
+
+  if (room.game) {
+    broadcastGameState(room);
+  }
 
   if (wasPendingBankruptcy) {
     resumeRestartAfterBankruptcy(room);

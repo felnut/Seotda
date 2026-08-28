@@ -1,5 +1,5 @@
 import { Deck } from "./deck";
-import { compareHands, evaluateHand, HandResult } from "./ranking";
+import { compareHands, evaluateHand, HAND_RANK, HandResult } from "./ranking";
 import { SeotdaCard } from "@/types/seotda";
 
 export type PlayerStatus = "playing" | "folded" | "winner" | "loser";
@@ -8,6 +8,11 @@ export const STARTING_CHIPS = 10_000;
 
 // 매 판 시작 시 자동으로 내는 시작금(앤티)
 export const ANTE = 100;
+
+// 땡값 — 광땡/장땡으로 이겼을 때 대결한 상대 각자에게서 추가로 받는,
+// 딴 금액(판돈) 대비 비율
+export const GWANGDDAENG_FEE_RATE = 0.05;
+export const JANGDDAENG_FEE_RATE = 0.01;
 
 export interface Player {
   id: string;
@@ -22,6 +27,9 @@ export interface Player {
   lastAction: string | null;
   // 파산 후 관전을 선택한 플레이어 — 이후 판부터 카드도, 베팅도 하지 않는다.
   isSpectator: boolean;
+  // 방을 나간 플레이어 — 화면 목록에서 완전히 제외된다. (isSpectator와 달리
+  // "관전 중"으로 표시되지 않고, 다시 들어올 수도 없다.)
+  hasLeft: boolean;
 }
 
 export type GamePhase =
@@ -75,6 +83,7 @@ export class SeotdaGame {
         bet: 0,
         lastAction: null,
         isSpectator: false,
+        hasLeft: false,
       })),
 
       currentPlayerIndex: 0,
@@ -420,6 +429,57 @@ export class SeotdaGame {
   }
 
   /**
+   * 방 나가기
+   *
+   * 진행 중인 판 도중이라면 다이한 것으로 처리해 판돈(이미 낸 베팅액)은
+   * 그대로 잃게 하고, 남은 인원만으로 판이 이어지게 한다. 판이 끝난
+   * 뒤(다음 판 시작 전)라면 판 결과에는 영향이 없으므로 바로 제외한다.
+   * 어느 쪽이든 이후 판부터는 완전히 빠지며(관전자로도 남지 않음),
+   * 화면에도 더 이상 표시되지 않는다.
+   */
+  leaveGame(playerId: string): void {
+    const player = this.findPlayer(playerId);
+
+    const midHandPhase =
+      this.state.phase === "betting1" ||
+      this.state.phase === "betting2" ||
+      this.state.phase === "reveal" ||
+      this.state.phase === "select";
+
+    if (midHandPhase && player.status === "playing") {
+      const wasCurrentTurn =
+        this.isBettingPhase() && this.getCurrentPlayer().id === playerId;
+
+      player.status = "folded";
+      player.lastAction = "다이";
+      this.actedPlayers.add(player.id);
+
+      const remaining = this.state.players.filter(
+        (p) => p.status === "playing",
+      );
+
+      if (remaining.length <= 1) {
+        this.finishByFold();
+      } else if (this.isBettingPhase()) {
+        if (wasCurrentTurn) {
+          this.nextTurn();
+        }
+      } else if (this.state.phase === "reveal") {
+        if (remaining.every((p) => p.revealedCardIndex !== null)) {
+          this.startSecondBettingRound();
+        }
+      } else if (this.state.phase === "select") {
+        if (remaining.every((p) => p.selectedIndices !== null)) {
+          this.showdown();
+        }
+      }
+    }
+
+    player.isSpectator = true;
+    player.hasLeft = true;
+  }
+
+  /**
    * 카드 공개
    *
    * 3번째 카드까지 받은 뒤, 자신의 카드 중 한 장을 상대에게 공개합니다.
@@ -635,11 +695,32 @@ export class SeotdaGame {
       }),
     );
 
-    // 구사 / 멍텅구리 구사는 승패를 가리지 않고 판을 무효로 하여 재경기한다.
-    for (const player of activePlayers) {
-      const special = evaluateHand(selectedPairs.get(player.id)!).special;
+    const results = new Map(
+      activePlayers.map((player) => [
+        player.id,
+        evaluateHand(selectedPairs.get(player.id)!),
+      ]),
+    );
 
-      if (special === "gusa" || special === "meongtunguri-gusa") {
+    // 구사 / 멍텅구리 구사는 무조건 재경기가 아니라, 다른 참가자 중 아무도
+    // 기준패(구사=알리, 멍텅구리 구사=9땡)를 넘는 패가 없을 때만 판을 무효로
+    // 하고 재경기한다. 누군가 기준을 넘는 패를 들고 있으면 재경기 없이
+    // 구사류는 망통과 같은 순위로 그냥 진다.
+    for (const player of activePlayers) {
+      const special = results.get(player.id)!.special;
+
+      if (special !== "gusa" && special !== "meongtunguri-gusa") continue;
+
+      const threshold =
+        special === "gusa" ? HAND_RANK.ALI : HAND_RANK.NINE_DDAENG;
+
+      const someoneExceedsThreshold = activePlayers.some(
+        (other) =>
+          other.id !== player.id &&
+          results.get(other.id)!.rank > threshold,
+      );
+
+      if (!someoneExceedsThreshold) {
         this.voidHandForRedeal(
           special === "meongtunguri-gusa" ? "멍텅구리 구사" : "구사",
         );
@@ -671,9 +752,45 @@ export class SeotdaGame {
     }
 
     this.awardPot(winner);
+    this.collectDdaengFee(winner, results.get(winner.id)!, activePlayers);
 
     this.state.winnerId = winner.id;
     this.state.phase = "finished";
+  }
+
+  /**
+   * 땡값
+   *
+   * 광땡(13/18/38광땡) 또는 장땡으로 이겼다면, 다이하지 않고 마지막까지
+   * 대결한 상대 전원에게서 딴 금액(판돈)의 일정 비율을 추가로 받는다.
+   * 각자 자신의 남은 칩에서 낸다(부족하면 있는 만큼만).
+   */
+  private collectDdaengFee(
+    winner: Player,
+    winnerResult: HandResult,
+    activePlayers: Player[],
+  ): void {
+    const isGwangddaeng =
+      winnerResult.name === "13광땡" ||
+      winnerResult.name === "18광땡" ||
+      winnerResult.name === "38광땡";
+    const isJangddaeng = winnerResult.name === "장땡";
+
+    if (!isGwangddaeng && !isJangddaeng) return;
+
+    const rate = isGwangddaeng ? GWANGDDAENG_FEE_RATE : JANGDDAENG_FEE_RATE;
+    const fee = Math.floor(this.state.pot * rate);
+
+    if (fee <= 0) return;
+
+    for (const opponent of activePlayers) {
+      if (opponent.id === winner.id) continue;
+
+      const paid = Math.min(fee, opponent.chips);
+
+      opponent.chips -= paid;
+      winner.chips += paid;
+    }
   }
 
   /**

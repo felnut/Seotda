@@ -185,11 +185,12 @@ export function evaluateHand(cards: [SeotdaCard, SeotdaCard]): HandResult {
   }
 
   //암행어사
+  //13/18광땡을 잡지 못하면(타깃패가 없으면) 한끗으로 취급한다.
   if (special === "amhaeng-eosa") {
     return {
-      name: "망통",
-      rank: HAND_RANK.MANGTONG,
-      value: 0,
+      name: "1끗",
+      rank: HAND_RANK.KKEUT_1,
+      value: 1,
       special,
     };
   }
@@ -426,16 +427,9 @@ export function compareHands(
   const result1 = evaluateHand(hand1);
   const result2 = evaluateHand(hand2);
 
-  //구사 계열은 일반적인 승패를 결정하지 않음
-  //실제 게임에서는 재경기 여부를 game.ts에서 처리
-  if (
-    result1.special === "gusa" ||
-    result1.special === "meongtunguri-gusa" ||
-    result2.special === "gusa" ||
-    result2.special === "meongtunguri-gusa"
-  ) {
-    return 0;
-  }
+  //구사 계열은 재경기 조건을 만족하면(game.ts에서 판정) 애초에 이 비교까지
+  //오지 않는다. 여기 도달했다는 건 재경기 없이 그냥 지는 경우이므로,
+  //망통과 같은 순위(rank/value)로 자연스럽게 비교되도록 특별취급하지 않는다.
 
   //땡잡이
   if (isDdaengJabiWin(result1.special, result2)) {

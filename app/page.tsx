@@ -803,6 +803,25 @@ function GameBoard({
   );
 }
 
+// 누군가 방을 나갔을 때 잠깐 보여주는 알림 (5초 후 자동으로 사라짐)
+function LeaveNoticeToast({ message }: { message: string | null }) {
+  return (
+    <div
+      className={`pointer-events-none fixed top-4 left-1/2 z-50 -translate-x-1/2 transition-all duration-300 ${
+        message
+          ? "translate-y-0 opacity-100"
+          : "-translate-y-2 opacity-0"
+      }`}
+    >
+      {message && (
+        <p className="animate-fade-up rounded-full border border-white/10 bg-zinc-900/95 px-4 py-2 text-[14px] font-medium text-zinc-200 shadow-lg shadow-black/40">
+          {message}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function Home() {
   const [roomId, setRoomId] = useState("");
   const [joinCode, setJoinCode] = useState("");
@@ -837,6 +856,9 @@ export default function Home() {
   const [bankruptcyNotice, setBankruptcyNotice] =
     useState<BankruptcyNotice | null>(null);
   const [hasDecidedBankruptcy, setHasDecidedBankruptcy] = useState(false);
+
+  // 누군가 방을 나갔을 때 5초간 보여주는 알림 메시지
+  const [leaveNotice, setLeaveNotice] = useState<string | null>(null);
 
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isRankingOpen, setIsRankingOpen] = useState(false);
@@ -992,6 +1014,10 @@ export default function Home() {
       setHasDecidedBankruptcy(false);
     });
 
+    socket.on("player-left", ({ message }: { message: string }) => {
+      setLeaveNotice(message);
+    });
+
     socket.on("error-message", ({ message }: { message: string }) => {
       setError(message);
       setHasVotedRestart(false);
@@ -1006,9 +1032,19 @@ export default function Home() {
       socket.off("game-state");
       socket.off("restart-votes-updated");
       socket.off("bankruptcy-notice");
+      socket.off("player-left");
       socket.off("error-message");
     };
   }, []);
+
+  // 나감 알림은 5초 뒤 자동으로 닫힌다.
+  useEffect(() => {
+    if (!leaveNotice) return;
+
+    const timer = window.setTimeout(() => setLeaveNotice(null), 5000);
+
+    return () => window.clearTimeout(timer);
+  }, [leaveNotice]);
 
   // 마운트 시 이전에 있던 방이 저장돼 있으면 자동으로 재접속을 시도한다.
   useEffect(() => {
@@ -1121,6 +1157,7 @@ export default function Home() {
     setRestartVotesTotal(0);
     setBankruptcyNotice(null);
     setHasDecidedBankruptcy(false);
+    setLeaveNotice(null);
   };
 
   // 10. 방 나가기
@@ -1428,6 +1465,8 @@ export default function Home() {
 
     return (
       <main className="flex h-dvh flex-col overflow-hidden px-3 py-2 sm:px-6 sm:py-4">
+        <LeaveNoticeToast message={leaveNotice} />
+
         <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-hidden">
           <header className="mb-2 flex shrink-0 items-center justify-between gap-3 sm:mb-4">
             <h1 className="text-[25px] font-bold tracking-tight text-amber-400 sm:text-3xl">
@@ -1520,6 +1559,8 @@ export default function Home() {
    */
   return (
     <main className="flex h-dvh flex-col overflow-hidden px-3 py-2 sm:px-6 sm:py-4">
+      <LeaveNoticeToast message={leaveNotice} />
+
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-hidden">
         <header className="mb-2 flex shrink-0 items-center justify-between gap-3 sm:mb-4">
           <h1 className="text-[25px] font-bold tracking-tight text-amber-400 sm:text-3xl">
