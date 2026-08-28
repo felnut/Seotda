@@ -77,7 +77,7 @@ const REDEAL_DELAY_MS = 2_500;
 // (그 뒤에 정식 재경기 배너나 즉시 재대결 다음 단계로 넘어간다)
 const SHOWDOWN_REVEAL_PAUSE_MS = 2_500;
 
-const MAX_NAME_LENGTH = 8;
+const MAX_NAME_LENGTH = 13;
 const MAX_CHAT_LENGTH = 200;
 
 interface JoinedPlayer {

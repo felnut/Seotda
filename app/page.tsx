@@ -1025,7 +1025,7 @@ export default function Home() {
         if (cancelled) return;
 
         const profile = snapshot.data() as UserProfile | undefined;
-        const name = profile?.name ?? user.displayName?.slice(0, 8) ?? null;
+        const name = profile?.name ?? user.displayName?.slice(0, 13) ?? null;
 
         setProfileName(name);
 
@@ -1559,7 +1559,7 @@ export default function Home() {
             value={displayName}
             onChange={(event) => setDisplayName(event.target.value)}
             placeholder="입력하지 않으면 기본 이름이 부여됩니다"
-            maxLength={8}
+            maxLength={13}
             className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-[17.5px] text-white outline-none transition focus:border-amber-400/50 focus:ring-2 focus:ring-amber-400/20"
           />
         </div>

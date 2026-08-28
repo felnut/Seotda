@@ -8,7 +8,7 @@ import { PROFILES_COLLECTION, UserProfile } from "@/lib/profile";
 import { RANKINGS_COLLECTION } from "@/lib/ranking";
 import { GoogleSignInButton } from "@/app/components/GoogleSignInButton";
 
-const MAX_NAME_LENGTH = 8;
+const MAX_NAME_LENGTH = 13;
 
 export default function ProfilePage() {
   const user = useAuth();
