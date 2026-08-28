@@ -33,7 +33,13 @@ const SOCKET_URL =
   process.env.NEXT_PUBLIC_SOCKET_URL ?? "http://localhost:3001";
 
 const socket: Socket =
-  socketCache.__seotdaSocket ?? (socketCache.__seotdaSocket = io(SOCKET_URL));
+  socketCache.__seotdaSocket ??
+  (socketCache.__seotdaSocket = io(SOCKET_URL, {
+    // 기본값(polling으로 시작 후 websocket으로 업그레이드)은 연결마다
+    // 왕복이 한 번 더 들어가 방 만들기 체감 속도를 늦춘다.
+    // websocket을 먼저 시도하고, 막힌 네트워크에서만 polling으로 대체한다.
+    transports: ["websocket", "polling"],
+  }));
 
 const SESSION_STORAGE_KEY = "seotda-session";
 
@@ -817,6 +823,10 @@ export default function Home() {
 
   const [error, setError] = useState("");
 
+  // 방 만들기/참가 요청을 보내고 서버 응답을 기다리는 동안 true.
+  // 버튼을 즉시 비활성화해 중복 요청을 막고, 네트워크 왕복 중임을 보여준다.
+  const [isSubmittingRoom, setIsSubmittingRoom] = useState(false);
+
   // 게임 종료 후 "다시하기"에 내가 동의했는지, 그리고 전체 동의 현황
   const [hasVotedRestart, setHasVotedRestart] = useState(false);
   const [restartVotes, setRestartVotes] = useState(0);
@@ -915,6 +925,7 @@ export default function Home() {
       setMaxPlayers(info.maxPlayers);
       setRoomPlayers(info.players);
       setError("");
+      setIsSubmittingRoom(false);
       saveSession({ roomId: info.roomId, playerId: info.playerId });
     });
 
@@ -925,6 +936,7 @@ export default function Home() {
       setMaxPlayers(info.maxPlayers);
       setRoomPlayers(info.players);
       setError("");
+      setIsSubmittingRoom(false);
       saveSession({ roomId: info.roomId, playerId: info.playerId });
     });
 
@@ -983,6 +995,7 @@ export default function Home() {
     socket.on("error-message", ({ message }: { message: string }) => {
       setError(message);
       setHasVotedRestart(false);
+      setIsSubmittingRoom(false);
     });
 
     return () => {
@@ -1046,7 +1059,10 @@ export default function Home() {
 
   // 7. 방 만들기
   const createRoom = async () => {
+    if (isSubmittingRoom) return;
+
     setError("");
+    setIsSubmittingRoom(true);
 
     const idToken = user ? await user.getIdToken() : undefined;
 
@@ -1059,6 +1075,8 @@ export default function Home() {
 
   // 8. 방 참가
   const joinRoom = async () => {
+    if (isSubmittingRoom) return;
+
     const code = joinCode.trim().toUpperCase();
 
     if (!code) {
@@ -1067,6 +1085,7 @@ export default function Home() {
     }
 
     setError("");
+    setIsSubmittingRoom(true);
 
     const idToken = user ? await user.getIdToken() : undefined;
 
@@ -1161,6 +1180,7 @@ export default function Home() {
     socket.emit("bet", {
       roomId,
       amount: Math.max(1, Math.floor(gameState.pot / 2)),
+      isHalf: true,
     });
   };
 
@@ -1325,9 +1345,10 @@ export default function Home() {
               <button
                 type="button"
                 onClick={createRoom}
-                className="mt-auto w-full rounded-xl bg-amber-400 px-6 py-3.5 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-amber-300 active:scale-[0.98]"
+                disabled={isSubmittingRoom}
+                className="mt-auto w-full rounded-xl bg-amber-400 px-6 py-3.5 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-amber-300 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
               >
-                방 만들기
+                {isSubmittingRoom ? "만드는 중..." : "방 만들기"}
               </button>
             </section>
 
@@ -1360,9 +1381,10 @@ export default function Home() {
               <button
                 type="button"
                 onClick={joinRoom}
-                className="mt-auto w-full rounded-xl bg-emerald-500 px-6 py-3.5 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-emerald-400 active:scale-[0.98]"
+                disabled={isSubmittingRoom}
+                className="mt-auto w-full rounded-xl bg-emerald-500 px-6 py-3.5 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-emerald-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
               >
-                참가
+                {isSubmittingRoom ? "참가하는 중..." : "참가"}
               </button>
             </section>
           </div>
