@@ -1,8 +1,9 @@
 import { createServer } from "http";
+import { randomUUID } from "crypto";
 import { Server } from "socket.io";
 import { SeotdaGame, STARTING_CHIPS } from "@/lib/seotda/game";
 import { getDisplayHandName } from "@/lib/seotda/ranking";
-import { ClientGameState } from "@/types/seotda";
+import { ChatMessage, ClientGameState } from "@/types/seotda";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
 import { RANKINGS_COLLECTION, RankingEntry } from "@/lib/ranking";
 import { PROFILES_COLLECTION, UserProfile } from "@/lib/profile";
@@ -36,6 +37,14 @@ const ROOM_CREATE_WINDOW_MS = 60_000;
 // socketId -> 최근 방 생성 시각 목록 (윈도우 밖으로 밀려난 건 그때그때 걸러낸다)
 const roomCreateTimestamps = new Map<string, number[]>();
 
+// 채팅 도배 방지
+const CHAT_MESSAGE_LIMIT = 10;
+const CHAT_MESSAGE_WINDOW_MS = 10_000;
+const chatMessageTimestamps = new Map<string, number[]>();
+
+// 방마다 보관하는 채팅 히스토리 최대 개수 — 넘으면 오래된 것부터 버린다.
+const MAX_CHAT_HISTORY = 50;
+
 // 지정한 시간 안에 너무 자주 호출됐으면 true를 반환하고, 아니면 이번 호출을
 // 기록한 뒤 false를 반환한다.
 function isRateLimited(
@@ -64,7 +73,12 @@ const DISCONNECT_GRACE_MS = 30_000;
 // 구사류로 재경기가 확정된 뒤, 화면에 사유를 보여주고 다시 시작하기까지의 대기 시간
 const REDEAL_DELAY_MS = 2_500;
 
+// 쇼다운에서 재경기가 결정됐을 때, 공개된 패를 보여주는 시간
+// (그 뒤에 정식 재경기 배너나 즉시 재대결 다음 단계로 넘어간다)
+const SHOWDOWN_REVEAL_PAUSE_MS = 2_500;
+
 const MAX_NAME_LENGTH = 8;
+const MAX_CHAT_LENGTH = 200;
 
 interface JoinedPlayer {
   id: string;
@@ -157,6 +171,8 @@ interface Room {
   restartVotes: Set<string>;
   // 다시하기 전, 파산해서 관전/나가기 결정을 아직 하지 않은 플레이어 id 목록
   pendingBankruptcy: Set<string>;
+  // 방이 사라지면 같이 사라지는 순수 인메모리 채팅 기록(최근 것만 유지)
+  chatMessages: ChatMessage[];
 }
 
 const rooms = new Map<string, Room>();
@@ -255,6 +271,44 @@ function broadcastGameState(room: Room) {
       console.error("랭킹 동기화 실패:", err);
     });
   }
+}
+
+// 쇼다운에서 재경기가 결정되면(구사/멍텅구리 구사) 공개된 패를 잠시 보여준
+// 뒤 다음 단계로 넘어간다. 다이한 사람이 없었다면 정식 재경기 배너를 거쳐
+// start()로, 있었다면 즉시 재대결(카드만 새로 받아 바로 비교)로 넘어가는데
+// 그 결과가 또 재경기 조건이면 이 함수가 재귀적으로 다시 예약된다.
+function scheduleShowdownFollowup(room: Room) {
+  setTimeout(() => {
+    if (!room.game || !room.game.hasPendingRedeal()) return;
+
+    try {
+      room.game.confirmPendingRedeal();
+      broadcastGameState(room);
+    } catch (error) {
+      console.warn("재경기 확정 실패(무시):", error);
+      return;
+    }
+
+    if (!room.game) return;
+
+    const phase = room.game.getState().phase;
+
+    if (phase === "redeal") {
+      setTimeout(() => {
+        if (!room.game || room.game.getState().phase !== "redeal") return;
+
+        try {
+          room.game.start();
+          broadcastGameState(room);
+        } catch (error) {
+          console.warn("재경기 시작 실패(무시):", error);
+        }
+      }, REDEAL_DELAY_MS);
+    } else if (room.game.hasPendingRedeal()) {
+      // 즉시 재대결에서 또 구사/멍구사 재경기 조건이 나온 경우 — 반복
+      scheduleShowdownFollowup(room);
+    }
+  }, SHOWDOWN_REVEAL_PAUSE_MS);
 }
 
 // 판이 끝날 때마다 로그인한(uid가 있는) 참가자의 랭킹 통계를 Firestore에 반영한다.
@@ -389,8 +443,12 @@ function beginRestart(room: Room) {
   }
 
   // 칩은 초기화하지 않고 그대로 이어서 시작한다.
-  room.game.start(false);
-  broadcastGameState(room);
+  try {
+    room.game.start(false);
+    broadcastGameState(room);
+  } catch (error) {
+    console.warn("다시하기 시작 실패(무시):", error);
+  }
 }
 
 // 파산자 전원이 관전/나가기를 결정하면 이어서 새 판을 시작한다.
@@ -413,8 +471,12 @@ function resumeRestartAfterBankruptcy(room: Room) {
     return;
   }
 
-  room.game.start(false);
-  broadcastGameState(room);
+  try {
+    room.game.start(false);
+    broadcastGameState(room);
+  } catch (error) {
+    console.warn("다시하기 시작 실패(무시):", error);
+  }
 }
 
 function findPlayerIdBySocket(room: Room, socketId: string): string | null {
@@ -543,6 +605,7 @@ io.on("connection", (socket) => {
         disconnectTimers: new Map(),
         restartVotes: new Set(),
         pendingBankruptcy: new Set(),
+        chatMessages: [],
       };
 
       rooms.set(roomId, room);
@@ -555,6 +618,7 @@ io.on("connection", (socket) => {
         playerCount: room.joinedPlayers.length,
         maxPlayers: room.maxPlayers,
         players: roomPlayersPayload(room),
+        chatMessages: room.chatMessages,
       });
 
       if (idToken) {
@@ -646,6 +710,7 @@ io.on("connection", (socket) => {
         playerCount: room.joinedPlayers.length,
         maxPlayers: room.maxPlayers,
         players: roomPlayersPayload(room),
+        chatMessages: room.chatMessages,
       });
 
       broadcastPlayersUpdated(roomId, room);
@@ -677,6 +742,7 @@ io.on("connection", (socket) => {
         playerCount: room.joinedPlayers.length,
         maxPlayers: room.maxPlayers,
         players: roomPlayersPayload(room),
+        chatMessages: room.chatMessages,
       });
 
       broadcastPlayersUpdated(roomId, room);
@@ -713,8 +779,16 @@ io.on("connection", (socket) => {
       room.game = new SeotdaGame(players);
     }
 
-    room.game.start();
-    broadcastGameState(room);
+    try {
+      room.game.start();
+      broadcastGameState(room);
+    } catch (error) {
+      // 방 정원이 차면 참가자 전원의 클라이언트가 각자 카운트다운 후 각자
+      // start-game을 보낼 수 있다. 이미 다른 클라이언트가 먼저 시작시켰다면
+      // 뒤이어 도착한 요청은 조용히 무시한다 — 예외를 그대로 던지면 서버
+      // 프로세스 전체가 죽어서 무관한 다른 방까지 전부 끊겨버린다.
+      console.warn("게임 시작 실패(무시):", error);
+    }
   });
 
   // "다시하기"는 즉시 재시작이 아니라 투표다 — 참가자 전원이 동의해야 시작된다.
@@ -750,6 +824,43 @@ io.on("connection", (socket) => {
 
     tryStartVotedRestart(room);
   });
+
+  // 로그인 계정의 영구 보유 칩(rankings/{uid}.money)이 0 이하로 파산해
+  // 있으면 1만 칩으로 채워준다. 로비 화면이 보유 칩을 불러올 때 호출한다.
+  // 이미 0보다 크면 아무것도 바꾸지 않는다(멱등적 — 중복 호출해도 안전).
+  socket.on(
+    "claim-bankruptcy-refill",
+    ({ idToken }: { idToken?: string }) => {
+      if (!idToken || !adminAuth || !adminDb) return;
+
+      const auth = adminAuth;
+      const db = adminDb;
+
+      auth
+        .verifyIdToken(idToken)
+        .then(async (decoded) => {
+          const docRef = db.collection(RANKINGS_COLLECTION).doc(decoded.uid);
+
+          const money = await db.runTransaction(async (tx) => {
+            const snapshot = await tx.get(docRef);
+            const existing = snapshot.data() as RankingEntry | undefined;
+
+            if (!existing || existing.money > 0) {
+              return existing?.money ?? STARTING_CHIPS;
+            }
+
+            tx.update(docRef, { money: STARTING_CHIPS });
+
+            return STARTING_CHIPS;
+          });
+
+          socket.emit("bankruptcy-refill-result", { money });
+        })
+        .catch((err) => {
+          console.warn("파산 칩 지급 실패:", err);
+        });
+    },
+  );
 
   // 파산한 플레이어가 다음 판을 관전할지, 방을 나갈지 결정한다.
   socket.on(
@@ -924,13 +1035,8 @@ io.on("connection", (socket) => {
 
         broadcastGameState(room);
 
-        if (room.game.getState().phase === "redeal") {
-          setTimeout(() => {
-            if (!room.game || room.game.getState().phase !== "redeal") return;
-
-            room.game.start();
-            broadcastGameState(room);
-          }, REDEAL_DELAY_MS);
+        if (room.game.hasPendingRedeal()) {
+          scheduleShowdownFollowup(room);
         }
       } catch (error) {
         socket.emit("error-message", {
@@ -964,6 +1070,62 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on(
+    "chat-message",
+    ({ roomId, text }: { roomId: string; text: string }) => {
+      const room = rooms.get(roomId);
+
+      if (!room) return;
+
+      const playerId = findPlayerIdBySocket(room, socket.id);
+
+      if (!playerId) return;
+
+      const player = room.joinedPlayers.find((p) => p.id === playerId);
+
+      if (!player) return;
+
+      const trimmed =
+        typeof text === "string" ? text.trim().slice(0, MAX_CHAT_LENGTH) : "";
+
+      if (!trimmed) return;
+
+      if (
+        isRateLimited(
+          socket.id,
+          chatMessageTimestamps,
+          CHAT_MESSAGE_LIMIT,
+          CHAT_MESSAGE_WINDOW_MS,
+        )
+      ) {
+        socket.emit("error-message", {
+          message: "메시지를 너무 자주 보냈습니다. 잠시 후 다시 시도해주세요.",
+        });
+
+        return;
+      }
+
+      const message: ChatMessage = {
+        id: randomUUID(),
+        playerId,
+        name: player.name,
+        text: trimmed,
+        timestamp: Date.now(),
+      };
+
+      room.chatMessages.push(message);
+
+      if (room.chatMessages.length > MAX_CHAT_HISTORY) {
+        room.chatMessages.splice(
+          0,
+          room.chatMessages.length - MAX_CHAT_HISTORY,
+        );
+      }
+
+      io.to(roomId).emit("chat-message", message);
+    },
+  );
+
   socket.on("leave-room", (roomId: string) => {
     const room = rooms.get(roomId);
 
@@ -982,6 +1144,7 @@ io.on("connection", (socket) => {
     console.log("연결 종료:", socket.id);
 
     roomCreateTimestamps.delete(socket.id);
+    chatMessageTimestamps.delete(socket.id);
 
     for (const [roomId, room] of rooms) {
       const joined = room.joinedPlayers.find((p) => p.socketId === socket.id);

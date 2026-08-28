@@ -63,6 +63,16 @@ export class SeotdaGame {
   // 이번 베팅 라운드에서 행동을 완료한 플레이어
   private actedPlayers = new Set<string>();
 
+  // 구사/멍텅구리 구사로 재경기가 결정됐지만, 아직 패를 공개해서 보여주는
+  // 중이라 실제 재경기 처리(voidHandForRedeal 또는 즉시 재대결)를 미뤄둔 상태.
+  // instant: 이번 판에 다이한 사람이 있으면 true — 그 사람들은 제외하고
+  // activePlayerIds만 베팅 없이 새 카드를 받아 즉시 재대결한다.
+  private pendingRedeal: {
+    reason: string;
+    instant: boolean;
+    activePlayerIds: string[];
+  } | null = null;
+
   constructor(
     players: { name: string; chips?: number }[] = [
       { name: "플레이어 1" },
@@ -684,8 +694,21 @@ export class SeotdaGame {
       return;
     }
 
+    // 승부가 어떻게 나든(승자 확정이든 재경기든) 일단 패부터 공개한다.
     this.state.phase = "showdown";
 
+    this.resolveShowdownOutcome(activePlayers);
+  }
+
+  /**
+   * 활성 플레이어들의 패를 비교해 승자 또는 재경기 사유를 판정한다.
+   * 칩 지급 등 부수효과는 없는 순수 판정만 담당한다.
+   */
+  private resolveActivePlayersShowdown(
+    activePlayers: Player[],
+  ):
+    | { type: "winner"; winner: Player; results: Map<string, HandResult> }
+    | { type: "redeal"; reason: string } {
     const selectedPairs = new Map(
       activePlayers.map((player) => {
         const cards = player.cards as SeotdaCard[];
@@ -721,10 +744,10 @@ export class SeotdaGame {
       );
 
       if (!someoneExceedsThreshold) {
-        this.voidHandForRedeal(
-          special === "meongtunguri-gusa" ? "멍텅구리 구사" : "구사",
-        );
-        return;
+        return {
+          type: "redeal",
+          reason: special === "meongtunguri-gusa" ? "멍텅구리 구사" : "구사",
+        };
       }
     }
 
@@ -743,6 +766,46 @@ export class SeotdaGame {
       }
     }
 
+    return { type: "winner", winner, results };
+  }
+
+  /**
+   * 판정 결과를 적용한다. 승자면 바로 확정하고, 재경기면 패를 공개한 채
+   * (phase는 "showdown"에 머무름) pendingRedeal에 담아두고 대기시킨다 —
+   * 실제 재경기 처리는 서버가 화면에 패를 보여준 뒤 confirmPendingRedeal()을
+   * 불러 진행한다.
+   */
+  private resolveShowdownOutcome(activePlayers: Player[]): void {
+    const outcome = this.resolveActivePlayersShowdown(activePlayers);
+
+    if (outcome.type === "winner") {
+      this.finishShowdownWithWinner(
+        outcome.winner,
+        outcome.results,
+        activePlayers,
+      );
+      return;
+    }
+
+    // 이번 판에 다이한 사람이 있다면, 그 사람들은 빼고 남은 사람끼리만
+    // 베팅 없이 즉시 재대결한다(요청 사항). 없다면 기존처럼 판돈을 묻고
+    // 다음 판 앤티를 배로 올리는 정식 재경기.
+    const instant = this.state.players.some(
+      (player) => player.status === "folded" && !player.isSpectator,
+    );
+
+    this.pendingRedeal = {
+      reason: outcome.reason,
+      instant,
+      activePlayerIds: activePlayers.map((player) => player.id),
+    };
+  }
+
+  private finishShowdownWithWinner(
+    winner: Player,
+    results: Map<string, HandResult>,
+    activePlayers: Player[],
+  ): void {
     winner.status = "winner";
 
     for (const player of activePlayers) {
@@ -756,6 +819,51 @@ export class SeotdaGame {
 
     this.state.winnerId = winner.id;
     this.state.phase = "finished";
+  }
+
+  /**
+   * 재경기 대기 중인지 여부 — true면 서버가 잠시 뒤 confirmPendingRedeal()을
+   * 불러야 한다.
+   */
+  hasPendingRedeal(): boolean {
+    return this.pendingRedeal !== null;
+  }
+
+  /**
+   * 패를 충분히 보여준 뒤 실제 재경기를 진행한다.
+   *
+   * 다이한 사람이 없었다면 기존 "묻고 더블" 재경기(voidHandForRedeal)로,
+   * 있었다면 그 사람들을 뺀 나머지끼리 베팅·앤티 없이 카드 2장만 새로 받아
+   * 곧바로 다시 비교한다(판돈은 그대로 유지). 그 결과가 또 재경기 조건이면
+   * pendingRedeal을 다시 채워 같은 과정을 반복한다.
+   */
+  confirmPendingRedeal(): void {
+    if (!this.pendingRedeal) return;
+
+    const { reason, instant, activePlayerIds } = this.pendingRedeal;
+
+    this.pendingRedeal = null;
+
+    if (!instant) {
+      this.voidHandForRedeal(reason);
+      return;
+    }
+
+    const participants = activePlayerIds.map((id) => this.findPlayer(id));
+
+    this.state.deck.reset();
+
+    for (const player of participants) {
+      player.cards = this.state.deck.draw(2);
+      player.selectedIndices = [0, 1];
+      player.revealedCardIndex = null;
+      player.bet = 0;
+      player.lastAction = null;
+    }
+
+    this.state.phase = "showdown";
+
+    this.resolveShowdownOutcome(participants);
   }
 
   /**
