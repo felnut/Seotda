@@ -484,7 +484,7 @@ io.on("connection", (socket) => {
 
   socket.on(
     "create-room",
-    async ({
+    ({
       maxPlayers,
       name,
       idToken,
@@ -522,17 +522,21 @@ io.on("connection", (socket) => {
         ? Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, maxPlayers))
         : MIN_PLAYERS;
 
-      const resolved = await resolveJoiningPlayer(idToken, name);
-
+      // 로그인 계정의 실제 닉네임/보유 칩을 조회하려면 idToken 검증 +
+      // Firestore 조회가 필요해 시간이 걸린다. 방 생성 응답을 그만큼 늦추지
+      // 않도록, 우선 클라이언트가 입력한 이름(또는 기본값)으로 방을 즉시
+      // 만들어 응답하고, 조회 결과는 끝나는 대로 뒤이어 반영한다. 게임은
+      // 최소 한 명이 더 들어와야 시작되므로 실제 시작 전엔 항상 반영이
+      // 끝나 있다.
       const room: Room = {
         maxPlayers: safeMaxPlayers,
         joinedPlayers: [
           {
             id: "player-1",
-            name: resolved.name ?? "플레이어 1",
+            name: sanitizeName(name) ?? "플레이어 1",
             socketId: socket.id,
-            uid: resolved.uid,
-            startingChips: resolved.startingChips,
+            uid: null,
+            startingChips: STARTING_CHIPS,
           },
         ],
         game: null,
@@ -552,6 +556,27 @@ io.on("connection", (socket) => {
         maxPlayers: room.maxPlayers,
         players: roomPlayersPayload(room),
       });
+
+      if (idToken) {
+        resolveJoiningPlayer(idToken, name)
+          .then((resolved) => {
+            const player = room.joinedPlayers.find((p) => p.id === "player-1");
+
+            if (!player) return;
+
+            player.uid = resolved.uid;
+            player.startingChips = resolved.startingChips;
+
+            if (resolved.name) {
+              player.name = resolved.name;
+            }
+
+            broadcastPlayersUpdated(roomId, room);
+          })
+          .catch((err) => {
+            console.error("로그인 정보 반영 실패:", err);
+          });
+      }
     },
   );
 
