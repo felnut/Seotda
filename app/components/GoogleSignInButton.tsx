@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
-import { auth } from "@/lib/firebase/client";
+import { getFirebaseAuth } from "@/lib/firebase/client";
 
 // Google Identity Services가 발급한 ID 토큰을 Firebase 자격 증명으로 바꿔 로그인한다.
 // signInWithRedirect/Popup과 달리 authDomain을 거치는 중계가 없어 서드파티
@@ -20,56 +19,63 @@ export function GoogleSignInButton({
   const buttonRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!auth) return;
-
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
     if (!clientId) return;
 
     let cancelled = false;
+    let interval: ReturnType<typeof setInterval> | undefined;
 
-    const render = () => {
-      if (cancelled || !buttonRef.current || !window.google) return;
+    getFirebaseAuth().then(async (auth) => {
+      if (!auth || cancelled) return;
 
-      window.google.accounts.id.initialize({
-        client_id: clientId,
-        callback: (response) => {
-          if (!auth) return;
+      // firebase/auth는 실제로 로그인 UI를 그릴 때만 불러온다.
+      const { GoogleAuthProvider, signInWithCredential } = await import(
+        "firebase/auth"
+      );
 
-          const credential = GoogleAuthProvider.credential(response.credential);
+      if (cancelled) return;
 
-          signInWithCredential(auth, credential).catch((err) => {
-            console.error("로그인 실패:", err);
-            onError?.("로그인에 실패했습니다.");
-          });
-        },
-      });
+      const render = () => {
+        if (cancelled || !buttonRef.current || !window.google) return;
 
-      window.google.accounts.id.renderButton(buttonRef.current, {
-        theme: "filled_black",
-        size: "medium",
-        text: "signin",
-      });
-    };
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: (response) => {
+            const credential = GoogleAuthProvider.credential(
+              response.credential,
+            );
 
-    if (window.google) {
-      render();
-    } else {
-      const interval = setInterval(() => {
-        if (window.google) {
-          clearInterval(interval);
-          render();
-        }
-      }, 100);
+            signInWithCredential(auth, credential).catch((err) => {
+              console.error("로그인 실패:", err);
+              onError?.("로그인에 실패했습니다.");
+            });
+          },
+        });
 
-      return () => {
-        cancelled = true;
-        clearInterval(interval);
+        window.google.accounts.id.renderButton(buttonRef.current, {
+          theme: "filled_black",
+          size: "medium",
+          text: "signin",
+        });
       };
-    }
+
+      if (window.google) {
+        render();
+      } else {
+        interval = setInterval(() => {
+          if (window.google) {
+            clearInterval(interval);
+            render();
+          }
+        }, 100);
+      }
+    });
 
     return () => {
       cancelled = true;
+
+      if (interval) clearInterval(interval);
     };
   }, [onError]);
 

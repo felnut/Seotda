@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase/client";
+import { getFirebaseDb } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/useAuth";
 import { PROFILES_COLLECTION, UserProfile } from "@/lib/profile";
 import { RANKINGS_COLLECTION } from "@/lib/ranking";
@@ -21,12 +20,11 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!user || !db) {
+    if (!user) {
       Promise.resolve().then(() => setLoading(false));
       return;
     }
 
-    const firestore = db;
     let cancelled = false;
 
     Promise.resolve()
@@ -34,9 +32,19 @@ export default function ProfilePage() {
         setLoading(true);
         setError("");
 
-        return getDoc(doc(firestore, PROFILES_COLLECTION, user.uid));
+        return getFirebaseDb();
       })
-      .then((snapshot) => {
+      .then(async (firestore) => {
+        if (!firestore || cancelled) return;
+
+        const { doc, getDoc } = await import("firebase/firestore");
+
+        if (cancelled) return;
+
+        const snapshot = await getDoc(
+          doc(firestore, PROFILES_COLLECTION, user.uid),
+        );
+
         if (cancelled) return;
 
         const profile = snapshot.data() as UserProfile | undefined;
@@ -61,7 +69,7 @@ export default function ProfilePage() {
   }, [user]);
 
   const saveName = () => {
-    if (!user || !db) return;
+    if (!user) return;
 
     const trimmed = name.trim().slice(0, MAX_NAME_LENGTH);
 
@@ -76,12 +84,16 @@ export default function ProfilePage() {
 
     const profile: UserProfile = { name: trimmed, updatedAt: Date.now() };
 
-    const firestore = db;
+    getFirebaseDb()
+      .then(async (firestore) => {
+        if (!firestore) return;
 
-    setDoc(doc(firestore, PROFILES_COLLECTION, user.uid), profile, {
-      merge: true,
-    })
-      .then(() => {
+        const { doc, setDoc, updateDoc } = await import("firebase/firestore");
+
+        await setDoc(doc(firestore, PROFILES_COLLECTION, user.uid), profile, {
+          merge: true,
+        });
+
         setName(trimmed);
         setSaved(true);
 
