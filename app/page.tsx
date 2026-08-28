@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { io, Socket } from "socket.io-client";
-import { signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
 import {
   BankruptcyNotice,
   ClientGameState,
@@ -17,7 +15,7 @@ import {
 } from "@/types/seotda";
 import { HAND_GUIDE, SPECIAL_HAND_GUIDE } from "@/lib/seotda/handGuide";
 import { evaluateHand, getDisplayHandName } from "@/lib/seotda/ranking";
-import { auth, db } from "@/lib/firebase/client";
+import { getFirebaseAuth, getFirebaseDb } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/useAuth";
 import { PROFILES_COLLECTION, UserProfile } from "@/lib/profile";
 import { RANKINGS_COLLECTION, RankingEntry } from "@/lib/ranking";
@@ -808,9 +806,7 @@ function LeaveNoticeToast({ message }: { message: string | null }) {
   return (
     <div
       className={`pointer-events-none fixed top-4 left-1/2 z-50 -translate-x-1/2 transition-all duration-300 ${
-        message
-          ? "translate-y-0 opacity-100"
-          : "-translate-y-2 opacity-0"
+        message ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0"
       }`}
     >
       {message && (
@@ -881,13 +877,22 @@ export default function Home() {
   const [pendingSelection, setPendingSelection] = useState<number[]>([]);
 
   useEffect(() => {
-    if (!user || !db) return;
+    if (!user) return;
 
-    const firestore = db;
     let cancelled = false;
 
-    getDoc(doc(firestore, PROFILES_COLLECTION, user.uid))
-      .then((snapshot) => {
+    getFirebaseDb().then(async (firestore) => {
+      if (!firestore || cancelled) return;
+
+      const { doc, getDoc } = await import("firebase/firestore");
+
+      if (cancelled) return;
+
+      try {
+        const snapshot = await getDoc(
+          doc(firestore, PROFILES_COLLECTION, user.uid),
+        );
+
         if (cancelled) return;
 
         const profile = snapshot.data() as UserProfile | undefined;
@@ -898,10 +903,10 @@ export default function Home() {
         if (name) {
           setDisplayName((prev) => prev || name);
         }
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error("프로필을 불러오지 못했습니다:", err);
-      });
+      }
+    });
 
     return () => {
       cancelled = true;
@@ -909,22 +914,31 @@ export default function Home() {
   }, [user]);
 
   useEffect(() => {
-    if (!user || !db || roomId) return;
+    if (!user || roomId) return;
 
-    const firestore = db;
     let cancelled = false;
 
-    getDoc(doc(firestore, RANKINGS_COLLECTION, user.uid))
-      .then((snapshot) => {
+    getFirebaseDb().then(async (firestore) => {
+      if (!firestore || cancelled) return;
+
+      const { doc, getDoc } = await import("firebase/firestore");
+
+      if (cancelled) return;
+
+      try {
+        const snapshot = await getDoc(
+          doc(firestore, RANKINGS_COLLECTION, user.uid),
+        );
+
         if (cancelled) return;
 
         const entry = snapshot.data() as RankingEntry | undefined;
 
         setChips(entry?.money ?? STARTING_CHIPS);
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error("보유 칩을 불러오지 못했습니다:", err);
-      });
+      }
+    });
 
     return () => {
       cancelled = true;
@@ -932,10 +946,14 @@ export default function Home() {
   }, [user, roomId]);
 
   const signOutOfGoogle = () => {
-    if (!auth) return;
+    getFirebaseAuth().then(async (auth) => {
+      if (!auth) return;
 
-    signOut(auth).catch((err) => {
-      console.error("로그아웃 실패:", err);
+      const { signOut } = await import("firebase/auth");
+
+      signOut(auth).catch((err) => {
+        console.error("로그아웃 실패:", err);
+      });
     });
   };
 

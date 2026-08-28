@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, getDocs, limit, orderBy, query } from "firebase/firestore";
-import { db } from "@/lib/firebase/client";
+import { getFirebaseDb } from "@/lib/firebase/client";
 import {
   RANKING_METRICS,
   RANKINGS_COLLECTION,
@@ -26,30 +25,38 @@ export function RankingModal({
   useEffect(() => {
     if (!open) return;
 
-    if (!db) {
-      Promise.resolve().then(() => {
-        setError("랭킹 기능이 아직 설정되지 않았습니다.");
-      });
-
-      return;
-    }
-
     let cancelled = false;
-
-    const q = query(
-      collection(db, RANKINGS_COLLECTION),
-      orderBy(metric.field, "desc"),
-      limit(20),
-    );
 
     Promise.resolve()
       .then(() => {
         setLoading(true);
         setError("");
 
-        return getDocs(q);
+        return getFirebaseDb();
       })
-      .then((snapshot) => {
+      .then(async (firestore) => {
+        if (!firestore) {
+          if (!cancelled) {
+            setError("랭킹 기능이 아직 설정되지 않았습니다.");
+          }
+
+          return;
+        }
+
+        const { collection, getDocs, limit, orderBy, query } = await import(
+          "firebase/firestore"
+        );
+
+        if (cancelled) return;
+
+        const q = query(
+          collection(firestore, RANKINGS_COLLECTION),
+          orderBy(metric.field, "desc"),
+          limit(20),
+        );
+
+        const snapshot = await getDocs(q);
+
         if (cancelled) return;
 
         setEntries(snapshot.docs.map((doc) => doc.data() as RankingEntry));
