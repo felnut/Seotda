@@ -324,20 +324,19 @@ function ChatPanel({
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
   }, [open, messages]);
 
-  // 모달처럼 화면을 덮는 대신, 게임 화면 옆에 나란히 붙는 사이드 패널이다.
-  // 배경 딤/바깥 클릭 닫기가 없고, 채팅 버튼(또는 이 패널의 닫기 버튼)을
-  // 눌러야만 닫힌다. 너비를 0으로 줄여 접기 때문에 내부 요소는 고정 너비를
-  // 둬서 접히는 동안 글자가 우그러들지 않고 깔끔하게 밀려나 보이게 한다.
+  // 게임 화면의 레이아웃(가운데 정렬)에 영향을 주지 않도록 문서 흐름 밖의
+  // fixed 패널로 오른쪽에서 슬라이드인한다. 배경 딤/바깥 클릭 닫기는 없고,
+  // 채팅 버튼(또는 이 패널의 닫기 버튼)을 눌러야만 닫힌다.
   return (
     <aside
-      // 접혀 있는(너비 0) 동안에는 안의 입력창/버튼이 키보드 탭 이동으로
-      // 포커스되지 않도록 inert 처리한다.
+      // 닫혀 있는 동안에는 화면 밖으로 밀려나 있는 안의 입력창/버튼이
+      // 키보드 탭 이동으로 포커스되지 않도록 inert 처리한다.
       inert={!open}
-      className={`flex shrink-0 flex-col overflow-hidden bg-zinc-950/95 transition-[width] duration-300 ${
-        open ? "w-56 border-l border-white/10 sm:w-72" : "w-0"
+      className={`fixed inset-y-0 right-0 z-40 flex w-56 flex-col overflow-hidden border-l border-white/10 bg-zinc-950/95 shadow-2xl transition-transform duration-300 sm:w-72 ${
+        open ? "translate-x-0" : "translate-x-full"
       }`}
     >
-      <div className="flex w-56 shrink-0 items-center justify-between border-b border-white/10 px-4 py-4 sm:w-72">
+      <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-4">
         <h3 className="text-[17.5px] font-semibold sm:text-[22.5px]">채팅</h3>
 
         <button
@@ -352,7 +351,7 @@ function ChatPanel({
 
       <div
         ref={listRef}
-        className="w-56 shrink-0 flex-1 space-y-2 overflow-y-auto px-3 py-3 sm:w-72 sm:px-4 sm:py-4"
+        className="flex-1 space-y-2 overflow-y-auto px-3 py-3 sm:px-4 sm:py-4"
       >
         {messages.length === 0 && (
           <p className="py-8 text-center text-[13.5px] text-zinc-500">
@@ -391,7 +390,7 @@ function ChatPanel({
           event.preventDefault();
           onSend();
         }}
-        className="flex w-56 shrink-0 gap-1.5 border-t border-white/10 p-2.5 sm:w-72 sm:gap-2 sm:p-3"
+        className="flex shrink-0 gap-1.5 border-t border-white/10 p-2.5 sm:gap-2 sm:p-3"
       >
         <input
           value={input}
@@ -1687,8 +1686,7 @@ export default function Home() {
       <main className="flex h-dvh flex-col overflow-hidden px-3 py-2 sm:px-6 sm:py-4">
         <LeaveNoticeToast message={leaveNotice} />
 
-        <div className="flex w-full flex-1 justify-center overflow-hidden">
-          <div className="flex min-w-0 flex-1 flex-col overflow-hidden max-w-3xl">
+        <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-hidden">
           <header className="mb-2 flex shrink-0 items-center justify-between gap-3 sm:mb-4">
             <h1 className="text-[25px] font-bold tracking-tight text-amber-400 sm:text-3xl">
               섯다
@@ -1774,18 +1772,17 @@ export default function Home() {
               </p>
             )}
           </div>
-          </div>
-
-          <ChatPanel
-            open={isChatOpen}
-            onClose={() => setIsChatOpen(false)}
-            messages={chatMessages}
-            myPlayerId={playerId}
-            input={chatInput}
-            onInputChange={setChatInput}
-            onSend={sendChatMessage}
-          />
         </div>
+
+        <ChatPanel
+          open={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          messages={chatMessages}
+          myPlayerId={playerId}
+          input={chatInput}
+          onInputChange={setChatInput}
+          onSend={sendChatMessage}
+        />
       </main>
     );
   }
@@ -1804,8 +1801,7 @@ export default function Home() {
     <main className="flex h-dvh flex-col overflow-hidden px-3 py-2 sm:px-6 sm:py-4">
       <LeaveNoticeToast message={leaveNotice} />
 
-      <div className="flex w-full flex-1 justify-center overflow-hidden">
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden max-w-3xl">
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-hidden">
         <header className="mb-2 flex shrink-0 items-center justify-between gap-3 sm:mb-4">
           <h1 className="text-[25px] font-bold tracking-tight text-amber-400 sm:text-3xl">
             섯다
@@ -2030,17 +2026,6 @@ export default function Home() {
             </p>
           )}
         </div>
-        </div>
-
-        <ChatPanel
-          open={isChatOpen}
-          onClose={() => setIsChatOpen(false)}
-          messages={chatMessages}
-          myPlayerId={playerId}
-          input={chatInput}
-          onInputChange={setChatInput}
-          onSend={sendChatMessage}
-        />
       </div>
 
       <HandGuidePanel
@@ -2048,6 +2033,16 @@ export default function Home() {
         onClose={() => setIsGuideOpen(false)}
         myCards={myCards}
         selectedIndices={myPlayer?.selectedIndices ?? null}
+      />
+
+      <ChatPanel
+        open={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        messages={chatMessages}
+        myPlayerId={playerId}
+        input={chatInput}
+        onInputChange={setChatInput}
+        onSend={sendChatMessage}
       />
     </main>
   );
