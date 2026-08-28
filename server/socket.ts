@@ -10,7 +10,12 @@ import { PROFILES_COLLECTION, UserProfile } from "@/lib/profile";
 const httpServer = createServer();
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3001;
-const CLIENT_URL = process.env.CLIENT_URL ?? "*";
+
+// CLIENT_URL이 없을 때 "*"(모든 출처 허용)로 폴백하면, 배포 시 이 환경변수를
+// 빠뜨려도 아무 사이트에서나 이 서버에 소켓 연결을 열 수 있게 되는 걸 못 알아챌
+// 수 있다. 대신 로컬 개발 서버 주소로 폴백해서, 실제 배포 도메인이 이 값과
+// 다르면(=CLIENT_URL을 안 챙겼으면) CORS가 곧바로 막혀 눈에 띄게 실패한다.
+const CLIENT_URL = process.env.CLIENT_URL ?? "http://localhost:3000";
 
 const io = new Server(httpServer, {
   cors: {
@@ -20,6 +25,38 @@ const io = new Server(httpServer, {
 
 const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 6;
+
+// 방을 무한정 만들어 서버 메모리(rooms Map)를 소모시키는 걸 막기 위한 상한.
+const MAX_ROOMS = 1000;
+
+// 소켓 하나가 짧은 시간에 방을 너무 많이 만드는 것(스팸/DoS)을 막는다.
+const ROOM_CREATE_LIMIT = 5;
+const ROOM_CREATE_WINDOW_MS = 60_000;
+
+// socketId -> 최근 방 생성 시각 목록 (윈도우 밖으로 밀려난 건 그때그때 걸러낸다)
+const roomCreateTimestamps = new Map<string, number[]>();
+
+// 지정한 시간 안에 너무 자주 호출됐으면 true를 반환하고, 아니면 이번 호출을
+// 기록한 뒤 false를 반환한다.
+function isRateLimited(
+  key: string,
+  store: Map<string, number[]>,
+  limit: number,
+  windowMs: number,
+): boolean {
+  const now = Date.now();
+  const recent = (store.get(key) ?? []).filter((t) => now - t < windowMs);
+
+  if (recent.length >= limit) {
+    store.set(key, recent);
+    return true;
+  }
+
+  recent.push(now);
+  store.set(key, recent);
+
+  return false;
+}
 
 // 새로고침 등으로 끊긴 소켓이 재접속할 때까지 자리를 비워두는 유예 시간
 const DISCONNECT_GRACE_MS = 30_000;
@@ -456,6 +493,29 @@ io.on("connection", (socket) => {
       name?: string;
       idToken?: string;
     }) => {
+      if (rooms.size >= MAX_ROOMS) {
+        socket.emit("error-message", {
+          message: "서버에 방이 가득 찼습니다. 잠시 후 다시 시도해주세요.",
+        });
+
+        return;
+      }
+
+      if (
+        isRateLimited(
+          socket.id,
+          roomCreateTimestamps,
+          ROOM_CREATE_LIMIT,
+          ROOM_CREATE_WINDOW_MS,
+        )
+      ) {
+        socket.emit("error-message", {
+          message: "방 만들기를 너무 자주 시도했습니다. 잠시 후 다시 시도해주세요.",
+        });
+
+        return;
+      }
+
       const roomId = createRoomId();
 
       const safeMaxPlayers = Number.isInteger(maxPlayers)
@@ -895,6 +955,8 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log("연결 종료:", socket.id);
+
+    roomCreateTimestamps.delete(socket.id);
 
     for (const [roomId, room] of rooms) {
       const joined = room.joinedPlayers.find((p) => p.socketId === socket.id);
