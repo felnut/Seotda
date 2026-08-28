@@ -127,8 +127,12 @@ function createClientGameState(
 
       const cards = player.cards
         ? player.cards.map((card, index) => {
+            // reveal 단계에서는 각자 고른 카드를 서버에 먼저 반영해두되,
+            // 전원이 다 고르기 전까지는(=phase가 넘어가기 전까지는) 상대에게
+            // 보여주지 않는다. 그래야 모두가 버튼을 누른 순간 한꺼번에 공개된다.
             const revealed =
-              alwaysRevealed || index === player.revealedCardIndex;
+              alwaysRevealed ||
+              (state.phase !== "reveal" && index === player.revealedCardIndex);
 
             return {
               id: card.id,
@@ -660,26 +664,37 @@ io.on("connection", (socket) => {
     },
   );
 
-  socket.on("bet", ({ roomId, amount }: { roomId: string; amount: number }) => {
-    const room = rooms.get(roomId);
+  socket.on(
+    "bet",
+    ({
+      roomId,
+      amount,
+      isHalf,
+    }: {
+      roomId: string;
+      amount: number;
+      isHalf?: boolean;
+    }) => {
+      const room = rooms.get(roomId);
 
-    if (!room || !room.game) return;
+      if (!room || !room.game) return;
 
-    const playerId = findPlayerIdBySocket(room, socket.id);
+      const playerId = findPlayerIdBySocket(room, socket.id);
 
-    if (!playerId) return;
+      if (!playerId) return;
 
-    try {
-      room.game.bet(playerId, amount);
+      try {
+        room.game.bet(playerId, amount, isHalf);
 
-      broadcastGameState(room);
-    } catch (error) {
-      socket.emit("error-message", {
-        message:
-          error instanceof Error ? error.message : "베팅에 실패했습니다.",
-      });
-    }
-  });
+        broadcastGameState(room);
+      } catch (error) {
+        socket.emit("error-message", {
+          message:
+            error instanceof Error ? error.message : "베팅에 실패했습니다.",
+        });
+      }
+    },
+  );
 
   socket.on("call", (roomId: string) => {
     const room = rooms.get(roomId);

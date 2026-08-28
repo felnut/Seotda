@@ -231,7 +231,7 @@ export class SeotdaGame {
    *
    * 현재 베팅 금액이 0일 때만 사용할 수 있습니다.
    */
-  bet(playerId: string, amount: number): void {
+  bet(playerId: string, amount: number, isHalf = false): void {
     if (!this.isBettingPhase()) {
       throw new Error("현재 베팅 단계가 아닙니다.");
     }
@@ -256,7 +256,7 @@ export class SeotdaGame {
 
     player.chips -= amount;
     player.bet += amount;
-    player.lastAction = `베팅 ${amount.toLocaleString()}`;
+    player.lastAction = `${isHalf ? "하프" : "베팅"} ${amount.toLocaleString()}`;
 
     this.state.pot += amount;
     this.state.currentBet = player.bet;
