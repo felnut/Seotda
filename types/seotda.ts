@@ -74,10 +74,19 @@ export interface RoomPlayerInfo {
   name: string;
 }
 
+export interface ChatMessage {
+  id: string;
+  playerId: string;
+  name: string;
+  text: string;
+  timestamp: number;
+}
+
 export interface RoomInfo {
   roomId: string;
   playerId: string;
   playerCount: number;
   maxPlayers: number;
   players: RoomPlayerInfo[];
+  chatMessages: ChatMessage[];
 }

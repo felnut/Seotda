@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { io, Socket } from "socket.io-client";
 import {
   BankruptcyNotice,
+  ChatMessage,
   ClientGameState,
   ClientPlayer,
   RoomInfo,
@@ -292,6 +293,120 @@ function HandGuidePanel({
             })}
           </ul>
         </div>
+      </aside>
+    </>
+  );
+}
+
+function ChatPanel({
+  open,
+  onClose,
+  messages,
+  myPlayerId,
+  input,
+  onInputChange,
+  onSend,
+}: {
+  open: boolean;
+  onClose: () => void;
+  messages: ChatMessage[];
+  myPlayerId: string;
+  input: string;
+  onInputChange: (value: string) => void;
+  onSend: () => void;
+}) {
+  const listRef = useRef<HTMLDivElement | null>(null);
+
+  // 패널이 열려 있거나 새 메시지가 도착하면 항상 맨 아래로 스크롤한다.
+  useEffect(() => {
+    if (!open) return;
+
+    listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
+  }, [open, messages]);
+
+  return (
+    <>
+      <div
+        className={`fixed inset-0 z-40 bg-black/60 transition-opacity duration-300 ${
+          open ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        onClick={onClose}
+      />
+
+      <aside
+        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col border-l border-white/10 bg-zinc-950/95 shadow-2xl transition-transform duration-300 ${
+          open ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+          <h3 className="text-[22.5px] font-semibold">채팅</h3>
+
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="닫기"
+            className="rounded-full p-2 text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div ref={listRef} className="flex-1 space-y-2 overflow-y-auto px-5 py-4">
+          {messages.length === 0 && (
+            <p className="py-8 text-center text-[15px] text-zinc-500">
+              아직 메시지가 없습니다.
+            </p>
+          )}
+
+          {messages.map((message) => {
+            const isMine = message.playerId === myPlayerId;
+
+            return (
+              <div
+                key={message.id}
+                className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
+              >
+                <span className="mb-0.5 text-[11px] font-medium text-zinc-500">
+                  {isMine ? "나" : message.name}
+                </span>
+
+                <p
+                  className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-[15px] break-words ${
+                    isMine
+                      ? "bg-amber-400 text-zinc-900"
+                      : "bg-white/8 text-zinc-100"
+                  }`}
+                >
+                  {message.text}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSend();
+          }}
+          className="flex gap-2 border-t border-white/10 p-3"
+        >
+          <input
+            value={input}
+            onChange={(event) => onInputChange(event.target.value)}
+            placeholder="메시지 입력..."
+            maxLength={200}
+            className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/30 px-3.5 py-2.5 text-[15px] text-white outline-none transition focus:border-amber-400/50 focus:ring-2 focus:ring-amber-400/20"
+          />
+
+          <button
+            type="submit"
+            disabled={!input.trim()}
+            className="shrink-0 rounded-xl bg-amber-400 px-4 py-2.5 text-[15px] font-semibold text-zinc-900 transition hover:scale-[1.03] hover:bg-amber-300 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+          >
+            전송
+          </button>
+        </form>
       </aside>
     </>
   );
@@ -856,6 +971,20 @@ export default function Home() {
   // 누군가 방을 나갔을 때 5초간 보여주는 알림 메시지
   const [leaveNotice, setLeaveNotice] = useState<string | null>(null);
 
+  // 방 채팅
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [hasUnreadChat, setHasUnreadChat] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+
+  // 소켓 리스너는 마운트 시 한 번만 등록되므로, 리스너 안에서 최신 열림
+  // 상태를 읽으려면(클로저에 갇히지 않도록) ref로 따로 최신값을 유지한다.
+  const isChatOpenRef = useRef(isChatOpen);
+
+  useEffect(() => {
+    isChatOpenRef.current = isChatOpen;
+  }, [isChatOpen]);
+
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isRankingOpen, setIsRankingOpen] = useState(false);
 
@@ -935,6 +1064,14 @@ export default function Home() {
         const entry = snapshot.data() as RankingEntry | undefined;
 
         setChips(entry?.money ?? STARTING_CHIPS);
+
+        // 파산(0 이하)한 채로 로비에 돌아왔다면 자동으로 채워달라고 요청한다.
+        // 서버가 실제로 0 이하인지 다시 확인한 뒤 지급하고 결과를 알려준다.
+        if (entry && entry.money <= 0) {
+          const idToken = await user.getIdToken();
+
+          socket.emit("claim-bankruptcy-refill", { idToken });
+        }
       } catch (err) {
         console.error("보유 칩을 불러오지 못했습니다:", err);
       }
@@ -964,6 +1101,7 @@ export default function Home() {
       setPlayerCount(info.playerCount);
       setMaxPlayers(info.maxPlayers);
       setRoomPlayers(info.players);
+      setChatMessages(info.chatMessages);
       setError("");
       setIsSubmittingRoom(false);
       saveSession({ roomId: info.roomId, playerId: info.playerId });
@@ -975,6 +1113,7 @@ export default function Home() {
       setPlayerCount(info.playerCount);
       setMaxPlayers(info.maxPlayers);
       setRoomPlayers(info.players);
+      setChatMessages(info.chatMessages);
       setError("");
       setIsSubmittingRoom(false);
       saveSession({ roomId: info.roomId, playerId: info.playerId });
@@ -1036,6 +1175,18 @@ export default function Home() {
       setLeaveNotice(message);
     });
 
+    socket.on("bankruptcy-refill-result", ({ money }: { money: number }) => {
+      setChips(money);
+    });
+
+    socket.on("chat-message", (message: ChatMessage) => {
+      setChatMessages((prev) => [...prev, message]);
+
+      if (!isChatOpenRef.current) {
+        setHasUnreadChat(true);
+      }
+    });
+
     socket.on("error-message", ({ message }: { message: string }) => {
       setError(message);
       setHasVotedRestart(false);
@@ -1051,6 +1202,8 @@ export default function Home() {
       socket.off("restart-votes-updated");
       socket.off("bankruptcy-notice");
       socket.off("player-left");
+      socket.off("bankruptcy-refill-result");
+      socket.off("chat-message");
       socket.off("error-message");
     };
   }, []);
@@ -1176,6 +1329,10 @@ export default function Home() {
     setBankruptcyNotice(null);
     setHasDecidedBankruptcy(false);
     setLeaveNotice(null);
+    setChatMessages([]);
+    setIsChatOpen(false);
+    setHasUnreadChat(false);
+    setChatInput("");
   };
 
   // 10. 방 나가기
@@ -1260,6 +1417,36 @@ export default function Home() {
     });
   };
 
+  // 하프 레이즈 — 현재 베팅 금액에, 판돈 절반만큼을 더 얹어 레이즈한다.
+  const raiseHalf = () => {
+    if (!roomId || !gameState) return;
+
+    socket.emit("raise", {
+      roomId,
+      amount: gameState.currentBet + Math.max(1, Math.floor(gameState.pot / 2)),
+    });
+  };
+
+  // 올인 — 남은 칩을 전부 건다. 아직 베팅이 없으면 베트로 처리한다.
+  // 베팅이 있으면, 남은 칩을 다 넣어도 현재 베팅 금액을 넘지 못하면(=콜만
+  // 겨우 되는 상황) 콜로, 넘으면 그만큼 얹는 레이즈로 처리한다 — 레이즈는
+  // 현재 베팅 금액보다 커야만 하기 때문이다.
+  const allIn = () => {
+    if (!roomId || !gameState) return;
+
+    const me = gameState.players.find((player) => player.id === playerId);
+
+    if (!me || me.chips <= 0) return;
+
+    if (gameState.currentBet === 0) {
+      socket.emit("bet", { roomId, amount: me.chips });
+    } else if (me.bet + me.chips > gameState.currentBet) {
+      socket.emit("raise", { roomId, amount: me.bet + me.chips });
+    } else {
+      socket.emit("call", roomId);
+    }
+  };
+
   const fold = () => {
     if (!roomId) return;
 
@@ -1296,6 +1483,20 @@ export default function Home() {
       roomId,
       indices: pendingSelection,
     });
+  };
+
+  const sendChatMessage = () => {
+    const text = chatInput.trim();
+
+    if (!roomId || !text) return;
+
+    socket.emit("chat-message", { roomId, text });
+    setChatInput("");
+  };
+
+  const openChat = () => {
+    setIsChatOpen(true);
+    setHasUnreadChat(false);
   };
 
   /*
@@ -1496,6 +1697,17 @@ export default function Home() {
 
               <button
                 type="button"
+                onClick={openChat}
+                className="relative rounded-lg border border-white/10 bg-white/3 px-2.5 py-1.5 text-[15px] font-semibold text-zinc-300 transition hover:scale-[1.03] hover:border-amber-400/40 hover:text-amber-300 active:scale-95 sm:px-3"
+              >
+                채팅
+                {hasUnreadChat && (
+                  <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-red-500" />
+                )}
+              </button>
+
+              <button
+                type="button"
                 onClick={leaveRoom}
                 className="rounded-lg border border-white/10 bg-white/3 px-2.5 py-1.5 text-[15px] font-semibold text-zinc-400 transition hover:scale-[1.03] hover:border-red-500/40 hover:text-red-300 active:scale-95 sm:px-3"
               >
@@ -1561,6 +1773,16 @@ export default function Home() {
             )}
           </div>
         </div>
+
+        <ChatPanel
+          open={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          messages={chatMessages}
+          myPlayerId={playerId}
+          input={chatInput}
+          onInputChange={setChatInput}
+          onSend={sendChatMessage}
+        />
       </main>
     );
   }
@@ -1594,6 +1816,17 @@ export default function Home() {
               className="rounded-lg border border-white/10 bg-white/3 px-2.5 py-1.5 text-[15px] font-semibold text-zinc-300 transition hover:scale-[1.03] hover:border-amber-400/40 hover:text-amber-300 active:scale-95 sm:px-3"
             >
               족보 가이드
+            </button>
+
+            <button
+              type="button"
+              onClick={openChat}
+              className="relative rounded-lg border border-white/10 bg-white/3 px-2.5 py-1.5 text-[15px] font-semibold text-zinc-300 transition hover:scale-[1.03] hover:border-amber-400/40 hover:text-amber-300 active:scale-95 sm:px-3"
+            >
+              채팅
+              {hasUnreadChat && (
+                <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-red-500" />
+              )}
             </button>
 
             <button
@@ -1737,6 +1970,18 @@ export default function Home() {
 
                   <button
                     type="button"
+                    onClick={raiseHalf}
+                    disabled={
+                      gameState.players[gameState.currentPlayerIndex]?.id !==
+                      playerId
+                    }
+                    className="rounded-xl bg-blue-500/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-blue-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                  >
+                    하프
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={raise}
                     disabled={
                       gameState.players[gameState.currentPlayerIndex]?.id !==
@@ -1748,6 +1993,18 @@ export default function Home() {
                   </button>
                 </>
               )}
+
+              <button
+                type="button"
+                onClick={allIn}
+                disabled={
+                  gameState.players[gameState.currentPlayerIndex]?.id !==
+                  playerId
+                }
+                className="col-span-3 rounded-xl bg-purple-500/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-purple-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:col-span-1 sm:px-7 sm:py-3"
+              >
+                올인
+              </button>
 
               <button
                 type="button"
@@ -1776,6 +2033,16 @@ export default function Home() {
         onClose={() => setIsGuideOpen(false)}
         myCards={myCards}
         selectedIndices={myPlayer?.selectedIndices ?? null}
+      />
+
+      <ChatPanel
+        open={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        messages={chatMessages}
+        myPlayerId={playerId}
+        input={chatInput}
+        onInputChange={setChatInput}
+        onSend={sendChatMessage}
       />
     </main>
   );
