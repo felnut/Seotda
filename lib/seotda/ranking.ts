@@ -393,11 +393,7 @@ export function evaluateHand(cards: [SeotdaCard, SeotdaCard]): HandResult {
 export type CompareResult = -1 | 0 | 1;
 
 //특정 땡을 땡잡이가 잡을 수 있는지 확인
-function isDdaengJabiWin(special: SpecialHand, opponent: HandResult): boolean {
-  if (special !== "ddaengjabi") {
-    return false;
-  }
-
+function isDdaengJabiWin(opponent: HandResult): boolean {
   return (
     opponent.name === "1땡" ||
     opponent.name === "2땡" ||
@@ -412,44 +408,64 @@ function isDdaengJabiWin(special: SpecialHand, opponent: HandResult): boolean {
 }
 
 //암행어사가 광땡을 잡을 수 있는지 확인
-function isAmhaengEosaWin(special: SpecialHand, opponent: HandResult): boolean {
-  if (special !== "amhaeng-eosa") {
-    return false;
-  }
-
+function isAmhaengEosaWin(opponent: HandResult): boolean {
   return opponent.name === "13광땡" || opponent.name === "18광땡";
 }
 
-export function compareHands(
-  hand1: [SeotdaCard, SeotdaCard],
-  hand2: [SeotdaCard, SeotdaCard],
+// 3명 이상이 한 팟에서 맞붙으면, 땡잡이·암행어사의 "특정 패를 잡는다"는
+// 효과를 일반 족보 순위와 함께 pairwise 비교로 섞어서는 안 된다 — A가
+// 암행어사(1끗 취급)로 B(장땡급 다른 참가자)에게 순위상 밀리고, B는
+// C(땡잡이 타깃인 땡)에게 지고, C의 땡은 다시 암행어사 A에게 잡히는 식의
+// 순환이 만들어질 수 있기 때문이다(17.1). 그래서 승자를 정할 때는 항상
+// 이 함수를 먼저 써서 "지금 이 무리 안에 발동 조건을 만족하는 특수족보
+// 소지자가 있는지"부터 확인하고, 있으면 그 소지자를 즉시 승자로 확정한다.
+// 우선순위는 15장/17장 판정 순서(암행어사 → 땡잡이)를 따른다.
+//
+// 구사·멍텅구리 구사는 재경기 여부가 이 시점 이전(게임 진행 단계)에 이미
+// 확정된다 — 재경기가 발동했다면 애초에 승자를 가릴 필요가 없고, 재경기가
+// 무산됐다면 그 즉시 일반 폴백 순위(망통)로 취급되므로 여기서 다시
+// 확인할 필요가 없다.
+export function findPrioritySpecialWinner(
+  contenderIds: string[],
+  results: Map<string, HandResult>,
+): string | null {
+  const checks: {
+    special: Extract<SpecialHand, "amhaeng-eosa" | "ddaengjabi">;
+    beats: (opponent: HandResult) => boolean;
+  }[] = [
+    { special: "amhaeng-eosa", beats: isAmhaengEosaWin },
+    { special: "ddaengjabi", beats: isDdaengJabiWin },
+  ];
+
+  for (const { special, beats } of checks) {
+    const holderId = contenderIds.find(
+      (id) => results.get(id)?.special === special,
+    );
+
+    if (!holderId) continue;
+
+    const hasTarget = contenderIds.some(
+      (id) => id !== holderId && beats(results.get(id)!),
+    );
+
+    if (hasTarget) return holderId;
+  }
+
+  return null;
+}
+
+// 이미 evaluateHand()로 계산해둔 결과 두 개를 비교한다. 사이드 팟처럼 같은
+// results Map을 여러 팟에 걸쳐 재사용해야 할 때, 카드 쌍을 다시 넘겨 매번
+// evaluateHand를 반복 호출하지 않도록 compareHands에서 이 부분만 분리했다.
+//
+// 순수하게 일반 족보 순위(rank/value)만 비교한다 — 항상 이행적(transitive)
+// 이라 몇 명이 얽히든 안전하게 반복 비교할 수 있다. 땡잡이·암행어사처럼
+// 특정 상대만 이기는 효과는 findPrioritySpecialWinner()가 먼저 처리하고,
+// 그 효과가 발동하지 않을 때만 이 함수가 폴백으로 쓰인다.
+export function compareHandResults(
+  result1: HandResult,
+  result2: HandResult,
 ): CompareResult {
-  const result1 = evaluateHand(hand1);
-  const result2 = evaluateHand(hand2);
-
-  //구사 계열은 재경기 조건을 만족하면(game.ts에서 판정) 애초에 이 비교까지
-  //오지 않는다. 여기 도달했다는 건 재경기 없이 그냥 지는 경우이므로,
-  //망통과 같은 순위(rank/value)로 자연스럽게 비교되도록 특별취급하지 않는다.
-
-  //땡잡이
-  if (isDdaengJabiWin(result1.special, result2)) {
-    return 1;
-  }
-
-  if (isDdaengJabiWin(result2.special, result1)) {
-    return -1;
-  }
-
-  //암행어사
-  if (isAmhaengEosaWin(result1.special, result2)) {
-    return 1;
-  }
-
-  if (isAmhaengEosaWin(result2.special, result1)) {
-    return -1;
-  }
-
-  //일반 족보
   if (result1.rank > result2.rank) {
     return 1;
   }
@@ -458,7 +474,6 @@ export function compareHands(
     return -1;
   }
 
-  //같은 족보
   if (result1.value > result2.value) {
     return 1;
   }
@@ -468,4 +483,11 @@ export function compareHands(
   }
 
   return 0;
+}
+
+export function compareHands(
+  hand1: [SeotdaCard, SeotdaCard],
+  hand2: [SeotdaCard, SeotdaCard],
+): CompareResult {
+  return compareHandResults(evaluateHand(hand1), evaluateHand(hand2));
 }
