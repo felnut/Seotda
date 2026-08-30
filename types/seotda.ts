@@ -39,8 +39,15 @@ export type GamePhase =
   | "betting2"
   | "select"
   | "showdown"
-  | "redeal"
   | "finished";
+
+// 플레이어마다 보유 칩(개인별 최대 베팅 상한)이 달라 올인 시점도 서로 다르면
+// 팟이 메인 팟과 사이드 팟으로 나뉜다. eligiblePlayerIds는 그 팟을 받을 수
+// 있는(=다이하지 않고 그 금액까지 낸) 플레이어 id 목록이다.
+export interface Pot {
+  amount: number;
+  eligiblePlayerIds: string[];
+}
 
 export interface ClientGameState {
   phase: GamePhase;
@@ -51,9 +58,11 @@ export interface ClientGameState {
   pot: number;
   currentBet: number;
   winnerId: string | null;
+  // 구사/멍텅구리 구사로 재경기가 진행되는 짧은 동안(phase가 "showdown")만
+  // 값이 채워진다 — 재경기는 앤티·베팅 변화 없이 그 자리에서 즉시 진행된다.
   redealReason: string | null;
-  // 구사류 재경기가 거듭될수록 배로 불어나는 다음 판 앤티 배수
-  nextAnteMultiplier: number;
+  // 쇼다운/종료 시점에 확정되는 팟 구성. 베팅이 끝나기 전에는 null이다.
+  pots: Pot[] | null;
 }
 
 export interface RestartVotesInfo {
@@ -85,6 +94,9 @@ export interface ChatMessage {
 export interface RoomInfo {
   roomId: string;
   playerId: string;
+  // 새로고침 등으로 끊긴 뒤 rejoin-room으로 같은 자리를 되찾을 때 본인임을
+  // 증명하는 값. 서버만 발급하며, 다른 플레이어에게는 전달되지 않는다.
+  rejoinToken: string;
   playerCount: number;
   maxPlayers: number;
   players: RoomPlayerInfo[];

@@ -1,5 +1,5 @@
 import { createServer } from "http";
-import { randomUUID } from "crypto";
+import { randomUUID, timingSafeEqual } from "crypto";
 import { Server } from "socket.io";
 import { SeotdaGame, STARTING_CHIPS } from "@/lib/seotda/game";
 import { getDisplayHandName } from "@/lib/seotda/ranking";
@@ -70,11 +70,8 @@ function isRateLimited(
 // 새로고침 등으로 끊긴 소켓이 재접속할 때까지 자리를 비워두는 유예 시간
 const DISCONNECT_GRACE_MS = 30_000;
 
-// 구사류로 재경기가 확정된 뒤, 화면에 사유를 보여주고 다시 시작하기까지의 대기 시간
-const REDEAL_DELAY_MS = 2_500;
-
-// 쇼다운에서 재경기가 결정됐을 때, 공개된 패를 보여주는 시간
-// (그 뒤에 정식 재경기 배너나 즉시 재대결 다음 단계로 넘어간다)
+// 쇼다운에서 재경기가 결정됐을 때, 공개된 패를 보여준 뒤 즉시 재대결로
+// 넘어가기까지의 대기 시간
 const SHOWDOWN_REVEAL_PAUSE_MS = 2_500;
 
 const MAX_NAME_LENGTH = 13;
@@ -90,6 +87,40 @@ interface JoinedPlayer {
   // 이 방에 처음 입장했을 때의 칩 — 로그인 계정이면 Firestore에 저장된
   // 지속 뱅크롤, 게스트면 STARTING_CHIPS
   startingChips: number;
+  // rejoin-room으로 재접속할 때 본인임을 증명하는 무작위 값. 입장 시
+  // 서버가 발급해 그 소켓에게만 알려주며, 다른 플레이어에게는 노출하지 않는다.
+  rejoinToken: string;
+}
+
+// playerId(player-1, player-2...)는 순차적이라 쉽게 추측할 수 있으므로,
+// rejoin-room이 그 값만으로 자리를 넘겨주면 남의 좌석(과 비공개 카드)을
+// 가로챌 수 있다. 이 토큰을 비교해 실제로 그 자리를 발급받은 브라우저인지
+// 확인한다. 길이가 다르면 timingSafeEqual이 예외를 던지므로 먼저 걸러낸다.
+function safeTokensMatch(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+
+  return bufA.length === bufB.length && timingSafeEqual(bufA, bufB);
+}
+
+// 로그인 계정에 연결된 자리를 재접속할 때는 토큰 일치만으로 끝내지 않고,
+// 요청에 실린 idToken이 실제로 그 uid의 것인지까지 한 번 더 확인한다.
+// 게스트 자리(uid가 없음)라면 추가 확인 없이 통과시킨다.
+async function verifyRejoinIdentity(
+  idToken: string | undefined,
+  expectedUid: string | null,
+): Promise<boolean> {
+  if (!expectedUid) return true;
+
+  if (!idToken || !adminAuth) return false;
+
+  try {
+    const decoded = await adminAuth.verifyIdToken(idToken);
+
+    return decoded.uid === expectedUid;
+  } catch {
+    return false;
+  }
 }
 
 // 로그인 토큰을 검증하고, 계정에 연결된 지속 뱅크롤/닉네임을 조회한다.
@@ -250,7 +281,7 @@ function createClientGameState(
     winnerId: state.winnerId,
 
     redealReason: state.redealReason,
-    nextAnteMultiplier: state.nextAnteMultiplier,
+    pots: state.pots,
   };
 }
 
@@ -274,9 +305,9 @@ function broadcastGameState(room: Room) {
 }
 
 // 쇼다운에서 재경기가 결정되면(구사/멍텅구리 구사) 공개된 패를 잠시 보여준
-// 뒤 다음 단계로 넘어간다. 다이한 사람이 없었다면 정식 재경기 배너를 거쳐
-// start()로, 있었다면 즉시 재대결(카드만 새로 받아 바로 비교)로 넘어가는데
-// 그 결과가 또 재경기 조건이면 이 함수가 재귀적으로 다시 예약된다.
+// 뒤, 다이한 사람을 뺀 나머지끼리 카드 2장만 새로 받아 곧바로 재대결한다
+// (34장 — 앤티도 베팅도 새로 생기지 않는 즉시 승부). 그 결과가 또 재경기
+// 조건이면 이 함수가 재귀적으로 다시 예약된다.
 function scheduleShowdownFollowup(room: Room) {
   setTimeout(() => {
     if (!room.game || !room.game.hasPendingRedeal()) return;
@@ -289,23 +320,7 @@ function scheduleShowdownFollowup(room: Room) {
       return;
     }
 
-    if (!room.game) return;
-
-    const phase = room.game.getState().phase;
-
-    if (phase === "redeal") {
-      setTimeout(() => {
-        if (!room.game || room.game.getState().phase !== "redeal") return;
-
-        try {
-          room.game.start();
-          broadcastGameState(room);
-        } catch (error) {
-          console.warn("재경기 시작 실패(무시):", error);
-        }
-      }, REDEAL_DELAY_MS);
-    } else if (room.game.hasPendingRedeal()) {
-      // 즉시 재대결에서 또 구사/멍구사 재경기 조건이 나온 경우 — 반복
+    if (room.game.hasPendingRedeal()) {
       scheduleShowdownFollowup(room);
     }
   }, SHOWDOWN_REVEAL_PAUSE_MS);
@@ -590,6 +605,8 @@ io.on("connection", (socket) => {
       // 만들어 응답하고, 조회 결과는 끝나는 대로 뒤이어 반영한다. 게임은
       // 최소 한 명이 더 들어와야 시작되므로 실제 시작 전엔 항상 반영이
       // 끝나 있다.
+      const hostRejoinToken = randomUUID();
+
       const room: Room = {
         maxPlayers: safeMaxPlayers,
         joinedPlayers: [
@@ -599,6 +616,7 @@ io.on("connection", (socket) => {
             socketId: socket.id,
             uid: null,
             startingChips: STARTING_CHIPS,
+            rejoinToken: hostRejoinToken,
           },
         ],
         game: null,
@@ -615,6 +633,7 @@ io.on("connection", (socket) => {
       socket.emit("room-created", {
         roomId,
         playerId: "player-1",
+        rejoinToken: hostRejoinToken,
         playerCount: room.joinedPlayers.length,
         maxPlayers: room.maxPlayers,
         players: roomPlayersPayload(room),
@@ -694,12 +713,15 @@ io.on("connection", (socket) => {
         return;
       }
 
+      const joinerRejoinToken = randomUUID();
+
       room.joinedPlayers.push({
         id: playerId,
         name: resolvedName,
         socketId: socket.id,
         uid: resolved.uid,
         startingChips: resolved.startingChips,
+        rejoinToken: joinerRejoinToken,
       });
 
       socket.join(roomId);
@@ -707,6 +729,7 @@ io.on("connection", (socket) => {
       socket.emit("room-joined", {
         roomId,
         playerId,
+        rejoinToken: joinerRejoinToken,
         playerCount: room.joinedPlayers.length,
         maxPlayers: room.maxPlayers,
         players: roomPlayersPayload(room),
@@ -718,14 +741,39 @@ io.on("connection", (socket) => {
   );
 
   // 새로고침 등으로 끊겼던 세션을 복구합니다.
+  //
+  // playerId(player-1, player-2...)만으로 자리를 내주면, 그 값을 추측한
+  // 다른 사람이 상대의 좌석(과 비공개 카드, 베팅 권한)을 그대로 가로챌 수
+  // 있다. 그래서 입장 시 그 소켓에게만 발급했던 rejoinToken이 일치할 때만
+  // 허용하고, 로그인 계정에 연결된 자리라면 idToken으로 uid까지 확인한다.
   socket.on(
     "rejoin-room",
-    ({ roomId, playerId }: { roomId: string; playerId: string }) => {
+    async ({
+      roomId,
+      playerId,
+      rejoinToken,
+      idToken,
+    }: {
+      roomId: string;
+      playerId: string;
+      rejoinToken?: string;
+      idToken?: string;
+    }) => {
       const room = rooms.get(roomId);
 
       const joined = room?.joinedPlayers.find((p) => p.id === playerId);
 
       if (!room || !joined) {
+        socket.emit("rejoin-failed");
+        return;
+      }
+
+      if (!rejoinToken || !safeTokensMatch(rejoinToken, joined.rejoinToken)) {
+        socket.emit("rejoin-failed");
+        return;
+      }
+
+      if (!(await verifyRejoinIdentity(idToken, joined.uid))) {
         socket.emit("rejoin-failed");
         return;
       }
@@ -739,6 +787,7 @@ io.on("connection", (socket) => {
       socket.emit("room-joined", {
         roomId,
         playerId,
+        rejoinToken: joined.rejoinToken,
         playerCount: room.joinedPlayers.length,
         maxPlayers: room.maxPlayers,
         players: roomPlayersPayload(room),
@@ -948,6 +997,26 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("all-in", (roomId: string) => {
+    const room = rooms.get(roomId);
+
+    if (!room || !room.game) return;
+
+    const playerId = findPlayerIdBySocket(room, socket.id);
+
+    if (!playerId) return;
+
+    try {
+      room.game.allIn(playerId);
+
+      broadcastGameState(room);
+    } catch (error) {
+      socket.emit("error-message", {
+        message: error instanceof Error ? error.message : "올인에 실패했습니다.",
+      });
+    }
+  });
+
   socket.on("check", (roomId: string) => {
     const room = rooms.get(roomId);
 
@@ -971,7 +1040,15 @@ io.on("connection", (socket) => {
 
   socket.on(
     "raise",
-    ({ roomId, amount }: { roomId: string; amount: number }) => {
+    ({
+      roomId,
+      amount,
+      isHalf,
+    }: {
+      roomId: string;
+      amount: number;
+      isHalf?: boolean;
+    }) => {
       const room = rooms.get(roomId);
 
       if (!room || !room.game) return;
@@ -981,7 +1058,7 @@ io.on("connection", (socket) => {
       if (!playerId) return;
 
       try {
-        room.game.raise(playerId, amount);
+        room.game.raise(playerId, amount, isHalf);
 
         broadcastGameState(room);
       } catch (error) {

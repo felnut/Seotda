@@ -48,6 +48,7 @@ const MAX_ROOM_PLAYERS = 6;
 interface StoredSession {
   roomId: string;
   playerId: string;
+  rejoinToken: string;
 }
 
 function saveSession(session: StoredSession) {
@@ -497,7 +498,6 @@ const PHASE_LABEL: Partial<Record<ClientGameState["phase"], string>> = {
   reveal: "카드 공개 단계",
   select: "족보 선택 단계",
   showdown: "쇼다운",
-  redeal: "재경기",
   finished: "게임 종료",
 };
 
@@ -1104,7 +1104,11 @@ export default function Home() {
       setChatMessages(info.chatMessages);
       setError("");
       setIsSubmittingRoom(false);
-      saveSession({ roomId: info.roomId, playerId: info.playerId });
+      saveSession({
+        roomId: info.roomId,
+        playerId: info.playerId,
+        rejoinToken: info.rejoinToken,
+      });
     });
 
     socket.on("room-joined", (info: RoomInfo) => {
@@ -1116,7 +1120,11 @@ export default function Home() {
       setChatMessages(info.chatMessages);
       setError("");
       setIsSubmittingRoom(false);
-      saveSession({ roomId: info.roomId, playerId: info.playerId });
+      saveSession({
+        roomId: info.roomId,
+        playerId: info.playerId,
+        rejoinToken: info.rejoinToken,
+      });
     });
 
     socket.on("rejoin-failed", () => {
@@ -1218,23 +1226,55 @@ export default function Home() {
   }, [leaveNotice]);
 
   // 마운트 시 이전에 있던 방이 저장돼 있으면 자동으로 재접속을 시도한다.
+  //
+  // 로그인 계정 자리는 서버가 idToken으로 uid까지 확인하므로, Firebase
+  // 로그인 상태(user)가 아직 복구되지 않은 시점에 idToken 없이 보내면
+  // 정당한 재접속도 실패한다. 로그인 상태가 이미 있으면 바로 시도하고,
+  // 아직 없다면(게스트이거나 로그인 복구가 느린 경우) 잠시 기다렸다가
+  // 그때 값으로 한 번만 시도한다 — 그사이 로그인이 복구되면 effect가
+  // 다시 실행되면서 대기 중이던 시도는 취소되고 올바른 토큰으로 재시도된다.
   useEffect(() => {
     const saved = sessionStorage.getItem(SESSION_STORAGE_KEY);
 
     if (!saved) return;
 
-    try {
-      const session = JSON.parse(saved) as StoredSession;
+    let cancelled = false;
+    let timer: number | undefined;
 
-      if (session.roomId && session.playerId) {
-        socket.emit("rejoin-room", session);
-      } else {
+    const attemptRejoin = async () => {
+      let session: StoredSession;
+
+      try {
+        session = JSON.parse(saved) as StoredSession;
+      } catch {
         clearSession();
+        return;
       }
-    } catch {
-      clearSession();
+
+      if (!session.roomId || !session.playerId || !session.rejoinToken) {
+        clearSession();
+        return;
+      }
+
+      const idToken = user ? await user.getIdToken() : undefined;
+
+      if (!cancelled) {
+        socket.emit("rejoin-room", { ...session, idToken });
+      }
+    };
+
+    if (user) {
+      attemptRejoin();
+    } else {
+      timer = window.setTimeout(attemptRejoin, 700);
     }
-  }, []);
+
+    return () => {
+      cancelled = true;
+
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
+  }, [user]);
 
   // 방이 정원만큼 차면 10초 카운트다운을 시작하고, 방을 나가거나
   // 게임이 이미 시작되면(gameState 생김) 취소한다.
@@ -1385,15 +1425,11 @@ export default function Home() {
     });
   };
 
-  // 하프 — 현재 판돈의 절반을 베팅한다.
+  // 하프 — 현재 판돈의 절반을 베팅한다. 정확한 금액은 서버가 계산한다.
   const betHalf = () => {
-    if (!roomId || !gameState) return;
+    if (!roomId) return;
 
-    socket.emit("bet", {
-      roomId,
-      amount: Math.max(1, Math.floor(gameState.pot / 2)),
-      isHalf: true,
-    });
+    socket.emit("bet", { roomId, amount: 0, isHalf: true });
   };
 
   const call = () => {
@@ -1417,34 +1453,21 @@ export default function Home() {
     });
   };
 
-  // 하프 레이즈 — 현재 베팅 금액에, 판돈 절반만큼을 더 얹어 레이즈한다.
+  // 하프 레이즈 — 현재 베팅 금액에 판돈 절반만큼을 더 얹는다. 정확한
+  // 금액은 서버가 계산한다.
   const raiseHalf = () => {
-    if (!roomId || !gameState) return;
+    if (!roomId) return;
 
-    socket.emit("raise", {
-      roomId,
-      amount: gameState.currentBet + Math.max(1, Math.floor(gameState.pot / 2)),
-    });
+    socket.emit("raise", { roomId, amount: 0, isHalf: true });
   };
 
-  // 올인 — 남은 칩을 전부 건다. 아직 베팅이 없으면 베트로 처리한다.
-  // 베팅이 있으면, 남은 칩을 다 넣어도 현재 베팅 금액을 넘지 못하면(=콜만
-  // 겨우 되는 상황) 콜로, 넘으면 그만큼 얹는 레이즈로 처리한다 — 레이즈는
-  // 현재 베팅 금액보다 커야만 하기 때문이다.
+  // 올인 — 남은 칩과 이번 판 개인별 최대 베팅 상한 중 더 작은 만큼을
+  // 전부 건다. 서버가 콜/레이즈 여부와 사이드 팟 형성까지 판단하므로
+  // 클라이언트는 그냥 요청만 보낸다.
   const allIn = () => {
-    if (!roomId || !gameState) return;
+    if (!roomId) return;
 
-    const me = gameState.players.find((player) => player.id === playerId);
-
-    if (!me || me.chips <= 0) return;
-
-    if (gameState.currentBet === 0) {
-      socket.emit("bet", { roomId, amount: me.chips });
-    } else if (me.bet + me.chips > gameState.currentBet) {
-      socket.emit("raise", { roomId, amount: me.bet + me.chips });
-    } else {
-      socket.emit("call", roomId);
-    }
+    socket.emit("all-in", roomId);
   };
 
   const fold = () => {
@@ -1889,6 +1912,22 @@ export default function Home() {
             </div>
           )}
 
+          {gameState.phase === "finished" &&
+            gameState.pots &&
+            gameState.pots.length > 1 && (
+              <div className="animate-fade-up mx-auto flex max-w-md flex-col gap-1 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-center text-[14px] text-zinc-300">
+                <p className="font-semibold text-amber-300">
+                  보유 칩 차이로 팟이 나뉘었습니다
+                </p>
+                {gameState.pots.map((pot, index) => (
+                  <p key={index}>
+                    {index === 0 ? "메인 팟" : `사이드 팟 ${index}`}:{" "}
+                    {pot.amount.toLocaleString()}
+                  </p>
+                ))}
+              </div>
+            )}
+
           {gameState.phase === "finished" && !bankruptcyNotice && (
             <div className="flex flex-col items-center gap-1.5 pb-1">
               <button
@@ -1906,10 +1945,10 @@ export default function Home() {
             </div>
           )}
 
-          {gameState.phase === "redeal" && (
+          {gameState.phase === "showdown" && gameState.redealReason && (
             <p className="animate-fade-up mx-auto max-w-md rounded-xl border border-amber-400/30 bg-amber-400/10 p-3 text-center text-[17.5px] font-semibold text-amber-300">
-              {gameState.redealReason ?? "구사"}! 판돈은 그대로 묻고, 다음 판
-              앤티가 {gameState.nextAnteMultiplier}배가 됩니다...
+              {gameState.redealReason}! 판돈은 그대로 두고 곧바로
+              재경기합니다...
             </p>
           )}
 
