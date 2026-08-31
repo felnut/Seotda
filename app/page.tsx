@@ -1288,7 +1288,7 @@ function SettingsPanel({
             >
               <span
                 className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                  cleanBot ? "[transform:translateX(20px)]" : "[transform:translateX(0)]"
+                  cleanBot ? "transform-[translateX(20px)]" : "transform-[translateX(0)]"
                 }`}
               />
             </button>
