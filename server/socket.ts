@@ -42,6 +42,11 @@ const CHAT_MESSAGE_LIMIT = 10;
 const CHAT_MESSAGE_WINDOW_MS = 10_000;
 const chatMessageTimestamps = new Map<string, number[]>();
 
+// "입력 중" 신호는 저장하지 않는 순간적인 알림이라 메시지보다 여유 있게 허용한다.
+const CHAT_TYPING_LIMIT = 20;
+const CHAT_TYPING_WINDOW_MS = 10_000;
+const chatTypingTimestamps = new Map<string, number[]>();
+
 // 방마다 보관하는 채팅 히스토리 최대 개수 — 넘으면 오래된 것부터 버린다.
 const MAX_CHAT_HISTORY = 50;
 
@@ -90,6 +95,9 @@ interface JoinedPlayer {
   // rejoin-room으로 재접속할 때 본인임을 증명하는 무작위 값. 입장 시
   // 서버가 발급해 그 소켓에게만 알려주며, 다른 플레이어에게는 노출하지 않는다.
   rejoinToken: string;
+  // 대기실에서 "준비" 버튼을 눌렀는지. 방장(joinedPlayers[0])은 준비 대신
+  // 게임 시작 버튼을 쓰므로 이 값을 참고하지 않는다.
+  isReady: boolean;
 }
 
 // playerId(player-1, player-2...)는 순차적이라 쉽게 추측할 수 있으므로,
@@ -375,6 +383,7 @@ function roomPlayersPayload(room: Room) {
   return room.joinedPlayers.map((player) => ({
     id: player.id,
     name: player.name,
+    isReady: player.isReady,
   }));
 }
 
@@ -517,11 +526,13 @@ function removePlayerFromRoom(roomId: string, room: Room, playerId: string) {
 
   const wasPendingBankruptcy = room.pendingBankruptcy.delete(playerId);
 
+  let causedAutoLoss = false;
+
   if (room.game) {
     try {
       // 진행 중인 판이라면 다이로 처리해 판돈을 잃게 하고, 이후 판부터는
       // 완전히 제외한다(관전자로도 남지 않고 화면에서도 사라진다).
-      room.game.leaveGame(playerId);
+      causedAutoLoss = room.game.leaveGame(playerId);
     } catch {
       // 이미 게임에 없는 플레이어 등 예외 상황은 무시한다.
     }
@@ -536,6 +547,16 @@ function removePlayerFromRoom(roomId: string, room: Room, playerId: string) {
     io.to(roomId).emit("player-left", {
       message: `${withSubjectParticle(leavingPlayer.name)} 나갔습니다.`,
     });
+  }
+
+  // 나가고 남은 참가자가 단 한 명뿐이면, 그 판/방 결과와 무관하게 그
+  // 사람을 승자로 확정한다(마지막까지 남은 사람이 이긴 것으로 처리).
+  if (room.joinedPlayers.length === 1 && room.game && !causedAutoLoss) {
+    try {
+      room.game.declareSoleSurvivorWinner(room.joinedPlayers[0].id);
+    } catch {
+      // 이미 게임에 없는 플레이어 등 예외 상황은 무시한다.
+    }
   }
 
   broadcastPlayersUpdated(roomId, room);
@@ -617,6 +638,7 @@ io.on("connection", (socket) => {
             uid: null,
             startingChips: STARTING_CHIPS,
             rejoinToken: hostRejoinToken,
+            isReady: false,
           },
         ],
         game: null,
@@ -722,6 +744,7 @@ io.on("connection", (socket) => {
         uid: resolved.uid,
         startingChips: resolved.startingChips,
         rejoinToken: joinerRejoinToken,
+        isReady: false,
       });
 
       socket.join(roomId);
@@ -806,6 +829,26 @@ io.on("connection", (socket) => {
     },
   );
 
+  // 방장을 제외한 참가자가 준비 상태를 켜고 끈다. 방장(joinedPlayers[0])은
+  // 준비 버튼 대신 게임 시작 버튼을 쓰므로 이 이벤트를 무시한다.
+  socket.on("toggle-ready", (roomId: string) => {
+    const room = rooms.get(roomId);
+
+    if (!room || room.game) return;
+
+    const playerId = findPlayerIdBySocket(room, socket.id);
+
+    if (!playerId || room.joinedPlayers[0]?.id === playerId) return;
+
+    const player = room.joinedPlayers.find((p) => p.id === playerId);
+
+    if (!player) return;
+
+    player.isReady = !player.isReady;
+
+    broadcastPlayersUpdated(roomId, room);
+  });
+
   socket.on("start-game", (roomId: string) => {
     const room = rooms.get(roomId);
 
@@ -820,6 +863,29 @@ io.on("connection", (socket) => {
     }
 
     if (!room.game) {
+      const host = room.joinedPlayers[0];
+      const playerId = findPlayerIdBySocket(room, socket.id);
+
+      if (!host || playerId !== host.id) {
+        socket.emit("error-message", {
+          message: "방장만 게임을 시작할 수 있습니다.",
+        });
+
+        return;
+      }
+
+      const notReady = room.joinedPlayers.some(
+        (player) => player.id !== host.id && !player.isReady,
+      );
+
+      if (notReady) {
+        socket.emit("error-message", {
+          message: "모든 참가자가 준비를 완료해야 시작할 수 있습니다.",
+        });
+
+        return;
+      }
+
       const players = room.joinedPlayers.map((player) => ({
         name: player.name,
         chips: player.startingChips,
@@ -1203,6 +1269,42 @@ io.on("connection", (socket) => {
     },
   );
 
+  // 입력 중 표시 — 아무것도 저장하지 않고, 지금 이 순간 누가 입력 중인지만
+  // 같은 방의 다른 사람들에게 전달한다(본인 제외).
+  socket.on(
+    "chat-typing",
+    ({ roomId, isTyping }: { roomId: string; isTyping: boolean }) => {
+      const room = rooms.get(roomId);
+
+      if (!room) return;
+
+      const playerId = findPlayerIdBySocket(room, socket.id);
+
+      if (!playerId) return;
+
+      const player = room.joinedPlayers.find((p) => p.id === playerId);
+
+      if (!player) return;
+
+      if (
+        isRateLimited(
+          socket.id,
+          chatTypingTimestamps,
+          CHAT_TYPING_LIMIT,
+          CHAT_TYPING_WINDOW_MS,
+        )
+      ) {
+        return;
+      }
+
+      socket.to(roomId).emit("chat-typing", {
+        playerId,
+        name: player.name,
+        isTyping: Boolean(isTyping),
+      });
+    },
+  );
+
   socket.on("leave-room", (roomId: string) => {
     const room = rooms.get(roomId);
 
@@ -1222,6 +1324,7 @@ io.on("connection", (socket) => {
 
     roomCreateTimestamps.delete(socket.id);
     chatMessageTimestamps.delete(socket.id);
+    chatTypingTimestamps.delete(socket.id);
 
     for (const [roomId, room] of rooms) {
       const joined = room.joinedPlayers.find((p) => p.socketId === socket.id);

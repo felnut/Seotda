@@ -91,7 +91,7 @@ export function RankingModal({
         }`}
       >
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-          <h3 className="text-[22.5px] font-semibold">랭킹</h3>
+          <h3 className="text-[22.5px] font-bold">랭킹</h3>
 
           <button
             type="button"
@@ -111,7 +111,7 @@ export function RankingModal({
               onClick={() => setMetricIndex(index)}
               className={`rounded-lg px-1.5 py-2 text-center text-[11.5px] leading-tight font-medium transition ${
                 index === metricIndex
-                  ? "bg-amber-400/15 text-amber-300"
+                  ? "bg-gold/15 text-gold-bright"
                   : "text-zinc-400 hover:bg-white/5"
               }`}
             >
@@ -128,7 +128,7 @@ export function RankingModal({
           )}
 
           {!loading && error && (
-            <p className="py-8 text-center text-[15px] text-red-400">{error}</p>
+            <p className="py-8 text-center text-[15px] text-crimson-bright">{error}</p>
           )}
 
           {!loading && !error && entries.length === 0 && (
@@ -152,7 +152,7 @@ export function RankingModal({
                     {entry.name}
                   </p>
 
-                  <p className="text-[15px] font-medium text-amber-300">
+                  <p className="font-mono text-[15px] font-medium tabular-nums text-gold-bright">
                     {metric.format(entry)}
                   </p>
                 </li>

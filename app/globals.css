@@ -1,34 +1,55 @@
 @import "tailwindcss";
 
 :root {
-  --background: #08090b;
-  --foreground: #f4f4f5;
-  --felt:
-    radial-gradient(
-      ellipse 80% 55% at 50% -10%,
-      rgba(16, 90, 60, 0.35),
-      transparent 60%
-    ),
-    radial-gradient(
-      ellipse 60% 50% at 100% 100%,
-      rgba(16, 60, 90, 0.12),
-      transparent 60%
-    ),
-    #08090b;
+  --background: #0b0f0d;
+  --foreground: #eceae4;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  /* 중립색(white/black/zinc)을 순색 대신 차분한 슬레이트 톤으로 다시
+     정의한다. bg-white/10, text-zinc-400 같은 기존 유틸리티가 전부 이
+     톤을 그대로 물려받으므로, 마크업을 건드리지 않고도 화면 전체의
+     "칩 색"이 깔끔하고 현대적인 인상으로 바뀐다. */
+  --color-white: #eceae4;
+  --color-black: #060807;
+
+  --color-zinc-100: #e9eaec;
+  --color-zinc-200: #cbcdd2;
+  --color-zinc-300: #9fa3ab;
+  --color-zinc-400: #7c8189;
+  --color-zinc-500: #5f646c;
+  --color-zinc-600: #464a51;
+  --color-zinc-800: #23262a;
+  --color-zinc-900: #17191c;
+  --color-zinc-950: #101214;
+
+  /* 놋쇠(주요 액션·강조) */
+  --color-gold: #c9974a;
+  --color-gold-bright: #e3bd74;
+  --color-gold-deep: #8f6a2e;
+
+  /* 옥색 펠트(테이블·차분한/진행형 액션, "나" 표시) */
+  --color-felt: #2f6b45;
+  --color-felt-bright: #4f9468;
+
+  /* 인주(위험·이탈) */
+  --color-crimson: #9c3b2e;
+  --color-crimson-bright: #c96354;
+
+  /* 잉걸불(올인 — 놋쇠와 인주 사이의 긴장감) */
+  --color-ember: #b5541f;
+
+  --font-sans: var(--font-noto-sans-kr);
+  --font-mono: var(--font-plex-mono);
 }
 
 body {
-  background: var(--felt);
-  background-attachment: fixed;
+  background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), "Malgun Gothic", sans-serif;
 }
 
 ::-webkit-scrollbar {
@@ -37,7 +58,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(236, 234, 228, 0.15);
   border-radius: 9999px;
 }
 
@@ -89,11 +110,11 @@ body {
 @keyframes turn-glow {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4);
+    box-shadow: 0 0 0 0 rgba(201, 151, 74, 0.45);
   }
 
   50% {
-    box-shadow: 0 0 0 10px rgba(251, 191, 36, 0);
+    box-shadow: 0 0 0 10px rgba(201, 151, 74, 0);
   }
 }
 

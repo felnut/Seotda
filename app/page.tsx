@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { io, Socket } from "socket.io-client";
 import {
   BankruptcyNotice,
@@ -41,6 +40,7 @@ const socket: Socket =
   }));
 
 const SESSION_STORAGE_KEY = "seotda-session";
+const CLEAN_BOT_STORAGE_KEY = "seotda-clean-bot";
 
 const MIN_ROOM_PLAYERS = 2;
 const MAX_ROOM_PLAYERS = 6;
@@ -76,7 +76,7 @@ interface CardProps {
 function Card({ card, index = 0, size = "cozy" }: CardProps) {
   return (
     <div
-      className={`animate-card-in relative aspect-2/3 shrink-0 overflow-hidden rounded-lg border border-white/10 shadow-lg shadow-black/40 ${CARD_SIZE_CLASS[size]}`}
+      className={`animate-card-in relative aspect-2/3 shrink-0 overflow-hidden rounded-lg border border-gold/25 shadow-lg shadow-black/50 ${CARD_SIZE_CLASS[size]}`}
       style={{ animationDelay: `${index * 80}ms` }}
     >
       <Image
@@ -87,7 +87,7 @@ function Card({ card, index = 0, size = "cozy" }: CardProps) {
         className="object-cover"
       />
 
-      <span className="absolute top-0.5 left-0.5 flex h-6 min-w-6 items-center justify-center rounded bg-black/70 px-1 text-[17.5px] font-bold text-white sm:h-7 sm:min-w-7 sm:text-xl">
+      <span className="absolute top-0.5 left-0.5 flex h-6 min-w-6 items-center justify-center rounded bg-black/70 px-1 font-mono text-[17.5px] font-bold text-gold-bright sm:h-7 sm:min-w-7 sm:text-xl">
         {card.month}
       </span>
     </div>
@@ -198,7 +198,7 @@ function HandGuidePanel({
         }`}
       >
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-          <h3 className="text-[22.5px] font-semibold">족보 가이드</h3>
+          <h3 className="text-[22.5px] font-bold">족보 가이드</h3>
 
           <button
             type="button"
@@ -211,7 +211,7 @@ function HandGuidePanel({
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
-          <p className="mb-2 text-[15px] font-semibold tracking-wide text-amber-400">
+          <p className="mb-2 text-[15px] font-semibold tracking-wide text-gold">
             특수 족보
           </p>
 
@@ -224,7 +224,7 @@ function HandGuidePanel({
                   key={entry.name}
                   className={`flex items-center gap-3 rounded-lg border p-3 transition ${
                     isMine
-                      ? "border-amber-400/60 bg-amber-400/10 ring-1 ring-amber-400/40"
+                      ? "border-gold/60 bg-gold/10 ring-1 ring-gold/40"
                       : "border-white/5 bg-white/3"
                   }`}
                 >
@@ -237,13 +237,13 @@ function HandGuidePanel({
                     <p className="flex items-center gap-1.5 text-[17.5px] font-semibold">
                       {entry.name}
                       {isMine && (
-                        <span className="rounded-full bg-amber-400/20 px-1.5 py-0.5 text-[11px] font-semibold text-amber-300">
+                        <span className="rounded-full bg-gold/20 px-1.5 py-0.5 text-[11px] font-semibold text-gold-bright">
                           내 패
                         </span>
                       )}
                     </p>
                     <p className="text-[15px] text-zinc-400">{entry.months}</p>
-                    <p className="text-[15px] text-emerald-400">
+                    <p className="text-[15px] text-felt-bright">
                       {entry.effect}
                     </p>
                   </div>
@@ -252,7 +252,7 @@ function HandGuidePanel({
             })}
           </ul>
 
-          <p className="mb-2 text-[15px] font-semibold tracking-wide text-amber-400">
+          <p className="mb-2 text-[15px] font-semibold tracking-wide text-gold">
             일반 족보 (높은 순)
           </p>
 
@@ -265,7 +265,7 @@ function HandGuidePanel({
                   key={entry.name}
                   className={`flex items-center gap-3 rounded-lg border p-3 transition ${
                     isMine
-                      ? "border-amber-400/60 bg-amber-400/10 ring-1 ring-amber-400/40"
+                      ? "border-gold/60 bg-gold/10 ring-1 ring-gold/40"
                       : "border-white/5 bg-white/3"
                   }`}
                 >
@@ -282,7 +282,7 @@ function HandGuidePanel({
                     <p className="flex items-center gap-1.5 text-[17.5px] font-semibold">
                       {entry.name}
                       {isMine && (
-                        <span className="rounded-full bg-amber-400/20 px-1.5 py-0.5 text-[11px] font-semibold text-amber-300">
+                        <span className="rounded-full bg-gold/20 px-1.5 py-0.5 text-[11px] font-semibold text-gold-bright">
                           내 패
                         </span>
                       )}
@@ -299,6 +299,64 @@ function HandGuidePanel({
   );
 }
 
+// 640px는 Tailwind의 sm 브레이크포인트와 같다 — 그 이상에서는 채팅을 항상
+// 열려 있는 도킹 패널로 붙박아 보여주고, 그 아래(모바일)에서만 버튼으로
+// 여닫는 오버레이로 동작한다.
+function useIsDesktop(): boolean {
+  const [isDesktop, setIsDesktop] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(min-width: 640px)").matches,
+  );
+
+  useEffect(() => {
+    const query = window.matchMedia("(min-width: 640px)");
+    const handleChange = (event: MediaQueryListEvent) => {
+      setIsDesktop(event.matches);
+    };
+
+    query.addEventListener("change", handleChange);
+
+    return () => query.removeEventListener("change", handleChange);
+  }, []);
+
+  return isDesktop;
+}
+
+// 완전한 검열은 목표가 아니다 — "끄면 원문 그대로, 켜면 흔한 비속어 몇
+// 개는 가려준다" 정도의 개인 설정용 순화 기능이라 목록은 일부러 짧게 둔다.
+const PROFANITY_WORDS = [
+  "씨발",
+  "씨팔",
+  "시발",
+  "개새끼",
+  "병신",
+  "지랄",
+  "좆",
+  "fuck",
+  "shit",
+  "bitch",
+];
+
+function maskProfanity(text: string, enabled: boolean): string {
+  if (!enabled) return text;
+
+  let masked = text;
+
+  for (const word of PROFANITY_WORDS) {
+    masked = masked.replaceAll(
+      new RegExp(word, "gi"),
+      "❋".repeat(word.length),
+    );
+  }
+
+  return masked;
+}
+
+const EMOJI_OPTIONS = [
+  "😀", "😂", "😅", "😉", "😍", "🤔", "😮", "😢",
+  "😡", "🥳", "😴", "🤐", "👍", "👎", "🙏", "👏",
+  "🔥", "💰", "💸", "🎉", "🎲", "🍀", "🃏", "😱",
+];
+
 function ChatPanel({
   open,
   onClose,
@@ -307,6 +365,9 @@ function ChatPanel({
   input,
   onInputChange,
   onSend,
+  typingNames,
+  cleanBot,
+  onToggleCleanBot,
 }: {
   open: boolean;
   onClose: () => void;
@@ -315,39 +376,65 @@ function ChatPanel({
   input: string;
   onInputChange: (value: string) => void;
   onSend: () => void;
+  typingNames: string[];
+  cleanBot: boolean;
+  onToggleCleanBot: () => void;
 }) {
   const listRef = useRef<HTMLDivElement | null>(null);
+  const [isEmojiOpen, setIsEmojiOpen] = useState(false);
+  const isDesktop = useIsDesktop();
+  // 데스크톱에서는 채팅이 항상 화면에 붙박이로 보이므로 open 상태와
+  // 무관하게 늘 조작 가능해야 한다 — 모바일일 때만 open이 실제 표시 여부다.
+  const isVisible = isDesktop || open;
 
-  // 패널이 열려 있거나 새 메시지가 도착하면 항상 맨 아래로 스크롤한다.
+  // 패널이 보이거나 새 메시지가 도착하면 항상 맨 아래로 스크롤한다.
   useEffect(() => {
-    if (!open) return;
+    if (!isVisible) return;
 
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
-  }, [open, messages]);
+  }, [isVisible, messages]);
 
-  // 게임 화면의 레이아웃(가운데 정렬)에 영향을 주지 않도록 문서 흐름 밖의
-  // fixed 패널로 오른쪽에서 슬라이드인한다. 배경 딤/바깥 클릭 닫기는 없고,
-  // 채팅 버튼(또는 이 패널의 닫기 버튼)을 눌러야만 닫힌다.
+  // 데스크톱(sm 이상)에서는 레이아웃에 자리를 차지하는 도킹 패널로,
+  // 모바일에서는 문서 흐름 밖의 fixed 오버레이로 오른쪽에서 슬라이드인한다.
   return (
     <aside
-      // 닫혀 있는 동안에는 화면 밖으로 밀려나 있는 안의 입력창/버튼이
-      // 키보드 탭 이동으로 포커스되지 않도록 inert 처리한다.
-      inert={!open}
-      className={`fixed inset-y-0 right-0 z-40 flex w-56 flex-col overflow-hidden border-l border-white/10 bg-zinc-950/95 shadow-2xl transition-transform duration-300 sm:w-72 ${
-        open ? "translate-x-0" : "translate-x-full"
+      // 모바일에서 닫혀 있는 동안에는 화면 밖으로 밀려나 있는 안의
+      // 입력창/버튼이 키보드 탭 이동으로 포커스되지 않도록 inert 처리한다.
+      // 데스크톱에서는 항상 보이므로 inert를 걸지 않는다.
+      inert={!isVisible}
+      className={`z-40 flex w-56 shrink-0 flex-col overflow-hidden border-white/10 bg-zinc-950/95 transition-transform duration-300 sm:relative sm:w-72 sm:translate-x-0 sm:border-l sm:bg-zinc-950/60 sm:shadow-none ${
+        open
+          ? "fixed inset-y-0 right-0 translate-x-0 border-l shadow-2xl"
+          : "fixed inset-y-0 right-0 translate-x-full border-l shadow-2xl"
       }`}
     >
-      <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-4">
-        <h3 className="text-[17.5px] font-semibold sm:text-[22.5px]">채팅</h3>
+      <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3 sm:py-4">
+        <h3 className="text-[17.5px] font-bold sm:text-[22.5px]">채팅</h3>
 
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="닫기"
-          className="rounded-full p-2 text-zinc-400 transition hover:bg-white/10 hover:text-white"
-        >
-          ✕
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={onToggleCleanBot}
+            aria-pressed={cleanBot}
+            title="클린봇 — 비속어를 가려서 보여줍니다"
+            className={`rounded-full px-2 py-1 text-[11px] font-semibold transition ${
+              cleanBot
+                ? "bg-felt/20 text-felt-bright"
+                : "bg-white/5 text-zinc-500 hover:bg-white/10"
+            }`}
+          >
+            클린봇 {cleanBot ? "ON" : "OFF"}
+          </button>
+
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="닫기"
+            className="rounded-full p-2 text-zinc-400 transition hover:bg-white/10 hover:text-white sm:hidden"
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
       <div
@@ -373,42 +460,93 @@ function ChatPanel({
               </span>
 
               <p
-                className={`max-w-[85%] rounded-2xl px-3 py-1.5 text-[13.5px] break-words sm:px-3.5 sm:py-2 sm:text-[15px] ${
+                className={`max-w-[85%] rounded-2xl px-3 py-1.5 text-[13.5px] wrap-break-word sm:px-3.5 sm:py-2 sm:text-[15px] ${
                   isMine
-                    ? "bg-amber-400 text-zinc-900"
+                    ? "bg-gold text-zinc-900"
                     : "bg-white/8 text-zinc-100"
                 }`}
               >
-                {message.text}
+                {maskProfanity(message.text, cleanBot)}
               </p>
             </div>
           );
         })}
       </div>
 
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          onSend();
-        }}
-        className="flex shrink-0 gap-1.5 border-t border-white/10 p-2.5 sm:gap-2 sm:p-3"
-      >
-        <input
-          value={input}
-          onChange={(event) => onInputChange(event.target.value)}
-          placeholder="메시지 입력..."
-          maxLength={200}
-          className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-[13.5px] text-white outline-none transition focus:border-amber-400/50 focus:ring-2 focus:ring-amber-400/20 sm:px-3.5 sm:py-2.5 sm:text-[15px]"
-        />
-
-        <button
-          type="submit"
-          disabled={!input.trim()}
-          className="shrink-0 rounded-xl bg-amber-400 px-3 py-2 text-[13.5px] font-semibold text-zinc-900 transition hover:scale-[1.03] hover:bg-amber-300 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 sm:px-4 sm:py-2.5 sm:text-[15px]"
+      <div className="shrink-0 px-3 sm:px-4">
+        <p
+          className={`h-4 truncate text-[11.5px] text-zinc-500 transition-opacity ${
+            typingNames.length > 0 ? "opacity-100" : "opacity-0"
+          }`}
         >
-          전송
-        </button>
-      </form>
+          {typingNames.length === 1
+            ? `${typingNames[0]}님이 입력 중...`
+            : typingNames.length > 1
+              ? `${typingNames.slice(0, 2).join(", ")} 외 ${
+                  typingNames.length - 2 > 0 ? typingNames.length - 2 : ""
+                }명이 입력 중...`
+              : " "}
+        </p>
+      </div>
+
+      <div className="relative shrink-0">
+        {isEmojiOpen && (
+          <div className="absolute right-2.5 bottom-full mb-2 grid w-52 grid-cols-6 gap-1 rounded-xl border border-white/10 bg-zinc-900 p-2 shadow-2xl sm:right-3">
+            {EMOJI_OPTIONS.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => {
+                  onInputChange(`${input}${emoji}`);
+                  setIsEmojiOpen(false);
+                }}
+                className="rounded-lg py-1 text-[19px] transition hover:bg-white/10"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSend();
+            setIsEmojiOpen(false);
+          }}
+          className="flex gap-1.5 border-t border-white/10 p-2.5 sm:gap-2 sm:p-3"
+        >
+          <button
+            type="button"
+            onClick={() => setIsEmojiOpen((prev) => !prev)}
+            aria-label="이모티콘"
+            aria-expanded={isEmojiOpen}
+            className={`shrink-0 rounded-xl border px-2.5 text-[17px] transition ${
+              isEmojiOpen
+                ? "border-gold/50 bg-gold/10"
+                : "border-white/10 bg-black/30 hover:border-white/20"
+            }`}
+          >
+            😊
+          </button>
+
+          <input
+            value={input}
+            onChange={(event) => onInputChange(event.target.value)}
+            placeholder="메시지 입력..."
+            maxLength={200}
+            className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-[13.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20 sm:px-3.5 sm:py-2.5 sm:text-[15px]"
+          />
+
+          <button
+            type="submit"
+            disabled={!input.trim()}
+            className="shrink-0 rounded-xl bg-gold px-3 py-2 text-[13.5px] font-semibold text-zinc-900 transition hover:scale-[1.03] hover:bg-gold-bright active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 sm:px-4 sm:py-2.5 sm:text-[15px]"
+          >
+            전송
+          </button>
+        </form>
+      </div>
     </aside>
   );
 }
@@ -448,16 +586,16 @@ function RoomCodeBadge({ roomId }: { roomId: string }) {
       aria-label="방 코드 복사"
       className={`rounded-lg border px-2.5 py-1 text-right transition hover:scale-[1.03] active:scale-95 sm:px-3 ${
         copied
-          ? "border-emerald-400/40 bg-emerald-400/10"
-          : "border-white/10 bg-white/3 hover:border-amber-400/40"
+          ? "border-felt-bright/40 bg-felt-bright/10"
+          : "border-white/10 bg-white/3 hover:border-gold/40"
       }`}
     >
       <span className="block text-[11px] text-zinc-500 sm:text-[13px]">
         방 코드{" "}
       </span>
       <span
-        className={`text-[15px] font-bold tracking-widest sm:text-[17.5px] ${
-          copied ? "text-emerald-300" : ""
+        className={`font-mono text-[15px] font-semibold tracking-widest sm:text-[17.5px] ${
+          copied ? "text-felt-bright" : ""
         }`}
       >
         {copied ? "복사됨" : roomId}
@@ -501,25 +639,50 @@ const PHASE_LABEL: Partial<Record<ClientGameState["phase"], string>> = {
   finished: "게임 종료",
 };
 
+// 판돈 규모에 따라 쌓이는 칩 색만 다르게 보여주는 장식용 스택이다 — 정확한
+// 금액은 항상 바로 아래 텍스트로 표기하므로, 이 그림은 눈대중용일 뿐이다.
+function ChipStack({ amount }: { amount: number }) {
+  const colors =
+    amount >= 20_000
+      ? ["bg-crimson", "bg-gold", "bg-felt"]
+      : amount >= 5_000
+        ? ["bg-gold", "bg-felt"]
+        : amount >= 1_000
+          ? ["bg-felt", "bg-zinc-400"]
+          : ["bg-zinc-400"];
+
+  return (
+    <div className="flex flex-col-reverse items-center" aria-hidden>
+      {colors.map((color, index) => (
+        <span
+          key={index}
+          className={`h-2 w-7 rounded-full border border-black/40 sm:w-8 ${color}`}
+          style={{ marginTop: index === 0 ? 0 : "-5px" }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function PotBadge({ pot, turnLabel }: { pot: number; turnLabel: string }) {
   return (
-    <div className="flex shrink-0 flex-col items-center justify-center gap-1 py-0.5">
-      <div className="relative flex h-14 w-14 items-center justify-center rounded-full border border-amber-400/30 bg-linear-to-b from-amber-400/10 to-transparent shadow-[0_0_20px_-4px_rgba(251,191,36,0.4)] sm:h-16 sm:w-16">
-        <div className="text-center leading-tight">
-          <p
-            key={pot}
-            className="animate-pop-in text-[15px] font-bold text-amber-400 sm:text-[17.5px]"
-          >
-            {pot.toLocaleString()}
-          </p>
+    <div className="flex shrink-0 flex-col items-center justify-center gap-1.5 py-1">
+      <ChipStack amount={pot} />
 
-          <p className="text-[10px] font-semibold tracking-widest text-zinc-500">
-            POT
-          </p>
-        </div>
+      <div className="flex flex-col items-center rounded-2xl border border-gold/40 bg-zinc-950/80 px-5 py-1.5">
+        <p className="text-[10px] font-bold tracking-widest text-gold-bright">
+          POT
+        </p>
+
+        <p
+          key={pot}
+          className="animate-pop-in font-mono text-[17.5px] font-bold tabular-nums text-gold sm:text-[19px]"
+        >
+          {pot.toLocaleString()}
+        </p>
       </div>
 
-      <p className="text-[15px] font-medium text-zinc-400 sm:text-[17.5px]">
+      <p className="text-[13px] font-medium text-zinc-400 sm:text-[15px]">
         {turnLabel}
       </p>
     </div>
@@ -567,18 +730,18 @@ function PlayerPanel({
         compact ? "sm:py-3" : "sm:py-3.5"
       } ${
         isMe
-          ? "border-amber-400/25 bg-amber-400/4"
+          ? "border-gold/25 bg-gold/4"
           : "border-white/10 bg-white/3"
       } ${
         isCurrent
-          ? "animate-turn-glow ring-2 ring-amber-400/70 ring-offset-2 ring-offset-zinc-950"
+          ? "animate-turn-glow ring-2 ring-gold/70 ring-offset-2 ring-offset-zinc-950"
           : ""
       }`}
     >
       <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <div className="flex items-center gap-2 sm:gap-3">
           <div
-            className={`flex shrink-0 items-center justify-center rounded-full bg-linear-to-br from-amber-400/80 to-amber-600/80 font-bold text-zinc-900 ${
+            className={`flex shrink-0 items-center justify-center rounded-full bg-linear-to-br from-gold/80 to-gold-deep/80 font-bold text-zinc-900 ${
               compact
                 ? "h-6 w-6 text-[15px]"
                 : "h-8 w-8 text-[17.5px] sm:h-9 sm:w-9"
@@ -597,18 +760,18 @@ function PlayerPanel({
             {player.name}
 
             {isMe && (
-              <span className="ml-2 text-[15px] font-medium text-emerald-400">
+              <span className="ml-2 text-[15px] font-medium text-felt-bright">
                 나
               </span>
             )}
           </h2>
 
-          <span className="text-[15px] text-zinc-500">
+          <span className="font-mono text-[15px] tabular-nums text-zinc-500">
             칩 {player.chips.toLocaleString()}
           </span>
 
           {player.bet > 0 && (
-            <span className="text-[15px] text-zinc-500">
+            <span className="font-mono text-[15px] tabular-nums text-zinc-500">
               베팅{" "}
               <span className="text-zinc-300">
                 {player.bet.toLocaleString()}
@@ -621,13 +784,13 @@ function PlayerPanel({
           {player.lastAction &&
             player.status !== "folded" &&
             !player.lastAction.startsWith("베팅") && (
-              <span className="animate-pop-in rounded-full bg-blue-500/15 px-2.5 py-0.5 text-[14px] font-bold text-blue-300">
+              <span className="animate-pop-in rounded-full bg-felt/15 px-2.5 py-0.5 text-[14px] font-bold text-felt-bright">
                 {player.lastAction}
               </span>
             )}
 
           {isCurrent && (
-            <span className="rounded-full bg-amber-400 px-2.5 py-0.5 text-[14px] font-bold text-zinc-900">
+            <span className="rounded-full bg-gold px-2.5 py-0.5 text-[14px] font-bold text-zinc-900">
               차례
             </span>
           )}
@@ -645,7 +808,7 @@ function PlayerPanel({
           )}
 
           {phase === "finished" && player.status === "winner" && (
-            <span className="rounded-full bg-emerald-400/15 px-2.5 py-0.5 text-[14px] font-bold text-emerald-300">
+            <span className="rounded-full bg-felt-bright/15 px-2.5 py-0.5 text-[14px] font-bold text-felt-bright">
               승리
             </span>
           )}
@@ -678,7 +841,7 @@ function PlayerPanel({
                       : "cursor-default"
                   } ${
                     isPendingSelected
-                      ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-zinc-950"
+                      ? "ring-2 ring-gold ring-offset-2 ring-offset-zinc-950"
                       : ""
                   }`}
                 >
@@ -690,13 +853,13 @@ function PlayerPanel({
                 </button>
 
                 {index === player.revealedCardIndex && (
-                  <span className="rounded-full bg-amber-400/15 px-1.5 py-0.5 text-[11px] font-semibold text-amber-300">
+                  <span className="rounded-full bg-gold/15 px-1.5 py-0.5 text-[11px] font-semibold text-gold-bright">
                     공개됨
                   </span>
                 )}
 
                 {player.selectedIndices?.includes(index) && (
-                  <span className="rounded-full bg-emerald-400/15 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-300">
+                  <span className="rounded-full bg-felt-bright/15 px-1.5 py-0.5 text-[11px] font-semibold text-felt-bright">
                     족보로 선택됨
                   </span>
                 )}
@@ -705,7 +868,7 @@ function PlayerPanel({
                   <button
                     type="button"
                     onClick={() => onRevealCard(index)}
-                    className="rounded-full bg-amber-400 px-2.5 py-0.5 text-[13px] font-semibold text-zinc-900 transition hover:scale-105 hover:bg-amber-300 active:scale-95"
+                    className="rounded-full bg-gold px-2.5 py-0.5 text-[13px] font-semibold text-zinc-900 transition hover:scale-105 hover:bg-gold-bright active:scale-95"
                   >
                     이 카드 공개
                   </button>
@@ -728,10 +891,10 @@ function PlayerPanel({
           (isMe || phase === "showdown" || phase === "finished") && (
             <div
               key={player.handName}
-              className="animate-pop-in flex flex-col items-center justify-center rounded-xl border border-amber-400/20 bg-black/20 px-3 py-1.5 text-center sm:px-4"
+              className="animate-pop-in flex flex-col items-center justify-center rounded-xl border border-gold/20 bg-black/20 px-3 py-1.5 text-center sm:px-4"
             >
               <p className="text-[11px] font-medium text-zinc-400">족보</p>
-              <p className="text-[22.5px] font-bold text-amber-300 sm:text-[25px]">
+              <p className="text-[22.5px] font-bold text-gold-bright sm:text-[25px]">
                 {player.handName}
               </p>
             </div>
@@ -747,13 +910,13 @@ function PlayerPanel({
                 key={`${indices[0]}-${indices[1]}`}
                 className={`rounded-full px-2 py-0.5 text-[14px] transition ${
                   isBest
-                    ? "border border-amber-400/60 bg-amber-400/10 text-amber-300 ring-1 ring-amber-400/40"
+                    ? "border border-gold/60 bg-gold/10 text-gold-bright ring-1 ring-gold/40"
                     : "border border-transparent bg-white/5 text-zinc-400"
                 }`}
               >
                 {indices[0] + 1}+{indices[1] + 1}{" "}
                 <span
-                  className={`font-semibold ${isBest ? "text-amber-200" : "text-zinc-200"}`}
+                  className={`font-semibold ${isBest ? "text-gold-bright" : "text-zinc-200"}`}
                 >
                   {name}
                 </span>
@@ -763,7 +926,7 @@ function PlayerPanel({
         )}
 
       {canRevealNow && (
-        <p className="mt-1.5 text-center text-[17.5px] text-amber-300">
+        <p className="mt-1.5 text-center text-[17.5px] text-gold-bright">
           상대에게 보여줄 카드 한 장을 골라주세요.
         </p>
       )}
@@ -776,7 +939,7 @@ function PlayerPanel({
 
       {canSelectNow && (
         <div className="mt-1.5 text-center">
-          <p className="mb-1.5 text-[17.5px] text-amber-300">
+          <p className="mb-1.5 text-[17.5px] text-gold-bright">
             족보로 쓸 카드 2장을 골라주세요. ({pendingSelection.length}/2)
           </p>
 
@@ -784,7 +947,7 @@ function PlayerPanel({
             type="button"
             onClick={onConfirmSelect}
             disabled={pendingSelection.length !== 2}
-            className="rounded-xl bg-amber-400 px-5 py-1.5 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.03] hover:bg-amber-300 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+            className="rounded-xl bg-gold px-5 py-1.5 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.03] hover:bg-gold-bright active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
           >
             족보 확정
           </button>
@@ -804,10 +967,14 @@ function SeatCard({
   name,
   isMe,
   filled,
+  isHost,
+  isReady,
 }: {
   name: string;
   isMe: boolean;
   filled: boolean;
+  isHost: boolean;
+  isReady: boolean;
 }) {
   if (!filled) {
     return (
@@ -825,11 +992,11 @@ function SeatCard({
     <div
       className={`flex flex-1 flex-col items-center justify-center gap-2 rounded-2xl border px-6 py-6 text-center sm:py-8 ${
         isMe
-          ? "border-amber-400/25 bg-amber-400/4"
+          ? "border-gold/25 bg-gold/4"
           : "border-white/10 bg-white/3"
       }`}
     >
-      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-amber-400/80 to-amber-600/80 text-[17.5px] font-bold text-zinc-900 sm:h-10 sm:w-10">
+      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-gold/80 to-gold-deep/80 text-[17.5px] font-bold text-zinc-900 sm:h-10 sm:w-10">
         {name.charAt(0)}
       </div>
 
@@ -837,11 +1004,23 @@ function SeatCard({
         {name}
 
         {isMe && (
-          <span className="ml-1.5 text-[15px] font-medium text-emerald-400">
+          <span className="ml-1.5 text-[15px] font-medium text-felt-bright">
             나
           </span>
         )}
       </p>
+
+      <span
+        className={`rounded-full px-2.5 py-0.5 text-[12.5px] font-semibold ${
+          isHost
+            ? "bg-gold/15 text-gold-bright"
+            : isReady
+              ? "bg-felt/20 text-felt-bright"
+              : "bg-white/5 text-zinc-500"
+        }`}
+      >
+        {isHost ? "방장" : isReady ? "준비 완료" : "대기 중"}
+      </span>
     </div>
   );
 }
@@ -877,28 +1056,32 @@ function GameBoard({
     : (PHASE_LABEL[gameState.phase] ?? gameState.phase);
 
   return (
-    <div className="flex flex-1 flex-col justify-center gap-2 sm:gap-3">
+    <div className="relative flex flex-1 flex-col justify-between gap-2 rounded-4xl border border-gold/25 bg-felt/8 p-2.5 sm:gap-3 sm:p-4">
+      {/* 상대방은 테이블 위쪽에 가로로 둘러앉는다(둥근 테이블 흉내) */}
       {opponents.length > 0 && (
-        <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto sm:space-y-2">
+        <div className="flex min-h-0 flex-1 flex-wrap content-start justify-center gap-1.5 overflow-y-auto sm:gap-2">
           {opponents.map((opponent) => (
-            <PlayerPanel
-              key={opponent.id}
-              player={opponent}
-              isMe={false}
-              isCurrent={isBettingPhase && opponent.id === currentPlayer?.id}
-              compact
-              phase={gameState.phase}
-              pendingSelection={pendingSelection}
-              onRevealCard={onRevealCard}
-              onToggleSelect={onToggleSelect}
-              onConfirmSelect={onConfirmSelect}
-            />
+            <div key={opponent.id} className="w-full sm:max-w-[calc(50%-0.25rem)]">
+              <PlayerPanel
+                player={opponent}
+                isMe={false}
+                isCurrent={isBettingPhase && opponent.id === currentPlayer?.id}
+                compact
+                phase={gameState.phase}
+                pendingSelection={pendingSelection}
+                onRevealCard={onRevealCard}
+                onToggleSelect={onToggleSelect}
+                onConfirmSelect={onConfirmSelect}
+              />
+            </div>
           ))}
         </div>
       )}
 
+      {/* 테이블 한가운데 팟 */}
       <PotBadge pot={gameState.pot} turnLabel={turnLabel} />
 
+      {/* 나는 항상 테이블 앞자리(맨 아래)에 앉는다 */}
       {me && (
         <PlayerPanel
           player={me}
@@ -930,6 +1113,189 @@ function LeaveNoticeToast({ message }: { message: string | null }) {
         </p>
       )}
     </div>
+  );
+}
+
+function ProfilePanel({
+  open,
+  onClose,
+  email,
+  name,
+  onNameChange,
+  onSave,
+  saving,
+  saved,
+  error,
+  onSignOut,
+}: {
+  open: boolean;
+  onClose: () => void;
+  email: string | null;
+  name: string;
+  onNameChange: (value: string) => void;
+  onSave: () => void;
+  saving: boolean;
+  saved: boolean;
+  error: string;
+  onSignOut: () => void;
+}) {
+  return (
+    <>
+      <div
+        className={`fixed inset-0 z-40 bg-black/60 transition-opacity duration-300 ${
+          open ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        onClick={onClose}
+      />
+
+      <aside
+        inert={!open}
+        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col border-l border-white/10 bg-zinc-950/95 shadow-2xl transition-transform duration-300 ${
+          open ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+          <h3 className="text-[22.5px] font-bold">설정</h3>
+
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="닫기"
+            className="rounded-full p-2 text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          {email && (
+            <p className="mb-4 text-[14px] text-zinc-400">{email}로 로그인됨</p>
+          )}
+
+          <label className="mb-1.5 block text-[13px] font-medium text-zinc-500">
+            닉네임
+          </label>
+
+          <input
+            value={name}
+            onChange={(event) => {
+              onNameChange(event.target.value);
+            }}
+            placeholder="닉네임을 입력하세요"
+            maxLength={13}
+            className="mb-3 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-[17.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
+          />
+
+          <p className="mb-4 text-[13px] text-zinc-500">
+            여기서 설정한 닉네임은 방 참가 시 이름을 따로 입력하지 않으면
+            기본값으로 쓰이고, 랭킹에도 이 이름으로 표시돼요.
+          </p>
+
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saving}
+            className="w-full rounded-xl bg-gold px-6 py-2.5 text-[15px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-gold-bright active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+          >
+            {saving ? "저장 중..." : "닉네임 저장"}
+          </button>
+
+          {saved && (
+            <p className="mt-2 text-center text-[13.5px] text-felt-bright">
+              저장됐어요.
+            </p>
+          )}
+
+          {error && (
+            <p className="mt-2 text-center text-[13.5px] text-crimson-bright">
+              {error}
+            </p>
+          )}
+
+          <div className="my-5 border-t border-white/10" />
+
+          <button
+            type="button"
+            onClick={onSignOut}
+            className="w-full rounded-xl border border-white/10 bg-white/3 px-6 py-2.5 text-[15px] font-semibold text-zinc-300 transition hover:border-crimson/40 hover:text-crimson-bright"
+          >
+            로그아웃
+          </button>
+        </div>
+      </aside>
+    </>
+  );
+}
+
+function SettingsPanel({
+  open,
+  onClose,
+  cleanBot,
+  onToggleCleanBot,
+}: {
+  open: boolean;
+  onClose: () => void;
+  cleanBot: boolean;
+  onToggleCleanBot: () => void;
+}) {
+  return (
+    <>
+      <div
+        className={`fixed inset-0 z-40 bg-black/60 transition-opacity duration-300 ${
+          open ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        onClick={onClose}
+      />
+
+      <aside
+        inert={!open}
+        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col border-l border-white/10 bg-zinc-950/95 shadow-2xl transition-transform duration-300 ${
+          open ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+          <h3 className="text-[22.5px] font-bold">설정</h3>
+
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="닫기"
+            className="rounded-full p-2 text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/3 px-4 py-2.5">
+            <div>
+              <p className="text-[14px] font-semibold text-zinc-200">
+                클린봇
+              </p>
+              <p className="text-[12px] text-zinc-500">
+                채팅에서 비속어를 가려서 보여줍니다
+              </p>
+            </div>
+
+            <button
+              type="button"
+              role="switch"
+              aria-checked={cleanBot}
+              onClick={onToggleCleanBot}
+              className={`relative h-6 w-11 shrink-0 rounded-full transition ${
+                cleanBot ? "bg-felt" : "bg-white/15"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                  cleanBot ? "[transform:translateX(20px)]" : "[transform:translateX(0)]"
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+      </aside>
+    </>
   );
 }
 
@@ -971,22 +1337,68 @@ export default function Home() {
   // 누군가 방을 나갔을 때 5초간 보여주는 알림 메시지
   const [leaveNotice, setLeaveNotice] = useState<string | null>(null);
 
-  // 방 채팅
+  // 방 채팅 — 데스크톱에서는 항상 열려 있는 도킹 패널이고, isChatOpen은
+  // 화면이 좁을 때(모바일)만 여닫는 오버레이 표시 여부로 쓰인다.
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [hasUnreadChat, setHasUnreadChat] = useState(false);
   const [chatInput, setChatInput] = useState("");
 
-  // 소켓 리스너는 마운트 시 한 번만 등록되므로, 리스너 안에서 최신 열림
-  // 상태를 읽으려면(클로저에 갇히지 않도록) ref로 따로 최신값을 유지한다.
-  const isChatOpenRef = useRef(isChatOpen);
+  // 지금 입력 중인 상대방들(플레이어 id → 이름). 서버가 "입력 중" 신호를
+  // 보낼 때마다 갱신하고, 일정 시간 갱신이 없으면(연결이 끊기는 등) 자동으로
+  // 지운다.
+  const [typingUsers, setTypingUsers] = useState<Record<string, string>>({});
+  const typingExpiryTimers = useRef<Record<string, number>>({});
+  // 내가 입력 중임을 서버에 이미 알렸는지 — 매 타이핑마다 다시 보내지 않고
+  // "입력 시작"과 "입력 멈춤"에만 신호를 보내기 위한 상태.
+  const isTypingRef = useRef(false);
+  const typingStopTimer = useRef<number | null>(null);
+
+  // 클린봇(비속어 순화) — 기본은 꺼짐이며, 로비 설정과 채팅창 안에서 모두
+  // 바꿀 수 있다. 내 화면에 보이는 채팅에만 적용되는 개인 설정이라 굳이
+  // 서버와 동기화하지 않고 이 브라우저에만 저장해둔다.
+  //
+  // 서버는 localStorage를 알 수 없으니 항상 false로 렌더링한다. 저장된
+  // 값을 초기 state에서 바로 읽으면 서버가 그린 HTML(false)과 클라이언트가
+  // 곧바로 그리는 값(예: true)이 달라져 하이드레이션 경고가 나므로, 마운트
+  // 이후 이펙트에서 한 번만 실제 값으로 맞춘다.
+  const [cleanBot, setCleanBot] = useState(false);
 
   useEffect(() => {
-    isChatOpenRef.current = isChatOpen;
-  }, [isChatOpen]);
+    if (window.localStorage.getItem(CLEAN_BOT_STORAGE_KEY) === "1") {
+      setCleanBot(true);
+    }
+  }, []);
+
+  const toggleCleanBot = () => {
+    setCleanBot((prev) => {
+      const next = !prev;
+
+      window.localStorage.setItem(CLEAN_BOT_STORAGE_KEY, next ? "1" : "0");
+
+      return next;
+    });
+  };
+
+  // 데스크톱에서는 채팅이 항상 보이므로 "안 읽음" 배지도 필요 없다.
+  const isDesktop = useIsDesktop();
+
+  // 소켓 리스너는 마운트 시 한 번만 등록되므로, 리스너 안에서 최신 열림
+  // 상태를 읽으려면(클로저에 갇히지 않도록) ref로 따로 최신값을 유지한다.
+  const isChatOpenRef = useRef(isChatOpen || isDesktop);
+
+  useEffect(() => {
+    isChatOpenRef.current = isChatOpen || isDesktop;
+  }, [isChatOpen, isDesktop]);
 
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isRankingOpen, setIsRankingOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [profileNameDraft, setProfileNameDraft] = useState("");
+  const [isSavingProfileName, setIsSavingProfileName] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+  const [profileError, setProfileError] = useState("");
 
   // 로그인한 계정 — null이면 게스트. 랭킹은 로그인했을 때만 집계된다.
   const user = useAuth();
@@ -997,10 +1409,6 @@ export default function Home() {
   // 로그인 계정의 지속 보유 칩(뱅크롤). 로비로 돌아올 때마다 최신값을 다시 불러온다.
   const [chips, setChips] = useState<number | null>(null);
 
-  // 상대방이 참가하면 자동 시작까지 남은 초 (null이면 카운트다운 중이 아님)
-  const [autoStartCountdown, setAutoStartCountdown] = useState<number | null>(
-    null,
-  );
 
   // 족보 선택 단계에서 아직 서버에 확정 제출하지 않은 임시 선택
   const [pendingSelection, setPendingSelection] = useState<number[]>([]);
@@ -1028,6 +1436,7 @@ export default function Home() {
         const name = profile?.name ?? user.displayName?.slice(0, 13) ?? null;
 
         setProfileName(name);
+        setProfileNameDraft(name ?? "");
 
         if (name) {
           setDisplayName((prev) => prev || name);
@@ -1092,6 +1501,55 @@ export default function Home() {
         console.error("로그아웃 실패:", err);
       });
     });
+
+    setIsProfileOpen(false);
+  };
+
+  // 프로필 설정 패널에서 닉네임을 저장한다 — /profile 페이지와 같은 로직이다.
+  const saveProfileName = () => {
+    if (!user) return;
+
+    const trimmed = profileNameDraft.trim().slice(0, 13);
+
+    if (trimmed.length === 0) {
+      setProfileError("이름을 입력해주세요.");
+      return;
+    }
+
+    setIsSavingProfileName(true);
+    setProfileError("");
+    setProfileSaved(false);
+
+    const profile: UserProfile = { name: trimmed, updatedAt: Date.now() };
+
+    getFirebaseDb()
+      .then(async (firestore) => {
+        if (!firestore) return;
+
+        const { doc, setDoc, updateDoc } = await import("firebase/firestore");
+
+        await setDoc(doc(firestore, PROFILES_COLLECTION, user.uid), profile, {
+          merge: true,
+        });
+
+        setProfileName(trimmed);
+        setProfileNameDraft(trimmed);
+        setDisplayName(trimmed);
+        setProfileSaved(true);
+
+        // 이미 랭킹에 기록이 있는 계정이면 표시 이름도 바로 갱신한다.
+        // 아직 한 판도 안 한 계정은 랭킹 문서가 없어서 실패하는데, 그건 정상이라 무시한다.
+        updateDoc(doc(firestore, RANKINGS_COLLECTION, user.uid), {
+          name: trimmed,
+        }).catch(() => {});
+      })
+      .catch((err) => {
+        console.error("프로필 저장에 실패했습니다:", err);
+        setProfileError("저장에 실패했습니다.");
+      })
+      .finally(() => {
+        setIsSavingProfileName(false);
+      });
   };
 
   useEffect(() => {
@@ -1195,6 +1653,46 @@ export default function Home() {
       }
     });
 
+    socket.on(
+      "chat-typing",
+      ({
+        playerId: typingPlayerId,
+        name,
+        isTyping,
+      }: {
+        playerId: string;
+        name: string;
+        isTyping: boolean;
+      }) => {
+        if (typingExpiryTimers.current[typingPlayerId]) {
+          window.clearTimeout(typingExpiryTimers.current[typingPlayerId]);
+          delete typingExpiryTimers.current[typingPlayerId];
+        }
+
+        if (isTyping) {
+          setTypingUsers((prev) => ({ ...prev, [typingPlayerId]: name }));
+
+          typingExpiryTimers.current[typingPlayerId] = window.setTimeout(() => {
+            setTypingUsers((prev) => {
+              const next = { ...prev };
+
+              delete next[typingPlayerId];
+
+              return next;
+            });
+          }, 3000);
+        } else {
+          setTypingUsers((prev) => {
+            const next = { ...prev };
+
+            delete next[typingPlayerId];
+
+            return next;
+          });
+        }
+      },
+    );
+
     socket.on("error-message", ({ message }: { message: string }) => {
       setError(message);
       setHasVotedRestart(false);
@@ -1212,7 +1710,14 @@ export default function Home() {
       socket.off("player-left");
       socket.off("bankruptcy-refill-result");
       socket.off("chat-message");
+      socket.off("chat-typing");
       socket.off("error-message");
+
+      for (const timer of Object.values(typingExpiryTimers.current)) {
+        window.clearTimeout(timer);
+      }
+
+      typingExpiryTimers.current = {};
     };
   }, []);
 
@@ -1276,33 +1781,6 @@ export default function Home() {
     };
   }, [user]);
 
-  // 방이 정원만큼 차면 10초 카운트다운을 시작하고, 방을 나가거나
-  // 게임이 이미 시작되면(gameState 생김) 취소한다.
-  useEffect(() => {
-    if (
-      playerCount < MIN_ROOM_PLAYERS ||
-      playerCount !== maxPlayers ||
-      gameState
-    ) {
-      setAutoStartCountdown(null);
-      return;
-    }
-
-    setAutoStartCountdown(10);
-
-    const intervalId = window.setInterval(() => {
-      setAutoStartCountdown((prev) => (prev === null ? null : prev - 1));
-    }, 1000);
-
-    return () => window.clearInterval(intervalId);
-  }, [playerCount, maxPlayers, gameState]);
-
-  // 카운트다운이 0에 도달하면 자동으로 게임을 시작한다.
-  useEffect(() => {
-    if (autoStartCountdown === 0) {
-      socket.emit("start-game", roomId);
-    }
-  }, [autoStartCountdown, roomId]);
 
   // 7. 방 만들기
   const createRoom = async () => {
@@ -1350,6 +1828,13 @@ export default function Home() {
     socket.emit("start-game", roomId);
   };
 
+  // 방장이 아닌 참가자가 대기실에서 준비 상태를 켜고 끈다.
+  const toggleReady = () => {
+    if (!roomId) return;
+
+    socket.emit("toggle-ready", roomId);
+  };
+
   // 방을 나갈 때 로컬에 남아있던 방/게임 상태를 정리한다.
   const resetRoomState = () => {
     clearSession();
@@ -1384,7 +1869,7 @@ export default function Home() {
     if (
       isMidGame &&
       !window.confirm(
-        "게임을 나가시겠습니까? 진행 중인 게임은 저장되지 않습니다.",
+        "게임을 나가시겠습니까? 진행 중인 판은 자동으로 다이(패배) 처리되고, 이미 낸 판돈은 돌려받지 못합니다.",
       )
     ) {
       return;
@@ -1508,6 +1993,32 @@ export default function Home() {
     });
   };
 
+  // 입력 중임을 상대에게 알린다 — 타이핑할 때마다 보내지 않고, "입력
+  // 시작"과(1.5초간 추가 입력이 없는) "입력 멈춤" 시점에만 한 번씩 보낸다.
+  const notifyTyping = () => {
+    if (!roomId) return;
+
+    if (!isTypingRef.current) {
+      isTypingRef.current = true;
+      socket.emit("chat-typing", { roomId, isTyping: true });
+    }
+
+    if (typingStopTimer.current) window.clearTimeout(typingStopTimer.current);
+
+    typingStopTimer.current = window.setTimeout(() => {
+      isTypingRef.current = false;
+      socket.emit("chat-typing", { roomId, isTyping: false });
+    }, 1500);
+  };
+
+  const handleChatInputChange = (value: string) => {
+    setChatInput(value);
+
+    if (value.trim()) {
+      notifyTyping();
+    }
+  };
+
   const sendChatMessage = () => {
     const text = chatInput.trim();
 
@@ -1515,6 +2026,13 @@ export default function Home() {
 
     socket.emit("chat-message", { roomId, text });
     setChatInput("");
+
+    if (typingStopTimer.current) window.clearTimeout(typingStopTimer.current);
+
+    if (isTypingRef.current) {
+      isTypingRef.current = false;
+      socket.emit("chat-typing", { roomId, isTyping: false });
+    }
   };
 
   const openChat = () => {
@@ -1537,35 +2055,40 @@ export default function Home() {
             랭킹
           </button>
 
+          <button
+            type="button"
+            onClick={() => setIsSettingsOpen(true)}
+            className="rounded-lg border border-white/10 bg-white/3 px-3 py-1.5 text-[13.5px] font-medium text-zinc-300 transition hover:bg-white/10"
+          >
+            설정
+          </button>
+
           {user ? (
             <div className="flex items-center gap-2">
-              <Link
-                href="/profile"
+              <button
+                type="button"
+                onClick={() => {
+                  setProfileError("");
+                  setProfileSaved(false);
+                  setIsProfileOpen(true);
+                }}
                 className="text-[13.5px] text-zinc-400 underline-offset-2 hover:text-zinc-200 hover:underline"
               >
                 {profileName ?? user.displayName ?? "플레이어"}님
-              </Link>
+              </button>
 
               {user && chips !== null && (
-                <span className="rounded-lg border border-amber-400/20 bg-amber-400/5 px-2.5 py-1 text-[13.5px] font-semibold text-amber-300">
+                <span className="rounded-lg border border-gold/20 bg-gold/5 px-2.5 py-1 font-mono text-[13.5px] font-semibold tabular-nums text-gold-bright">
                   칩 {chips.toLocaleString()}
                 </span>
               )}
-
-              <button
-                type="button"
-                onClick={signOutOfGoogle}
-                className="rounded-lg border border-white/10 bg-white/3 px-3 py-1.5 text-[13.5px] font-medium text-zinc-300 transition hover:bg-white/10"
-              >
-                로그아웃
-              </button>
             </div>
           ) : (
             <GoogleSignInButton onError={setError} />
           )}
         </div>
 
-        <h1 className="mb-1 text-[45px] font-bold tracking-tight text-amber-400">
+        <h1 className="mb-1 text-[44px] font-black tracking-tight text-gold">
           섯다
         </h1>
 
@@ -1583,7 +2106,7 @@ export default function Home() {
             onChange={(event) => setDisplayName(event.target.value)}
             placeholder="입력하지 않으면 기본 이름이 부여됩니다"
             maxLength={13}
-            className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-[17.5px] text-white outline-none transition focus:border-amber-400/50 focus:ring-2 focus:ring-amber-400/20"
+            className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-[17.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
           />
         </div>
 
@@ -1591,7 +2114,7 @@ export default function Home() {
           <div className="flex flex-col gap-6 sm:flex-row sm:items-stretch">
             {/* 7. 방 만들기 */}
             <section className="animate-fade-up flex w-full flex-col rounded-2xl border border-white/10 bg-white/3 p-6 shadow-xl shadow-black/30 sm:flex-1 sm:p-8">
-              <h2 className="mb-1 text-[22.5px] font-semibold">방 만들기</h2>
+              <h2 className="mb-1 text-[22.5px] font-bold">방 만들기</h2>
 
               <p className="mb-3 text-[17.5px] text-zinc-400">
                 새로운 게임 방을 생성합니다.
@@ -1612,7 +2135,7 @@ export default function Home() {
                     onClick={() => setCreateMaxPlayers(count)}
                     className={`flex-1 rounded-lg border py-2 text-[17.5px] font-semibold transition ${
                       createMaxPlayers === count
-                        ? "border-amber-400/60 bg-amber-400/15 text-amber-300"
+                        ? "border-gold/60 bg-gold/15 text-gold-bright"
                         : "border-white/10 bg-white/3 text-zinc-400 hover:border-white/20"
                     }`}
                   >
@@ -1625,7 +2148,7 @@ export default function Home() {
                 type="button"
                 onClick={createRoom}
                 disabled={isSubmittingRoom}
-                className="mt-auto w-full rounded-xl bg-amber-400 px-6 py-3.5 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-amber-300 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+                className="mt-auto w-full rounded-xl bg-gold px-6 py-3.5 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-gold-bright active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
               >
                 {isSubmittingRoom ? "만드는 중..." : "방 만들기"}
               </button>
@@ -1636,7 +2159,7 @@ export default function Home() {
               className="animate-fade-up flex w-full flex-col rounded-2xl border border-white/10 bg-white/3 p-6 shadow-xl shadow-black/30 sm:flex-1 sm:p-8"
               style={{ animationDelay: "80ms" }}
             >
-              <h2 className="mb-1 text-[22.5px] font-semibold">방 참가</h2>
+              <h2 className="mb-1 text-[22.5px] font-bold">방 참가</h2>
 
               <p className="mb-3 text-[17.5px] text-zinc-400">
                 친구에게 받은 방 코드를 입력하세요.
@@ -1654,14 +2177,14 @@ export default function Home() {
                 }}
                 placeholder="방 코드 입력"
                 maxLength={6}
-                className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-center text-[22.5px] font-semibold tracking-[0.3em] text-white outline-none transition focus:border-amber-400/50 focus:ring-2 focus:ring-amber-400/20"
+                className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-center font-mono text-[22.5px] font-semibold tracking-[0.3em] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
               />
 
               <button
                 type="button"
                 onClick={joinRoom}
                 disabled={isSubmittingRoom}
-                className="mt-auto w-full rounded-xl bg-emerald-500 px-6 py-3.5 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-emerald-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+                className="mt-auto w-full rounded-xl bg-felt px-6 py-3.5 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-felt-bright active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
               >
                 {isSubmittingRoom ? "참가하는 중..." : "참가"}
               </button>
@@ -1669,7 +2192,7 @@ export default function Home() {
           </div>
 
           {error && (
-            <p className="animate-fade-up mt-6 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-center text-[17.5px] font-medium text-red-300">
+            <p className="animate-fade-up mt-6 rounded-xl border border-crimson/30 bg-crimson/10 p-4 text-center text-[17.5px] font-medium text-crimson-bright">
               {error}
             </p>
           )}
@@ -1678,6 +2201,31 @@ export default function Home() {
         <RankingModal
           open={isRankingOpen}
           onClose={() => setIsRankingOpen(false)}
+        />
+
+        {user && (
+          <ProfilePanel
+            open={isProfileOpen}
+            onClose={() => setIsProfileOpen(false)}
+            email={user.email}
+            name={profileNameDraft}
+            onNameChange={(value) => {
+              setProfileNameDraft(value);
+              setProfileSaved(false);
+            }}
+            onSave={saveProfileName}
+            saving={isSavingProfileName}
+            saved={profileSaved}
+            error={profileError}
+            onSignOut={signOutOfGoogle}
+          />
+        )}
+
+        <SettingsPanel
+          open={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          cleanBot={cleanBot}
+          onToggleCleanBot={toggleCleanBot}
         />
       </main>
     );
@@ -1688,30 +2236,40 @@ export default function Home() {
    * — 코드만 덩그러니 보여주지 않고, 실제 게임 화면과 같은 테이블 구도로 대기한다.
    */
   if (!gameState) {
+    const hostId = roomPlayers[0]?.id ?? null;
+
     const seats = Array.from({ length: maxPlayers }, (_, index) => {
       const seatId = `player-${index + 1}`;
       const filled = index + 1 <= playerCount;
+      const roomPlayer = roomPlayers.find((player) => player.id === seatId);
 
       return {
         id: seatId,
-        name:
-          roomPlayers.find((player) => player.id === seatId)?.name ??
-          `플레이어 ${index + 1}`,
+        name: roomPlayer?.name ?? `플레이어 ${index + 1}`,
         isMe: seatId === playerId,
         filled,
+        isHost: seatId === hostId,
+        isReady: roomPlayer?.isReady ?? false,
       };
     });
 
     const roomFull = playerCount === maxPlayers;
-    const canStart = playerCount >= MIN_ROOM_PLAYERS;
+    const isHost = hostId === playerId;
+    const myReady =
+      roomPlayers.find((player) => player.id === playerId)?.isReady ?? false;
+    const allOthersReady = roomPlayers
+      .filter((player) => player.id !== hostId)
+      .every((player) => player.isReady);
+    const canStart =
+      isHost && playerCount >= MIN_ROOM_PLAYERS && allOthersReady;
 
     return (
-      <main className="flex h-dvh flex-col overflow-hidden px-3 py-2 sm:px-6 sm:py-4">
+      <main className="flex h-dvh flex-col overflow-hidden px-3 py-2 sm:flex-row sm:gap-4 sm:px-6 sm:py-4">
         <LeaveNoticeToast message={leaveNotice} />
 
-        <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-hidden">
+        <div className="mx-auto flex w-full min-w-0 max-w-3xl flex-1 flex-col overflow-hidden">
           <header className="mb-2 flex shrink-0 items-center justify-between gap-3 sm:mb-4">
-            <h1 className="text-[25px] font-bold tracking-tight text-amber-400 sm:text-3xl">
+            <h1 className="text-[22px] font-black tracking-tight text-gold sm:text-[26px]">
               섯다
             </h1>
 
@@ -1721,18 +2279,18 @@ export default function Home() {
               <button
                 type="button"
                 onClick={openChat}
-                className="relative rounded-lg border border-white/10 bg-white/3 px-2.5 py-1.5 text-[15px] font-semibold text-zinc-300 transition hover:scale-[1.03] hover:border-amber-400/40 hover:text-amber-300 active:scale-95 sm:px-3"
+                className="relative rounded-lg border border-white/10 bg-white/3 px-2.5 py-1.5 text-[15px] font-semibold text-zinc-300 transition hover:scale-[1.03] hover:border-gold/40 hover:text-gold-bright active:scale-95 sm:hidden"
               >
                 채팅
                 {hasUnreadChat && (
-                  <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-red-500" />
+                  <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-crimson" />
                 )}
               </button>
 
               <button
                 type="button"
                 onClick={leaveRoom}
-                className="rounded-lg border border-white/10 bg-white/3 px-2.5 py-1.5 text-[15px] font-semibold text-zinc-400 transition hover:scale-[1.03] hover:border-red-500/40 hover:text-red-300 active:scale-95 sm:px-3"
+                className="rounded-lg border border-white/10 bg-white/3 px-2.5 py-1.5 text-[15px] font-semibold text-zinc-400 transition hover:scale-[1.03] hover:border-crimson/40 hover:text-crimson-bright active:scale-95 sm:px-3"
               >
                 나가기
               </button>
@@ -1751,46 +2309,49 @@ export default function Home() {
                   name={seat.name}
                   isMe={seat.isMe}
                   filled={seat.filled}
+                  isHost={seat.isHost}
+                  isReady={seat.isReady}
                 />
               ))}
             </div>
 
             <p className="animate-fade-up text-center text-[15px] font-medium text-zinc-500 sm:text-[17.5px]">
-              {roomFull ? (
-                <>
-                  정원이 모두 찼습니다.
-                  {autoStartCountdown !== null && (
-                    <>
-                      {" "}
-                      <span
-                        key={autoStartCountdown}
-                        className="animate-pop-in font-bold text-amber-400"
-                      >
-                        {autoStartCountdown}초
-                      </span>{" "}
-                      후 자동 시작
-                    </>
-                  )}
-                </>
-              ) : (
-                "친구에게 방 코드를 알려주고 초대하세요."
-              )}
+              {roomFull
+                ? "정원이 모두 찼습니다."
+                : "친구에게 방 코드를 알려주고 초대하세요."}
             </p>
           </div>
 
           <div className="shrink-0 pt-2">
-            {/* 9. 게임 시작 */}
-            <button
-              type="button"
-              onClick={startGame}
-              disabled={!canStart}
-              className="w-full rounded-xl bg-amber-400 px-6 py-3 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-amber-300 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
-            >
-              게임 시작{!canStart && ` (최소 ${MIN_ROOM_PLAYERS}명 필요)`}
-            </button>
+            {/* 9. 게임 시작 / 준비 */}
+            {isHost ? (
+              <button
+                type="button"
+                onClick={startGame}
+                disabled={!canStart}
+                className="w-full rounded-xl bg-gold px-6 py-3 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-gold-bright active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+              >
+                게임 시작
+                {playerCount < MIN_ROOM_PLAYERS
+                  ? ` (최소 ${MIN_ROOM_PLAYERS}명 필요)`
+                  : !allOthersReady && " (전원 준비 대기 중)"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={toggleReady}
+                className={`w-full rounded-xl px-6 py-3 text-[17.5px] font-semibold transition hover:scale-[1.02] active:scale-[0.98] ${
+                  myReady
+                    ? "bg-felt text-zinc-900 hover:bg-felt-bright"
+                    : "bg-white/10 text-white hover:bg-white/15"
+                }`}
+              >
+                {myReady ? "준비 완료 (취소하려면 클릭)" : "준비"}
+              </button>
+            )}
 
             {error && (
-              <p className="animate-fade-up mx-auto mt-2 max-w-md rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-center text-[17.5px] font-medium text-red-300">
+              <p className="animate-fade-up mx-auto mt-2 max-w-md rounded-xl border border-crimson/30 bg-crimson/10 p-3 text-center text-[17.5px] font-medium text-crimson-bright">
                 {error}
               </p>
             )}
@@ -1803,8 +2364,11 @@ export default function Home() {
           messages={chatMessages}
           myPlayerId={playerId}
           input={chatInput}
-          onInputChange={setChatInput}
+          onInputChange={handleChatInputChange}
           onSend={sendChatMessage}
+          typingNames={Object.values(typingUsers)}
+          cleanBot={cleanBot}
+          onToggleCleanBot={toggleCleanBot}
         />
       </main>
     );
@@ -1821,12 +2385,12 @@ export default function Home() {
    * 게임 화면 — 스크롤 없이 한 화면(h-dvh)에 들어오도록 세로 구성
    */
   return (
-    <main className="flex h-dvh flex-col overflow-hidden px-3 py-2 sm:px-6 sm:py-4">
+    <main className="flex h-dvh flex-col overflow-hidden px-3 py-2 sm:flex-row sm:gap-4 sm:px-6 sm:py-4">
       <LeaveNoticeToast message={leaveNotice} />
 
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-hidden">
+      <div className="mx-auto flex w-full min-w-0 max-w-3xl flex-1 flex-col overflow-hidden">
         <header className="mb-2 flex shrink-0 items-center justify-between gap-3 sm:mb-4">
-          <h1 className="text-[25px] font-bold tracking-tight text-amber-400 sm:text-3xl">
+          <h1 className="text-[25px] font-bold tracking-tight text-gold sm:text-3xl">
             섯다
           </h1>
 
@@ -1836,7 +2400,7 @@ export default function Home() {
             <button
               type="button"
               onClick={() => setIsGuideOpen(true)}
-              className="rounded-lg border border-white/10 bg-white/3 px-2.5 py-1.5 text-[15px] font-semibold text-zinc-300 transition hover:scale-[1.03] hover:border-amber-400/40 hover:text-amber-300 active:scale-95 sm:px-3"
+              className="rounded-lg border border-white/10 bg-white/3 px-2.5 py-1.5 text-[15px] font-semibold text-zinc-300 transition hover:scale-[1.03] hover:border-gold/40 hover:text-gold-bright active:scale-95 sm:px-3"
             >
               족보 가이드
             </button>
@@ -1844,18 +2408,18 @@ export default function Home() {
             <button
               type="button"
               onClick={openChat}
-              className="relative rounded-lg border border-white/10 bg-white/3 px-2.5 py-1.5 text-[15px] font-semibold text-zinc-300 transition hover:scale-[1.03] hover:border-amber-400/40 hover:text-amber-300 active:scale-95 sm:px-3"
+              className="relative rounded-lg border border-white/10 bg-white/3 px-2.5 py-1.5 text-[15px] font-semibold text-zinc-300 transition hover:scale-[1.03] hover:border-gold/40 hover:text-gold-bright active:scale-95 sm:hidden"
             >
               채팅
               {hasUnreadChat && (
-                <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-red-500" />
+                <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-crimson" />
               )}
             </button>
 
             <button
               type="button"
               onClick={leaveRoom}
-              className="rounded-lg border border-white/10 bg-white/3 px-2.5 py-1.5 text-[15px] font-semibold text-zinc-400 transition hover:scale-[1.03] hover:border-red-500/40 hover:text-red-300 active:scale-95 sm:px-3"
+              className="rounded-lg border border-white/10 bg-white/3 px-2.5 py-1.5 text-[15px] font-semibold text-zinc-400 transition hover:scale-[1.03] hover:border-crimson/40 hover:text-crimson-bright active:scale-95 sm:px-3"
             >
               나가기
             </button>
@@ -1875,8 +2439,8 @@ export default function Home() {
 
         <div className="shrink-0 pt-2">
           {gameState.phase === "finished" && bankruptcyNotice && (
-            <div className="animate-pop-in flex flex-col items-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 p-3 text-center">
-              <p className="text-[17.5px] font-semibold text-amber-300">
+            <div className="animate-pop-in flex flex-col items-center gap-2 rounded-xl border border-gold/30 bg-gold/10 p-3 text-center">
+              <p className="text-[17.5px] font-semibold text-gold-bright">
                 {bankruptcyNotice.playerNames.join(", ")}님이 파산했습니다.
               </p>
 
@@ -1898,7 +2462,7 @@ export default function Home() {
                     <button
                       type="button"
                       onClick={() => decideBankruptcy("leave")}
-                      className="rounded-xl border border-red-500/40 bg-red-500/10 px-5 py-2 text-[15px] font-semibold text-red-300 transition hover:scale-[1.03] hover:bg-red-500/20 active:scale-95"
+                      className="rounded-xl border border-crimson/40 bg-crimson/10 px-5 py-2 text-[15px] font-semibold text-crimson-bright transition hover:scale-[1.03] hover:bg-crimson/20 active:scale-95"
                     >
                       나가기
                     </button>
@@ -1915,12 +2479,12 @@ export default function Home() {
           {gameState.phase === "finished" &&
             gameState.pots &&
             gameState.pots.length > 1 && (
-              <div className="animate-fade-up mx-auto flex max-w-md flex-col gap-1 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-center text-[14px] text-zinc-300">
-                <p className="font-semibold text-amber-300">
+              <div className="animate-fade-up mx-auto flex max-w-md flex-col gap-1 rounded-xl border border-gold/20 bg-gold/5 p-3 text-center text-[14px] text-zinc-300">
+                <p className="font-semibold text-gold-bright">
                   보유 칩 차이로 팟이 나뉘었습니다
                 </p>
                 {gameState.pots.map((pot, index) => (
-                  <p key={index}>
+                  <p key={index} className="font-mono tabular-nums">
                     {index === 0 ? "메인 팟" : `사이드 팟 ${index}`}:{" "}
                     {pot.amount.toLocaleString()}
                   </p>
@@ -1934,7 +2498,7 @@ export default function Home() {
                 type="button"
                 onClick={restartGame}
                 disabled={hasVotedRestart}
-                className="animate-pop-in rounded-xl bg-amber-400 px-6 py-2.5 text-[17.5px] font-semibold text-zinc-900 shadow-lg shadow-amber-400/20 transition hover:scale-[1.03] hover:bg-amber-300 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+                className="animate-pop-in rounded-xl bg-gold px-6 py-2.5 text-[17.5px] font-semibold text-zinc-900 shadow-lg shadow-gold/20 transition hover:scale-[1.03] hover:bg-gold-bright active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
               >
                 {hasVotedRestart ? "동의함 · 대기 중" : "다시 하기"}
               </button>
@@ -1946,7 +2510,7 @@ export default function Home() {
           )}
 
           {gameState.phase === "showdown" && gameState.redealReason && (
-            <p className="animate-fade-up mx-auto max-w-md rounded-xl border border-amber-400/30 bg-amber-400/10 p-3 text-center text-[17.5px] font-semibold text-amber-300">
+            <p className="animate-fade-up mx-auto max-w-md rounded-xl border border-gold/30 bg-gold/10 p-3 text-center text-[17.5px] font-semibold text-gold-bright">
               {gameState.redealReason}! 판돈은 그대로 두고 곧바로
               재경기합니다...
             </p>
@@ -1964,7 +2528,7 @@ export default function Home() {
                       gameState.players[gameState.currentPlayerIndex]?.id !==
                       playerId
                     }
-                    className="rounded-xl bg-blue-500/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-blue-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                    className="rounded-xl bg-felt/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
                   >
                     베트
                   </button>
@@ -1976,7 +2540,7 @@ export default function Home() {
                       gameState.players[gameState.currentPlayerIndex]?.id !==
                       playerId
                     }
-                    className="rounded-xl bg-blue-500/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-blue-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                    className="rounded-xl bg-felt/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
                   >
                     하프
                   </button>
@@ -2002,7 +2566,7 @@ export default function Home() {
                       gameState.players[gameState.currentPlayerIndex]?.id !==
                       playerId
                     }
-                    className="rounded-xl bg-blue-500/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-blue-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                    className="rounded-xl bg-felt/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
                   >
                     콜
                   </button>
@@ -2014,7 +2578,7 @@ export default function Home() {
                       gameState.players[gameState.currentPlayerIndex]?.id !==
                       playerId
                     }
-                    className="rounded-xl bg-blue-500/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-blue-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                    className="rounded-xl bg-felt/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
                   >
                     하프
                   </button>
@@ -2026,7 +2590,7 @@ export default function Home() {
                       gameState.players[gameState.currentPlayerIndex]?.id !==
                       playerId
                     }
-                    className="rounded-xl bg-amber-400 px-5 py-2.5 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.03] hover:bg-amber-300 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                    className="rounded-xl bg-gold px-5 py-2.5 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.03] hover:bg-gold-bright active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
                   >
                     레이즈
                   </button>
@@ -2040,7 +2604,7 @@ export default function Home() {
                   gameState.players[gameState.currentPlayerIndex]?.id !==
                   playerId
                 }
-                className="col-span-3 rounded-xl bg-purple-500/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-purple-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:col-span-1 sm:px-7 sm:py-3"
+                className="col-span-3 rounded-xl bg-ember/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-ember active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:col-span-1 sm:px-7 sm:py-3"
               >
                 올인
               </button>
@@ -2052,7 +2616,7 @@ export default function Home() {
                   gameState.players[gameState.currentPlayerIndex]?.id !==
                   playerId
                 }
-                className="col-span-3 rounded-xl border border-red-500/40 bg-red-500/10 px-5 py-2.5 text-[17.5px] font-semibold text-red-300 transition hover:scale-[1.02] hover:bg-red-500/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:col-span-1 sm:px-7 sm:py-3"
+                className="col-span-3 rounded-xl border border-crimson/40 bg-crimson/10 px-5 py-2.5 text-[17.5px] font-semibold text-crimson-bright transition hover:scale-[1.02] hover:bg-crimson/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:col-span-1 sm:px-7 sm:py-3"
               >
                 다이
               </button>
@@ -2060,7 +2624,7 @@ export default function Home() {
           )}
 
           {error && (
-            <p className="animate-fade-up mx-auto mt-2 max-w-md rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-center text-[17.5px] font-medium text-red-300">
+            <p className="animate-fade-up mx-auto mt-2 max-w-md rounded-xl border border-crimson/30 bg-crimson/10 p-3 text-center text-[17.5px] font-medium text-crimson-bright">
               {error}
             </p>
           )}
@@ -2080,8 +2644,11 @@ export default function Home() {
         messages={chatMessages}
         myPlayerId={playerId}
         input={chatInput}
-        onInputChange={setChatInput}
+        onInputChange={handleChatInputChange}
         onSend={sendChatMessage}
+        typingNames={Object.values(typingUsers)}
+        cleanBot={cleanBot}
+        onToggleCleanBot={toggleCleanBot}
       />
     </main>
   );
