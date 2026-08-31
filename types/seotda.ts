@@ -81,6 +81,7 @@ export interface BankruptcyNotice {
 export interface RoomPlayerInfo {
   id: string;
   name: string;
+  isReady: boolean;
 }
 
 export interface ChatMessage {

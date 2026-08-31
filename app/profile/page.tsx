@@ -122,7 +122,7 @@ export default function ProfilePage() {
           ← 돌아가기
         </Link>
 
-        <h1 className="mb-6 text-[28px] font-bold tracking-tight text-amber-400">
+        <h1 className="mb-6 text-[28px] font-bold tracking-tight text-gold">
           내 프로필
         </h1>
 
@@ -153,7 +153,7 @@ export default function ProfilePage() {
               placeholder="닉네임을 입력하세요"
               maxLength={MAX_NAME_LENGTH}
               disabled={loading}
-              className="mb-4 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-[17.5px] text-white outline-none transition focus:border-amber-400/50 focus:ring-2 focus:ring-amber-400/20 disabled:opacity-50"
+              className="mb-4 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-[17.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20 disabled:opacity-50"
             />
 
             <p className="mb-4 text-[13px] text-zinc-500">
@@ -165,13 +165,13 @@ export default function ProfilePage() {
               type="button"
               onClick={saveName}
               disabled={saving || loading}
-              className="w-full rounded-xl bg-amber-400 px-6 py-3 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-amber-300 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+              className="w-full rounded-xl bg-gold px-6 py-3 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-gold-bright active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
             >
               {saving ? "저장 중..." : "저장"}
             </button>
 
             {saved && (
-              <p className="mt-3 text-center text-[13.5px] text-emerald-400">
+              <p className="mt-3 text-center text-[13.5px] text-felt-bright">
                 저장됐어요.
               </p>
             )}
@@ -179,7 +179,7 @@ export default function ProfilePage() {
         )}
 
         {error && (
-          <p className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-center text-[15px] font-medium text-red-300">
+          <p className="mt-4 rounded-xl border border-crimson/30 bg-crimson/10 p-3 text-center text-[15px] font-medium text-crimson-bright">
             {error}
           </p>
         )}
