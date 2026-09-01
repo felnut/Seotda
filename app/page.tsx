@@ -541,59 +541,6 @@ function ChatPanel({
   );
 }
 
-function RoomCodeBadge({ roomId }: { roomId: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = async () => {
-    try {
-      if (!navigator.clipboard?.writeText) {
-        throw new Error("clipboard API 사용 불가");
-      }
-
-      await navigator.clipboard.writeText(roomId);
-    } catch {
-      // Clipboard API를 쓸 수 없는 환경(HTTP 등)을 위한 폴백
-      const textarea = document.createElement("textarea");
-
-      textarea.value = roomId;
-      textarea.style.position = "fixed";
-      textarea.style.opacity = "0";
-
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-    }
-
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1500);
-  };
-
-  return (
-    <button
-      type="button"
-      onClick={handleCopy}
-      aria-label="방 코드 복사"
-      className={`rounded-lg border px-2.5 py-1 text-right transition hover:scale-[1.03] active:scale-95 sm:px-3 ${
-        copied
-          ? "border-felt-bright/40 bg-felt-bright/10"
-          : "border-white/10 bg-white/3 hover:border-gold/40"
-      }`}
-    >
-      <span className="block text-[11px] text-zinc-500 sm:text-[13px]">
-        방 코드{" "}
-      </span>
-      <span
-        className={`font-mono text-[15px] font-semibold tracking-widest sm:text-[17.5px] ${
-          copied ? "text-felt-bright" : ""
-        }`}
-      >
-        {copied ? "복사됨" : roomId}
-      </span>
-    </button>
-  );
-}
-
 // 카드 3장 중 족보로 쓸 수 있는 2장의 조합(3가지)과 각 조합의 족보를 계산한다.
 const CARD_PAIRS: [number, number][] = [
   [0, 1],
@@ -1996,7 +1943,7 @@ export default function Home() {
    */
   if (!roomId) {
     return (
-      <main className="relative flex min-h-screen flex-col items-center justify-center px-4 py-12">
+      <main className="relative flex min-h-screen flex-col items-center justify-center px-4 py-4">
         <div className="absolute top-4 right-4 flex items-center gap-2">
           <button
             type="button"
@@ -2039,15 +1986,15 @@ export default function Home() {
           )}
         </div>
 
-        <h1 className="mb-1 text-[44px] font-black tracking-tight text-gold">
+        <h1 className="mb-1 text-[36px] font-black tracking-tight text-gold">
           섯다
         </h1>
 
-        <p className="mb-10 text-[17.5px] text-zinc-500">
+        <p className="mb-5 text-[17.5px] text-zinc-500">
           전통 카드 게임을 온라인으로
         </p>
 
-        <div className="mb-6 w-full max-w-sm">
+        <div className="mb-4 w-full max-w-sm">
           <label className="mb-1.5 block text-[13px] font-medium text-zinc-500">
             닉네임 (선택)
           </label>
@@ -2060,41 +2007,41 @@ export default function Home() {
             }}
             placeholder="입력하지 않으면 기본 이름이 부여됩니다"
             maxLength={13}
-            className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-[17.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
+            className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2 text-[17.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
           />
         </div>
 
-        <div className="w-full max-w-2xl">
+        <div className="w-full max-w-xl">
           <div className="flex flex-col">
             {/* 7. 방 만들기 */}
-            <section className="animate-fade-up flex w-full flex-col rounded-2xl border border-white/10 bg-white/3 p-6 shadow-xl shadow-black/30 sm:p-8">
-              <h2 className="mb-1 text-[22.5px] font-bold">방 만들기</h2>
+            <section className="animate-fade-up flex w-full flex-col rounded-2xl border border-white/10 bg-white/3 p-5 shadow-xl shadow-black/30 sm:p-6">
+              <h2 className="mb-1 text-[20px] font-bold">방 만들기</h2>
 
-              <p className="mb-3 text-[17.5px] text-zinc-400">
+              <p className="mb-2 text-[15.5px] text-zinc-400">
                 새로운 게임 방을 생성합니다.
               </p>
 
               <input
                 value={createRoomName}
                 onChange={(event) => setCreateRoomName(event.target.value)}
-                placeholder="방 이름 (선택, 목록에 표시됩니다)"
+                placeholder="방 이름"
                 maxLength={20}
-                className="mb-3 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-[15.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
+                className="mb-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2 text-[15.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
               />
 
               <input
                 value={createPassword}
                 onChange={(event) => setCreatePassword(event.target.value)}
-                placeholder="비밀번호 (선택, 걸어두면 잠금방이 됩니다)"
+                placeholder="비밀번호"
                 maxLength={20}
-                className="mb-4 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-[15.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
+                className="mb-3 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2 text-[15.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
               />
 
-              <p className="mb-2 text-[15px] font-medium text-zinc-500">
+              <p className="mb-1.5 text-[14px] font-medium text-zinc-500">
                 인원 수
               </p>
 
-              <div className="mb-5 flex gap-2">
+              <div className="mb-4 flex gap-2">
                 {Array.from(
                   { length: MAX_ROOM_PLAYERS - MIN_ROOM_PLAYERS + 1 },
                   (_, index) => MIN_ROOM_PLAYERS + index,
@@ -2103,7 +2050,7 @@ export default function Home() {
                     key={count}
                     type="button"
                     onClick={() => setCreateMaxPlayers(count)}
-                    className={`flex-1 rounded-lg border py-2 text-[17.5px] font-semibold transition ${
+                    className={`flex-1 rounded-lg border py-1.5 text-[16px] font-semibold transition ${
                       createMaxPlayers === count
                         ? "border-gold/60 bg-gold/15 text-gold-bright"
                         : "border-white/10 bg-white/3 text-zinc-400 hover:border-white/20"
@@ -2118,7 +2065,7 @@ export default function Home() {
                 type="button"
                 onClick={createRoom}
                 disabled={isSubmittingRoom}
-                className="mt-auto w-full rounded-xl bg-gold px-6 py-3.5 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-gold-bright active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+                className="mt-auto w-full rounded-xl bg-gold px-6 py-3 text-[16px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-gold-bright active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
               >
                 {isSubmittingRoom ? "만드는 중..." : "방 만들기"}
               </button>
@@ -2129,7 +2076,7 @@ export default function Home() {
               type="button"
               onClick={() => router.push("/rooms")}
               style={{ animationDelay: "80ms" }}
-              className="animate-fade-up mt-4 w-full rounded-xl border border-white/15 bg-white/3 px-6 py-3.5 text-[17.5px] font-semibold text-zinc-200 transition hover:scale-[1.02] hover:border-felt/40 hover:bg-felt/10 hover:text-felt-bright active:scale-[0.98]"
+              className="animate-fade-up mt-2 w-full rounded-xl border border-white/15 bg-white/3 px-6 py-3 text-[16px] font-semibold text-zinc-200 transition hover:scale-[1.02] hover:border-felt/40 hover:bg-felt/10 hover:text-felt-bright active:scale-[0.98]"
             >
               방 찾기
             </button>
@@ -2225,8 +2172,6 @@ export default function Home() {
             </div>
 
             <div className="flex items-center gap-2">
-              <RoomCodeBadge roomId={roomId} />
-
               <button
                 type="button"
                 onClick={openChat}
@@ -2269,7 +2214,9 @@ export default function Home() {
             <p className="animate-fade-up text-center text-[15px] font-medium text-zinc-500 sm:text-[17.5px]">
               {roomFull
                 ? "정원이 모두 찼습니다."
-                : "친구에게 방 코드를 알려주고 초대하세요."}
+                : roomHasPassword
+                  ? "친구에게 비밀번호를 알려주고 방 찾기에서 참가하도록 안내하세요."
+                  : "친구에게 방 찾기에서 이 방을 찾아 참가하도록 안내하세요."}
             </p>
           </div>
 
@@ -2346,8 +2293,6 @@ export default function Home() {
           </h1>
 
           <div className="flex items-center gap-2">
-            <RoomCodeBadge roomId={roomId} />
-
             <button
               type="button"
               onClick={() => setIsGuideOpen(true)}
