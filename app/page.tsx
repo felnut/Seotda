@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { io, Socket } from "socket.io-client";
+import { useRouter } from "next/navigation";
 import {
   BankruptcyNotice,
   ChatMessage,
@@ -20,44 +20,16 @@ import { useAuth } from "@/lib/useAuth";
 import { PROFILES_COLLECTION, UserProfile } from "@/lib/profile";
 import { RANKINGS_COLLECTION, RankingEntry } from "@/lib/ranking";
 import { STARTING_CHIPS } from "@/lib/seotda/game";
+import { socket } from "@/lib/socket";
+import { clearSession, loadSession, saveSession } from "@/lib/session";
+import { loadNickname, saveNickname } from "@/lib/nickname";
 import { RankingModal } from "./components/RankingModal";
 import { GoogleSignInButton } from "./components/GoogleSignInButton";
 
-// 개발 모드의 Fast Refresh로 이 모듈이 다시 실행돼도
-// 소켓 연결이 중복 생성되지 않도록 globalThis에 캐시한다.
-const socketCache = globalThis as unknown as { __seotdaSocket?: Socket };
-
-const SOCKET_URL =
-  process.env.NEXT_PUBLIC_SOCKET_URL ?? "http://localhost:3001";
-
-const socket: Socket =
-  socketCache.__seotdaSocket ??
-  (socketCache.__seotdaSocket = io(SOCKET_URL, {
-    // 기본값(polling으로 시작 후 websocket으로 업그레이드)은 연결마다
-    // 왕복이 한 번 더 들어가 방 만들기 체감 속도를 늦춘다.
-    // websocket을 먼저 시도하고, 막힌 네트워크에서만 polling으로 대체한다.
-    transports: ["websocket", "polling"],
-  }));
-
-const SESSION_STORAGE_KEY = "seotda-session";
 const CLEAN_BOT_STORAGE_KEY = "seotda-clean-bot";
 
 const MIN_ROOM_PLAYERS = 2;
 const MAX_ROOM_PLAYERS = 6;
-
-interface StoredSession {
-  roomId: string;
-  playerId: string;
-  rejoinToken: string;
-}
-
-function saveSession(session: StoredSession) {
-  sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
-}
-
-function clearSession() {
-  sessionStorage.removeItem(SESSION_STORAGE_KEY);
-}
 
 // compact: 상대방 카드처럼 화면 공간을 아끼는 작은 크기 / cozy: 내 카드처럼 강조되는 큰 크기
 type CardSize = "compact" | "cozy";
@@ -304,7 +276,9 @@ function HandGuidePanel({
 // 여닫는 오버레이로 동작한다.
 function useIsDesktop(): boolean {
   const [isDesktop, setIsDesktop] = useState(
-    () => typeof window !== "undefined" && window.matchMedia("(min-width: 640px)").matches,
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(min-width: 640px)").matches,
   );
 
   useEffect(() => {
@@ -342,19 +316,37 @@ function maskProfanity(text: string, enabled: boolean): string {
   let masked = text;
 
   for (const word of PROFANITY_WORDS) {
-    masked = masked.replaceAll(
-      new RegExp(word, "gi"),
-      "❋".repeat(word.length),
-    );
+    masked = masked.replaceAll(new RegExp(word, "gi"), "❋".repeat(word.length));
   }
 
   return masked;
 }
 
 const EMOJI_OPTIONS = [
-  "😀", "😂", "😅", "😉", "😍", "🤔", "😮", "😢",
-  "😡", "🥳", "😴", "🤐", "👍", "👎", "🙏", "👏",
-  "🔥", "💰", "💸", "🎉", "🎲", "🍀", "🃏", "😱",
+  "😀",
+  "😂",
+  "😅",
+  "😉",
+  "😍",
+  "🤔",
+  "😮",
+  "😢",
+  "😡",
+  "🥳",
+  "😴",
+  "🤐",
+  "👍",
+  "👎",
+  "🙏",
+  "👏",
+  "🔥",
+  "💰",
+  "💸",
+  "🎉",
+  "🎲",
+  "🍀",
+  "🃏",
+  "😱",
 ];
 
 function ChatPanel({
@@ -402,7 +394,7 @@ function ChatPanel({
       // 입력창/버튼이 키보드 탭 이동으로 포커스되지 않도록 inert 처리한다.
       // 데스크톱에서는 항상 보이므로 inert를 걸지 않는다.
       inert={!isVisible}
-      className={`z-40 flex w-56 shrink-0 flex-col overflow-hidden border-white/10 bg-zinc-950/95 transition-transform duration-300 sm:relative sm:w-72 sm:translate-x-0 sm:border-l sm:bg-zinc-950/60 sm:shadow-none ${
+      className={`z-40 flex w-56 shrink-0 flex-col overflow-hidden border-white/10 bg-zinc-950/95 transition-transform duration-300 sm:relative sm:w-72 sm:translate-x-0 sm:border-l sm:bg-zinc-950/60 sm:shadow-none md:w-80 lg:w-96 ${
         open
           ? "fixed inset-y-0 right-0 translate-x-0 border-l shadow-2xl"
           : "fixed inset-y-0 right-0 translate-x-full border-l shadow-2xl"
@@ -455,15 +447,13 @@ function ChatPanel({
               key={message.id}
               className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
             >
-              <span className="mb-0.5 text-[11px] font-medium text-zinc-500">
+              <span className="mb-0.5 max-w-[85%] truncate text-[11px] font-medium text-zinc-500">
                 {isMine ? "나" : message.name}
               </span>
 
               <p
                 className={`max-w-[85%] rounded-2xl px-3 py-1.5 text-[13.5px] wrap-break-word sm:px-3.5 sm:py-2 sm:text-[15px] ${
-                  isMine
-                    ? "bg-gold text-zinc-900"
-                    : "bg-white/8 text-zinc-100"
+                  isMine ? "bg-gold text-zinc-900" : "bg-white/8 text-zinc-100"
                 }`}
               >
                 {maskProfanity(message.text, cleanBot)}
@@ -728,18 +718,14 @@ function PlayerPanel({
     <div
       className={`rounded-2xl border px-4 py-2.5 backdrop-blur-sm transition sm:px-5 ${
         compact ? "sm:py-3" : "sm:py-3.5"
-      } ${
-        isMe
-          ? "border-gold/25 bg-gold/4"
-          : "border-white/10 bg-white/3"
-      } ${
+      } ${isMe ? "border-gold/25 bg-gold/4" : "border-white/10 bg-white/3"} ${
         isCurrent
           ? "animate-turn-glow ring-2 ring-gold/70 ring-offset-2 ring-offset-zinc-950"
           : ""
       }`}
     >
       <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <div
             className={`flex shrink-0 items-center justify-center rounded-full bg-linear-to-br from-gold/80 to-gold-deep/80 font-bold text-zinc-900 ${
               compact
@@ -751,27 +737,29 @@ function PlayerPanel({
           </div>
 
           <h2
-            className={
+            className={`flex min-w-0 items-center ${
               compact
                 ? "text-[17.5px] font-semibold"
                 : "text-xl font-semibold sm:text-[22.5px]"
-            }
+            }`}
           >
-            {player.name}
+            <span className="max-w-24 truncate sm:max-w-36" title={player.name}>
+              {player.name}
+            </span>
 
             {isMe && (
-              <span className="ml-2 text-[15px] font-medium text-felt-bright">
+              <span className="ml-2 shrink-0 text-[15px] font-medium text-felt-bright">
                 나
               </span>
             )}
           </h2>
 
-          <span className="font-mono text-[15px] tabular-nums text-zinc-500">
+          <span className="shrink-0 font-mono text-[15px] tabular-nums text-zinc-500">
             칩 {player.chips.toLocaleString()}
           </span>
 
           {player.bet > 0 && (
-            <span className="font-mono text-[15px] tabular-nums text-zinc-500">
+            <span className="shrink-0 font-mono text-[15px] tabular-nums text-zinc-500">
               베팅{" "}
               <span className="text-zinc-300">
                 {player.bet.toLocaleString()}
@@ -781,13 +769,11 @@ function PlayerPanel({
         </div>
 
         <div className="flex items-center gap-2">
-          {player.lastAction &&
-            player.status !== "folded" &&
-            !player.lastAction.startsWith("베팅") && (
-              <span className="animate-pop-in rounded-full bg-felt/15 px-2.5 py-0.5 text-[14px] font-bold text-felt-bright">
-                {player.lastAction}
-              </span>
-            )}
+          {player.lastAction && player.status !== "folded" && (
+            <span className="animate-pop-in rounded-full bg-felt/15 px-2.5 py-0.5 text-[14px] font-bold text-felt-bright">
+              {player.lastAction}
+            </span>
+          )}
 
           {isCurrent && (
             <span className="rounded-full bg-gold px-2.5 py-0.5 text-[14px] font-bold text-zinc-900">
@@ -991,20 +977,20 @@ function SeatCard({
   return (
     <div
       className={`flex flex-1 flex-col items-center justify-center gap-2 rounded-2xl border px-6 py-6 text-center sm:py-8 ${
-        isMe
-          ? "border-gold/25 bg-gold/4"
-          : "border-white/10 bg-white/3"
+        isMe ? "border-gold/25 bg-gold/4" : "border-white/10 bg-white/3"
       }`}
     >
       <div className="flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-gold/80 to-gold-deep/80 text-[17.5px] font-bold text-zinc-900 sm:h-10 sm:w-10">
         {name.charAt(0)}
       </div>
 
-      <p className="text-[17.5px] font-semibold">
-        {name}
+      <p className="flex max-w-full items-center text-[17.5px] font-semibold">
+        <span className="max-w-28 truncate sm:max-w-40" title={name}>
+          {name}
+        </span>
 
         {isMe && (
-          <span className="ml-1.5 text-[15px] font-medium text-felt-bright">
+          <span className="ml-1.5 shrink-0 text-[15px] font-medium text-felt-bright">
             나
           </span>
         )}
@@ -1061,7 +1047,10 @@ function GameBoard({
       {opponents.length > 0 && (
         <div className="flex min-h-0 flex-1 flex-wrap content-start justify-center gap-1.5 overflow-y-auto sm:gap-2">
           {opponents.map((opponent) => (
-            <div key={opponent.id} className="w-full sm:max-w-[calc(50%-0.25rem)]">
+            <div
+              key={opponent.id}
+              className="w-full sm:max-w-[calc(50%-0.25rem)]"
+            >
               <PlayerPanel
                 player={opponent}
                 isMe={false}
@@ -1269,9 +1258,7 @@ function SettingsPanel({
         <div className="flex-1 overflow-y-auto px-5 py-4">
           <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/3 px-4 py-2.5">
             <div>
-              <p className="text-[14px] font-semibold text-zinc-200">
-                클린봇
-              </p>
+              <p className="text-[14px] font-semibold text-zinc-200">클린봇</p>
               <p className="text-[12px] text-zinc-500">
                 채팅에서 비속어를 가려서 보여줍니다
               </p>
@@ -1288,7 +1275,9 @@ function SettingsPanel({
             >
               <span
                 className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                  cleanBot ? "transform-[translateX(20px)]" : "transform-[translateX(0)]"
+                  cleanBot
+                    ? "transform-[translateX(20px)]"
+                    : "transform-[translateX(0)]"
                 }`}
               />
             </button>
@@ -1300,8 +1289,11 @@ function SettingsPanel({
 }
 
 export default function Home() {
+  const router = useRouter();
+
   const [roomId, setRoomId] = useState("");
-  const [joinCode, setJoinCode] = useState("");
+  const [roomName, setRoomName] = useState("");
+  const [roomHasPassword, setRoomHasPassword] = useState(false);
 
   const [playerId, setPlayerId] = useState("");
 
@@ -1314,7 +1306,13 @@ export default function Home() {
   // 방 만들기 화면에서 고르는 정원 (아직 만들어진 방의 값이 아님)
   const [createMaxPlayers, setCreateMaxPlayers] = useState(MIN_ROOM_PLAYERS);
 
-  // 방 만들기/참가 시 사용할 닉네임 (비워두면 서버가 기본 이름을 붙여준다)
+  // 방 만들기 화면에서 입력하는 방 이름/비밀번호 (아직 만들어진 방의 값이 아님)
+  const [createRoomName, setCreateRoomName] = useState("");
+  const [createPassword, setCreatePassword] = useState("");
+
+  // 방 만들기/참가 시 사용할 닉네임 (비워두면 서버가 기본 이름을 붙여준다).
+  // 게스트가 입력한 값은 방 찾기 화면 등 다른 페이지에서도 쓸 수 있도록
+  // 로컬에 저장해둔다.
   const [displayName, setDisplayName] = useState("");
 
   const [error, setError] = useState("");
@@ -1409,9 +1407,18 @@ export default function Home() {
   // 로그인 계정의 지속 보유 칩(뱅크롤). 로비로 돌아올 때마다 최신값을 다시 불러온다.
   const [chips, setChips] = useState<number | null>(null);
 
-
   // 족보 선택 단계에서 아직 서버에 확정 제출하지 않은 임시 선택
   const [pendingSelection, setPendingSelection] = useState<number[]>([]);
+
+  // 게스트가 예전에 입력해둔 닉네임이 있으면 불러온다(로그인 계정의
+  // 프로필 이름이 아래 effect에서 먼저 채워졌다면 덮어쓰지 않는다).
+  useEffect(() => {
+    const saved = loadNickname();
+
+    if (saved) {
+      setDisplayName((prev) => prev || saved);
+    }
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -1555,6 +1562,8 @@ export default function Home() {
   useEffect(() => {
     socket.on("room-created", (info: RoomInfo) => {
       setRoomId(info.roomId);
+      setRoomName(info.name);
+      setRoomHasPassword(info.hasPassword);
       setPlayerId(info.playerId);
       setPlayerCount(info.playerCount);
       setMaxPlayers(info.maxPlayers);
@@ -1571,6 +1580,8 @@ export default function Home() {
 
     socket.on("room-joined", (info: RoomInfo) => {
       setRoomId(info.roomId);
+      setRoomName(info.name);
+      setRoomHasPassword(info.hasPassword);
       setPlayerId(info.playerId);
       setPlayerCount(info.playerCount);
       setMaxPlayers(info.maxPlayers);
@@ -1739,28 +1750,14 @@ export default function Home() {
   // 그때 값으로 한 번만 시도한다 — 그사이 로그인이 복구되면 effect가
   // 다시 실행되면서 대기 중이던 시도는 취소되고 올바른 토큰으로 재시도된다.
   useEffect(() => {
-    const saved = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    const session = loadSession();
 
-    if (!saved) return;
+    if (!session) return;
 
     let cancelled = false;
     let timer: number | undefined;
 
     const attemptRejoin = async () => {
-      let session: StoredSession;
-
-      try {
-        session = JSON.parse(saved) as StoredSession;
-      } catch {
-        clearSession();
-        return;
-      }
-
-      if (!session.roomId || !session.playerId || !session.rejoinToken) {
-        clearSession();
-        return;
-      }
-
       const idToken = user ? await user.getIdToken() : undefined;
 
       if (!cancelled) {
@@ -1781,7 +1778,6 @@ export default function Home() {
     };
   }, [user]);
 
-
   // 7. 방 만들기
   const createRoom = async () => {
     if (isSubmittingRoom) return;
@@ -1794,29 +1790,8 @@ export default function Home() {
     socket.emit("create-room", {
       maxPlayers: createMaxPlayers,
       name: displayName.trim() || undefined,
-      idToken,
-    });
-  };
-
-  // 8. 방 참가
-  const joinRoom = async () => {
-    if (isSubmittingRoom) return;
-
-    const code = joinCode.trim().toUpperCase();
-
-    if (!code) {
-      setError("방 코드를 입력해주세요.");
-      return;
-    }
-
-    setError("");
-    setIsSubmittingRoom(true);
-
-    const idToken = user ? await user.getIdToken() : undefined;
-
-    socket.emit("join-room", {
-      roomId: code,
-      name: displayName.trim() || undefined,
+      roomName: createRoomName.trim() || undefined,
+      password: createPassword.trim() || undefined,
       idToken,
     });
   };
@@ -1840,6 +1815,8 @@ export default function Home() {
     clearSession();
 
     setRoomId("");
+    setRoomName("");
+    setRoomHasPassword(false);
     setPlayerId("");
     setGameState(null);
     setPlayerCount(0);
@@ -1901,22 +1878,6 @@ export default function Home() {
     }
   };
 
-  const bet = () => {
-    if (!roomId) return;
-
-    socket.emit("bet", {
-      roomId,
-      amount: 100,
-    });
-  };
-
-  // 하프 — 현재 판돈의 절반을 베팅한다. 정확한 금액은 서버가 계산한다.
-  const betHalf = () => {
-    if (!roomId) return;
-
-    socket.emit("bet", { roomId, amount: 0, isHalf: true });
-  };
-
   const call = () => {
     if (!roomId) return;
 
@@ -1929,26 +1890,16 @@ export default function Home() {
     socket.emit("check", roomId);
   };
 
-  const raise = () => {
-    if (!roomId || !gameState) return;
-
-    socket.emit("raise", {
-      roomId,
-      amount: gameState.currentBet + 100,
-    });
-  };
-
-  // 하프 레이즈 — 현재 베팅 금액에 판돈 절반만큼을 더 얹는다. 정확한
-  // 금액은 서버가 계산한다.
-  const raiseHalf = () => {
+  // 하프/쿼터/더블 — 베팅을 열 때든 레이즈할 때든 같은 액션이다. 목표
+  // 금액(현재 팟 × 배율)은 서버가 계산한다.
+  const raiseByRatio = (ratio: "half" | "quarter" | "double") => {
     if (!roomId) return;
 
-    socket.emit("raise", { roomId, amount: 0, isHalf: true });
+    socket.emit("raise", { roomId, ratio });
   };
 
-  // 올인 — 남은 칩과 이번 판 개인별 최대 베팅 상한 중 더 작은 만큼을
-  // 전부 건다. 서버가 콜/레이즈 여부와 사이드 팟 형성까지 판단하므로
-  // 클라이언트는 그냥 요청만 보낸다.
+  // 올인 — 남은 칩을 전부 건다. 판당 최대 베팅 금액의 예외다. 서버가
+  // 콜/레이즈 여부까지 판단하므로 클라이언트는 그냥 요청만 보낸다.
   const allIn = () => {
     if (!roomId) return;
 
@@ -2103,7 +2054,10 @@ export default function Home() {
 
           <input
             value={displayName}
-            onChange={(event) => setDisplayName(event.target.value)}
+            onChange={(event) => {
+              setDisplayName(event.target.value);
+              saveNickname(event.target.value.trim());
+            }}
             placeholder="입력하지 않으면 기본 이름이 부여됩니다"
             maxLength={13}
             className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-[17.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
@@ -2111,14 +2065,30 @@ export default function Home() {
         </div>
 
         <div className="w-full max-w-2xl">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-stretch">
+          <div className="flex flex-col">
             {/* 7. 방 만들기 */}
-            <section className="animate-fade-up flex w-full flex-col rounded-2xl border border-white/10 bg-white/3 p-6 shadow-xl shadow-black/30 sm:flex-1 sm:p-8">
+            <section className="animate-fade-up flex w-full flex-col rounded-2xl border border-white/10 bg-white/3 p-6 shadow-xl shadow-black/30 sm:p-8">
               <h2 className="mb-1 text-[22.5px] font-bold">방 만들기</h2>
 
               <p className="mb-3 text-[17.5px] text-zinc-400">
                 새로운 게임 방을 생성합니다.
               </p>
+
+              <input
+                value={createRoomName}
+                onChange={(event) => setCreateRoomName(event.target.value)}
+                placeholder="방 이름 (선택, 목록에 표시됩니다)"
+                maxLength={20}
+                className="mb-3 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-[15.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
+              />
+
+              <input
+                value={createPassword}
+                onChange={(event) => setCreatePassword(event.target.value)}
+                placeholder="비밀번호 (선택, 걸어두면 잠금방이 됩니다)"
+                maxLength={20}
+                className="mb-4 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-[15.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
+              />
 
               <p className="mb-2 text-[15px] font-medium text-zinc-500">
                 인원 수
@@ -2154,41 +2124,15 @@ export default function Home() {
               </button>
             </section>
 
-            {/* 8. 방 참가 */}
-            <section
-              className="animate-fade-up flex w-full flex-col rounded-2xl border border-white/10 bg-white/3 p-6 shadow-xl shadow-black/30 sm:flex-1 sm:p-8"
+            {/* 8. 방 찾기 */}
+            <button
+              type="button"
+              onClick={() => router.push("/rooms")}
               style={{ animationDelay: "80ms" }}
+              className="animate-fade-up mt-4 w-full rounded-xl border border-white/15 bg-white/3 px-6 py-3.5 text-[17.5px] font-semibold text-zinc-200 transition hover:scale-[1.02] hover:border-felt/40 hover:bg-felt/10 hover:text-felt-bright active:scale-[0.98]"
             >
-              <h2 className="mb-1 text-[22.5px] font-bold">방 참가</h2>
-
-              <p className="mb-3 text-[17.5px] text-zinc-400">
-                친구에게 받은 방 코드를 입력하세요.
-              </p>
-
-              <input
-                value={joinCode}
-                onChange={(event) =>
-                  setJoinCode(event.target.value.toUpperCase())
-                }
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    joinRoom();
-                  }
-                }}
-                placeholder="방 코드 입력"
-                maxLength={6}
-                className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-center font-mono text-[22.5px] font-semibold tracking-[0.3em] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
-              />
-
-              <button
-                type="button"
-                onClick={joinRoom}
-                disabled={isSubmittingRoom}
-                className="mt-auto w-full rounded-xl bg-felt px-6 py-3.5 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-felt-bright active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
-              >
-                {isSubmittingRoom ? "참가하는 중..." : "참가"}
-              </button>
-            </section>
+              방 찾기
+            </button>
           </div>
 
           {error && (
@@ -2264,14 +2208,21 @@ export default function Home() {
       isHost && playerCount >= MIN_ROOM_PLAYERS && allOthersReady;
 
     return (
-      <main className="flex h-dvh flex-col overflow-hidden px-3 py-2 sm:flex-row sm:gap-4 sm:px-6 sm:py-4">
+      <main className="flex h-dvh flex-col overflow-hidden px-3 py-2 sm:flex-row sm:gap-0 sm:px-6 sm:py-4">
         <LeaveNoticeToast message={leaveNotice} />
 
-        <div className="mx-auto flex w-full min-w-0 max-w-3xl flex-1 flex-col overflow-hidden">
+        <div className="mx-auto flex w-full min-w-0 flex-1 flex-col overflow-hidden sm:pr-4">
           <header className="mb-2 flex shrink-0 items-center justify-between gap-3 sm:mb-4">
-            <h1 className="text-[22px] font-black tracking-tight text-gold sm:text-[26px]">
-              섯다
-            </h1>
+            <div className="flex min-w-0 items-baseline gap-2">
+              <h1 className="shrink-0 text-[22px] font-black tracking-tight text-gold sm:text-[26px]">
+                섯다
+              </h1>
+
+              <span className="truncate text-[14px] text-zinc-500 sm:text-[15.5px]">
+                {roomHasPassword ? "🔒 " : ""}
+                {roomName}
+              </span>
+            </div>
 
             <div className="flex items-center gap-2">
               <RoomCodeBadge roomId={roomId} />
@@ -2388,7 +2339,7 @@ export default function Home() {
     <main className="flex h-dvh flex-col overflow-hidden px-3 py-2 sm:flex-row sm:gap-4 sm:px-6 sm:py-4">
       <LeaveNoticeToast message={leaveNotice} />
 
-      <div className="mx-auto flex w-full min-w-0 max-w-3xl flex-1 flex-col overflow-hidden">
+      <div className="mx-auto flex w-full min-w-0 flex-1 flex-col overflow-hidden sm:pr-4">
         <header className="mb-2 flex shrink-0 items-center justify-between gap-3 sm:mb-4">
           <h1 className="text-[25px] font-bold tracking-tight text-gold sm:text-3xl">
             섯다
@@ -2476,22 +2427,6 @@ export default function Home() {
             </div>
           )}
 
-          {gameState.phase === "finished" &&
-            gameState.pots &&
-            gameState.pots.length > 1 && (
-              <div className="animate-fade-up mx-auto flex max-w-md flex-col gap-1 rounded-xl border border-gold/20 bg-gold/5 p-3 text-center text-[14px] text-zinc-300">
-                <p className="font-semibold text-gold-bright">
-                  보유 칩 차이로 팟이 나뉘었습니다
-                </p>
-                {gameState.pots.map((pot, index) => (
-                  <p key={index} className="font-mono tabular-nums">
-                    {index === 0 ? "메인 팟" : `사이드 팟 ${index}`}:{" "}
-                    {pot.amount.toLocaleString()}
-                  </p>
-                ))}
-              </div>
-            )}
-
           {gameState.phase === "finished" && !bankruptcyNotice && (
             <div className="flex flex-col items-center gap-1.5 pb-1">
               <button
@@ -2520,82 +2455,66 @@ export default function Home() {
             gameState.phase === "betting2") && (
             <div className="animate-fade-up grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:justify-center sm:gap-3">
               {gameState.currentBet === 0 ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={bet}
-                    disabled={
-                      gameState.players[gameState.currentPlayerIndex]?.id !==
-                      playerId
-                    }
-                    className="rounded-xl bg-felt/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
-                  >
-                    베트
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={betHalf}
-                    disabled={
-                      gameState.players[gameState.currentPlayerIndex]?.id !==
-                      playerId
-                    }
-                    className="rounded-xl bg-felt/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
-                  >
-                    하프
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={check}
-                    disabled={
-                      gameState.players[gameState.currentPlayerIndex]?.id !==
-                      playerId
-                    }
-                    className="rounded-xl border border-white/15 bg-white/3 px-5 py-2.5 text-[17.5px] font-semibold text-zinc-200 transition hover:scale-[1.03] hover:bg-white/10 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
-                  >
-                    체크
-                  </button>
-                </>
+                <button
+                  type="button"
+                  onClick={check}
+                  disabled={
+                    gameState.players[gameState.currentPlayerIndex]?.id !==
+                    playerId
+                  }
+                  className="rounded-xl border border-white/15 bg-white/3 px-5 py-2.5 text-[17.5px] font-semibold text-zinc-200 transition hover:scale-[1.03] hover:bg-white/10 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                >
+                  체크
+                </button>
               ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={call}
-                    disabled={
-                      gameState.players[gameState.currentPlayerIndex]?.id !==
-                      playerId
-                    }
-                    className="rounded-xl bg-felt/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
-                  >
-                    콜
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={raiseHalf}
-                    disabled={
-                      gameState.players[gameState.currentPlayerIndex]?.id !==
-                      playerId
-                    }
-                    className="rounded-xl bg-felt/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
-                  >
-                    하프
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={raise}
-                    disabled={
-                      gameState.players[gameState.currentPlayerIndex]?.id !==
-                      playerId
-                    }
-                    className="rounded-xl bg-gold px-5 py-2.5 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.03] hover:bg-gold-bright active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
-                  >
-                    레이즈
-                  </button>
-                </>
+                <button
+                  type="button"
+                  onClick={call}
+                  disabled={
+                    gameState.players[gameState.currentPlayerIndex]?.id !==
+                    playerId
+                  }
+                  className="rounded-xl bg-felt/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                >
+                  콜
+                </button>
               )}
+
+              <button
+                type="button"
+                onClick={() => raiseByRatio("half")}
+                disabled={
+                  gameState.players[gameState.currentPlayerIndex]?.id !==
+                  playerId
+                }
+                className="rounded-xl bg-felt/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+              >
+                하프
+              </button>
+
+              <button
+                type="button"
+                onClick={() => raiseByRatio("quarter")}
+                disabled={
+                  gameState.players[gameState.currentPlayerIndex]?.id !==
+                  playerId
+                }
+                className="rounded-xl bg-felt/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+              >
+                쿼터
+              </button>
+
+              <button
+                type="button"
+                onClick={() => raiseByRatio("double")}
+                disabled={
+                  gameState.players[gameState.currentPlayerIndex]?.id !==
+                  playerId
+                }
+                className="rounded-xl bg-gold px-5 py-2.5 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.03] hover:bg-gold-bright active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+              >
+                더블
+              </button>
 
               <button
                 type="button"
@@ -2604,7 +2523,7 @@ export default function Home() {
                   gameState.players[gameState.currentPlayerIndex]?.id !==
                   playerId
                 }
-                className="col-span-3 rounded-xl bg-ember/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-ember active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:col-span-1 sm:px-7 sm:py-3"
+                className="rounded-xl bg-ember/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-ember active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
               >
                 올인
               </button>
@@ -2616,7 +2535,7 @@ export default function Home() {
                   gameState.players[gameState.currentPlayerIndex]?.id !==
                   playerId
                 }
-                className="col-span-3 rounded-xl border border-crimson/40 bg-crimson/10 px-5 py-2.5 text-[17.5px] font-semibold text-crimson-bright transition hover:scale-[1.02] hover:bg-crimson/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:col-span-1 sm:px-7 sm:py-3"
+                className="rounded-xl border border-crimson/40 bg-crimson/10 px-5 py-2.5 text-[17.5px] font-semibold text-crimson-bright transition hover:scale-[1.02] hover:bg-crimson/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
               >
                 다이
               </button>

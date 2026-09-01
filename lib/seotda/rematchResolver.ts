@@ -11,8 +11,7 @@ import { Player } from "./types";
  * 관리하며 이 클래스는 건드리지 않는다).
  */
 export class RematchResolver {
-  private pending: { reason: string; activePlayerIds: string[] } | null =
-    null;
+  private pending: { reason: string; activePlayerIds: string[] } | null = null;
 
   /**
    * 구사 / 멍텅구리 구사 재경기 조건을 판정한다. 무조건 재경기가 아니라,

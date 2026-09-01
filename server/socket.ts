@@ -2,8 +2,9 @@ import { createServer } from "http";
 import { randomUUID, timingSafeEqual } from "crypto";
 import { Server } from "socket.io";
 import { SeotdaGame, STARTING_CHIPS } from "@/lib/seotda/game";
+import { RaiseRatio } from "@/lib/seotda/bettingRound";
 import { getDisplayHandName } from "@/lib/seotda/ranking";
-import { ChatMessage, ClientGameState } from "@/types/seotda";
+import { ChatMessage, ClientGameState, RoomListEntry } from "@/types/seotda";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
 import { RANKINGS_COLLECTION, RankingEntry } from "@/lib/ranking";
 import { PROFILES_COLLECTION, UserProfile } from "@/lib/profile";
@@ -80,6 +81,8 @@ const DISCONNECT_GRACE_MS = 30_000;
 const SHOWDOWN_REVEAL_PAUSE_MS = 2_500;
 
 const MAX_NAME_LENGTH = 13;
+const MAX_ROOM_NAME_LENGTH = 20;
+const MAX_ROOM_PASSWORD_LENGTH = 20;
 const MAX_CHAT_LENGTH = 200;
 
 interface JoinedPlayer {
@@ -187,6 +190,25 @@ function sanitizeName(name: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+// 방 목록에 표시할 방 이름을 정리한다. 비어있거나 없으면 null을 반환해
+// 호출부에서 "OO의 방" 같은 기본값을 쓰도록 한다.
+function sanitizeRoomName(name: unknown): string | null {
+  if (typeof name !== "string") return null;
+
+  const trimmed = name.trim().slice(0, MAX_ROOM_NAME_LENGTH);
+
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+// 방 비밀번호를 정리한다. 비어있거나 없으면 null(=비밀번호 없음)을 반환한다.
+function sanitizeRoomPassword(password: unknown): string | null {
+  if (typeof password !== "string") return null;
+
+  const trimmed = password.trim().slice(0, MAX_ROOM_PASSWORD_LENGTH);
+
+  return trimmed.length > 0 ? trimmed : null;
+}
+
 // 이름 뒤에 붙일 주격 조사(이/가)를 받침 유무에 따라 골라 붙인다.
 // 한글이 아닌 이름(영문 닉네임 등)은 무난하게 "가"를 붙인다.
 function withSubjectParticle(name: string): string {
@@ -202,6 +224,12 @@ function withSubjectParticle(name: string): string {
 }
 
 interface Room {
+  // 방 목록에 표시되는 이름
+  name: string;
+  // 값이 있으면 참가(방 목록 클릭이든 코드 입력이든) 시 이 값과 일치하는
+  // 비밀번호를 함께 보내야 한다. 모든 방은 항상 방 목록(list-rooms)에
+  // 노출되며, 이 값은 그중 잠긴 방을 표시하는 용도로만 쓰인다.
+  password: string | null;
   maxPlayers: number;
   joinedPlayers: JoinedPlayer[];
   game: SeotdaGame | null;
@@ -223,8 +251,7 @@ function createClientGameState(
   const state = game.getState();
 
   // 방을 나간 플레이어는 화면 목록에서 완전히 제외한다.
-  const currentPlayerId =
-    state.players[state.currentPlayerIndex]?.id ?? null;
+  const currentPlayerId = state.players[state.currentPlayerIndex]?.id ?? null;
 
   const players = state.players
     .filter((player) => !player.hasLeft)
@@ -289,7 +316,6 @@ function createClientGameState(
     winnerId: state.winnerId,
 
     redealReason: state.redealReason,
-    pots: state.pots,
   };
 }
 
@@ -385,6 +411,41 @@ function roomPlayersPayload(room: Room) {
     name: player.name,
     isReady: player.isReady,
   }));
+}
+
+// room-created/room-joined 이벤트에 공통으로 실리는 방 정보(방별 개인 정보인
+// playerId/rejoinToken 제외). 비밀번호 원문은 절대 클라이언트로 보내지 않는다.
+function roomInfoPayload(room: Room) {
+  return {
+    name: room.name,
+    hasPassword: room.password !== null,
+    playerCount: room.joinedPlayers.length,
+    maxPlayers: room.maxPlayers,
+    players: roomPlayersPayload(room),
+    chatMessages: room.chatMessages,
+  };
+}
+
+// 로비 화면(list-rooms)에 노출할 방 목록 — 모든 방은 항상 목록에 뜨며,
+// 이미 시작됐거나 정원이 찬 방만 제외한다. 비밀번호가 걸린 방은
+// hasPassword로만 표시하고, 원문은 절대 포함하지 않는다.
+function publicRoomsPayload(): RoomListEntry[] {
+  const entries: RoomListEntry[] = [];
+
+  for (const [roomId, room] of rooms) {
+    if (room.game) continue;
+    if (room.joinedPlayers.length >= room.maxPlayers) continue;
+
+    entries.push({
+      roomId,
+      name: room.name,
+      hasPassword: room.password !== null,
+      playerCount: room.joinedPlayers.length,
+      maxPlayers: room.maxPlayers,
+    });
+  }
+
+  return entries;
 }
 
 function broadcastPlayersUpdated(roomId: string, room: Room) {
@@ -585,10 +646,14 @@ io.on("connection", (socket) => {
     ({
       maxPlayers,
       name,
+      roomName,
+      password,
       idToken,
     }: {
       maxPlayers: number;
       name?: string;
+      roomName?: string;
+      password?: string;
       idToken?: string;
     }) => {
       if (rooms.size >= MAX_ROOMS) {
@@ -608,7 +673,8 @@ io.on("connection", (socket) => {
         )
       ) {
         socket.emit("error-message", {
-          message: "방 만들기를 너무 자주 시도했습니다. 잠시 후 다시 시도해주세요.",
+          message:
+            "방 만들기를 너무 자주 시도했습니다. 잠시 후 다시 시도해주세요.",
         });
 
         return;
@@ -627,13 +693,16 @@ io.on("connection", (socket) => {
       // 최소 한 명이 더 들어와야 시작되므로 실제 시작 전엔 항상 반영이
       // 끝나 있다.
       const hostRejoinToken = randomUUID();
+      const hostName = sanitizeName(name) ?? "플레이어 1";
 
       const room: Room = {
+        name: sanitizeRoomName(roomName) ?? `${hostName}의 방`,
+        password: sanitizeRoomPassword(password),
         maxPlayers: safeMaxPlayers,
         joinedPlayers: [
           {
             id: "player-1",
-            name: sanitizeName(name) ?? "플레이어 1",
+            name: hostName,
             socketId: socket.id,
             uid: null,
             startingChips: STARTING_CHIPS,
@@ -656,10 +725,7 @@ io.on("connection", (socket) => {
         roomId,
         playerId: "player-1",
         rejoinToken: hostRejoinToken,
-        playerCount: room.joinedPlayers.length,
-        maxPlayers: room.maxPlayers,
-        players: roomPlayersPayload(room),
-        chatMessages: room.chatMessages,
+        ...roomInfoPayload(room),
       });
 
       if (idToken) {
@@ -685,15 +751,24 @@ io.on("connection", (socket) => {
     },
   );
 
+  // 로비 화면에서 참가 가능한 공개방 목록을 요청한다. 실시간으로 계속
+  // 밀어주지 않고 요청-응답 방식으로만 처리한다 — 클라이언트가 로비 화면에
+  // 머무는 동안 주기적으로 다시 요청한다.
+  socket.on("list-rooms", () => {
+    socket.emit("rooms-list", publicRoomsPayload());
+  });
+
   socket.on(
     "join-room",
     async ({
       roomId,
       name,
+      password,
       idToken,
     }: {
       roomId: string;
       name?: string;
+      password?: string;
       idToken?: string;
     }) => {
       const room = rooms.get(roomId);
@@ -701,6 +776,17 @@ io.on("connection", (socket) => {
       if (!room) {
         socket.emit("error-message", {
           message: "존재하지 않는 방입니다.",
+        });
+
+        return;
+      }
+
+      if (
+        room.password !== null &&
+        !safeTokensMatch(password ?? "", room.password)
+      ) {
+        socket.emit("error-message", {
+          message: "비밀번호가 올바르지 않습니다.",
         });
 
         return;
@@ -753,10 +839,7 @@ io.on("connection", (socket) => {
         roomId,
         playerId,
         rejoinToken: joinerRejoinToken,
-        playerCount: room.joinedPlayers.length,
-        maxPlayers: room.maxPlayers,
-        players: roomPlayersPayload(room),
-        chatMessages: room.chatMessages,
+        ...roomInfoPayload(room),
       });
 
       broadcastPlayersUpdated(roomId, room);
@@ -811,10 +894,7 @@ io.on("connection", (socket) => {
         roomId,
         playerId,
         rejoinToken: joined.rejoinToken,
-        playerCount: room.joinedPlayers.length,
-        maxPlayers: room.maxPlayers,
-        players: roomPlayersPayload(room),
-        chatMessages: room.chatMessages,
+        ...roomInfoPayload(room),
       });
 
       broadcastPlayersUpdated(roomId, room);
@@ -943,39 +1023,36 @@ io.on("connection", (socket) => {
   // 로그인 계정의 영구 보유 칩(rankings/{uid}.money)이 0 이하로 파산해
   // 있으면 1만 칩으로 채워준다. 로비 화면이 보유 칩을 불러올 때 호출한다.
   // 이미 0보다 크면 아무것도 바꾸지 않는다(멱등적 — 중복 호출해도 안전).
-  socket.on(
-    "claim-bankruptcy-refill",
-    ({ idToken }: { idToken?: string }) => {
-      if (!idToken || !adminAuth || !adminDb) return;
+  socket.on("claim-bankruptcy-refill", ({ idToken }: { idToken?: string }) => {
+    if (!idToken || !adminAuth || !adminDb) return;
 
-      const auth = adminAuth;
-      const db = adminDb;
+    const auth = adminAuth;
+    const db = adminDb;
 
-      auth
-        .verifyIdToken(idToken)
-        .then(async (decoded) => {
-          const docRef = db.collection(RANKINGS_COLLECTION).doc(decoded.uid);
+    auth
+      .verifyIdToken(idToken)
+      .then(async (decoded) => {
+        const docRef = db.collection(RANKINGS_COLLECTION).doc(decoded.uid);
 
-          const money = await db.runTransaction(async (tx) => {
-            const snapshot = await tx.get(docRef);
-            const existing = snapshot.data() as RankingEntry | undefined;
+        const money = await db.runTransaction(async (tx) => {
+          const snapshot = await tx.get(docRef);
+          const existing = snapshot.data() as RankingEntry | undefined;
 
-            if (!existing || existing.money > 0) {
-              return existing?.money ?? STARTING_CHIPS;
-            }
+          if (!existing || existing.money > 0) {
+            return existing?.money ?? STARTING_CHIPS;
+          }
 
-            tx.update(docRef, { money: STARTING_CHIPS });
+          tx.update(docRef, { money: STARTING_CHIPS });
 
-            return STARTING_CHIPS;
-          });
-
-          socket.emit("bankruptcy-refill-result", { money });
-        })
-        .catch((err) => {
-          console.warn("파산 칩 지급 실패:", err);
+          return STARTING_CHIPS;
         });
-    },
-  );
+
+        socket.emit("bankruptcy-refill-result", { money });
+      })
+      .catch((err) => {
+        console.warn("파산 칩 지급 실패:", err);
+      });
+  });
 
   // 파산한 플레이어가 다음 판을 관전할지, 방을 나갈지 결정한다.
   socket.on(
@@ -1008,38 +1085,6 @@ io.on("connection", (socket) => {
       }
 
       resumeRestartAfterBankruptcy(room);
-    },
-  );
-
-  socket.on(
-    "bet",
-    ({
-      roomId,
-      amount,
-      isHalf,
-    }: {
-      roomId: string;
-      amount: number;
-      isHalf?: boolean;
-    }) => {
-      const room = rooms.get(roomId);
-
-      if (!room || !room.game) return;
-
-      const playerId = findPlayerIdBySocket(room, socket.id);
-
-      if (!playerId) return;
-
-      try {
-        room.game.bet(playerId, amount, isHalf);
-
-        broadcastGameState(room);
-      } catch (error) {
-        socket.emit("error-message", {
-          message:
-            error instanceof Error ? error.message : "베팅에 실패했습니다.",
-        });
-      }
     },
   );
 
@@ -1078,7 +1123,8 @@ io.on("connection", (socket) => {
       broadcastGameState(room);
     } catch (error) {
       socket.emit("error-message", {
-        message: error instanceof Error ? error.message : "올인에 실패했습니다.",
+        message:
+          error instanceof Error ? error.message : "올인에 실패했습니다.",
       });
     }
   });
@@ -1104,33 +1150,32 @@ io.on("connection", (socket) => {
     }
   });
 
+  // 하프/쿼터/더블 — 베팅을 열 때든 레이즈할 때든 같은 이벤트 하나로
+  // 처리한다. 목표 금액(현재 팟 × 배율)은 서버가 계산하므로 클라이언트는
+  // 배율(ratio)만 보낸다.
   socket.on(
     "raise",
-    ({
-      roomId,
-      amount,
-      isHalf,
-    }: {
-      roomId: string;
-      amount: number;
-      isHalf?: boolean;
-    }) => {
+    ({ roomId, ratio }: { roomId: string; ratio: RaiseRatio }) => {
       const room = rooms.get(roomId);
 
       if (!room || !room.game) return;
+
+      if (ratio !== "half" && ratio !== "quarter" && ratio !== "double") {
+        return;
+      }
 
       const playerId = findPlayerIdBySocket(room, socket.id);
 
       if (!playerId) return;
 
       try {
-        room.game.raise(playerId, amount, isHalf);
+        room.game.raiseByRatio(playerId, ratio);
 
         broadcastGameState(room);
       } catch (error) {
         socket.emit("error-message", {
           message:
-            error instanceof Error ? error.message : "레이즈에 실패했습니다.",
+            error instanceof Error ? error.message : "베팅에 실패했습니다.",
         });
       }
     },

@@ -1,9 +1,27 @@
 import { Player } from "./types";
 
-// 베팅 라운드 하나(1차 또는 2차)의 진행을 전담한다 — 순서, 상한, 최소 레이즈,
-// 파산 플레이어 자동 패스까지 전부 이 클래스 안에서 처리한다. 라운드가
-// 끝나야만 알 수 있는 다음 단계(카드 공개로 넘어갈지, 쇼다운으로 넘어갈지)나
-// 다이로 인해 판 자체가 끝나는 경우는 이 클래스의 책임이 아니므로, 그 시점에
+// 팟 대비 목표 배율 — 하프/쿼터/더블 모두 "이 라운드에 걸고 있을 총액"을
+// 직접 계산하며, 지금 최고 베팅액이 얼마인지는 신경 쓰지 않는다(=베팅을
+// 여는 것이든 레이즈든 같은 공식 하나). 최소 레이즈 증가폭 같은 규칙이
+// 필요 없어져 로직이 단순해진다.
+export const RAISE_RATIOS = {
+  half: 1.5,
+  quarter: 1.25,
+  double: 2,
+} as const;
+
+export type RaiseRatio = keyof typeof RAISE_RATIOS;
+
+const RAISE_LABELS: Record<RaiseRatio, string> = {
+  half: "하프",
+  quarter: "쿼터",
+  double: "더블",
+};
+
+// 베팅 라운드 하나(1차 또는 2차)의 진행을 전담한다 — 순서, 상한, 파산
+// 플레이어 자동 패스까지 전부 이 클래스 안에서 처리한다. 라운드가 끝나야만
+// 알 수 있는 다음 단계(카드 공개로 넘어갈지, 쇼다운으로 넘어갈지)나 다이로
+// 인해 판 자체가 끝나는 경우는 이 클래스의 책임이 아니므로, 그 시점에
 // deps의 콜백을 통해 오케스트레이터(SeotdaGame)에게 알린다. 판돈(pot)도
 // 베팅 라운드를 넘어 쇼다운까지 이어지는 판 전체의 값이라 여기서 직접
 // 들고 있지 않고 deps를 통해 읽고 더한다.
@@ -21,14 +39,6 @@ export class BettingRound {
   // 이번 라운드에서 행동을 완료한 플레이어
   private actedPlayers = new Set<string>();
 
-  // 이번 라운드에서 마지막으로 인정된 "완전한" 레이즈의 증가폭. 다음
-  // 레이즈는 최소한 이만큼은 더 올려야 한다(최소 레이즈 규칙) — 그래야
-  // 1칩씩 레이즈를 반복해 상대의 행동을 계속 다시 요구하며 진행을
-  // 지연시키는 것을 막을 수 있다. 라운드를 여는 첫 베팅의 금액이 그
-  // 라운드의 기준이 되며, 올인이 이 기준에 못 미치는 "불완전한" 레이즈이면
-  // 갱신하지 않는다.
-  private lastRaiseIncrement = 0;
-
   constructor(
     private players: Player[],
     private deps: BettingRoundDeps,
@@ -43,7 +53,6 @@ export class BettingRound {
   start(startIndex: number): void {
     this.currentBet = 0;
     this.actedPlayers.clear();
-    this.lastRaiseIncrement = 0;
     this.currentPlayerIndex = startIndex;
 
     for (const player of this.players) {
@@ -77,55 +86,6 @@ export class BettingRound {
   }
 
   /**
-   * 첫 베팅
-   *
-   * 현재 베팅 금액이 0일 때만 사용할 수 있습니다. isHalf가 true면 "하프"
-   * 액션이다 — 목표 금액(현재 판돈의 1/2, 6장)을 직접 계산하며, 호출자가
-   * 함께 넘긴 amount는 무시한다. 클라이언트를 신뢰해 그 금액을 그대로 쓰면,
-   * 실제로는 판돈의 절반이 아닌 값을 "하프"라고 속여 보내도 구분할 방법이
-   * 없어진다.
-   */
-  bet(player: Player, amount: number, isHalf: boolean): void {
-    this.checkTurn(player);
-
-    if (this.currentBet !== 0) {
-      throw new Error(
-        "이미 베팅이 시작되었습니다. 콜 또는 레이즈를 사용하세요.",
-      );
-    }
-
-    if (isHalf) {
-      amount = Math.max(1, Math.floor(this.deps.getPot() / 2));
-    }
-
-    if (amount <= 0) {
-      throw new Error("베팅 금액은 0보다 커야 합니다.");
-    }
-
-    if (amount > player.chips) {
-      throw new Error("칩이 부족합니다.");
-    }
-
-    if (amount > player.maxBet - player.totalBet) {
-      throw new Error("판당 최대 베팅 금액을 초과했습니다.");
-    }
-
-    player.chips -= amount;
-    player.bet += amount;
-    player.totalBet += amount;
-    player.lastAction = `${isHalf ? "하프" : "베팅"} ${amount.toLocaleString()}`;
-
-    this.deps.addToPot(amount);
-    this.currentBet = player.bet;
-    // 이 라운드를 여는 베팅 금액이 이후 레이즈의 최소 증가폭 기준이 된다.
-    this.lastRaiseIncrement = amount;
-
-    this.actedPlayers.add(player.id);
-
-    this.advanceTurn();
-  }
-
-  /**
    * 체크
    *
    * 현재까지 베팅된 금액과 자신의 베팅 금액이 같아야 합니다.
@@ -133,7 +93,7 @@ export class BettingRound {
   check(player: Player): void {
     this.checkTurn(player);
 
-    if (this.currentBet !== 0) {
+    if (player.bet !== this.currentBet) {
       throw new Error("현재 베팅이 진행 중이므로 체크할 수 없습니다.");
     }
 
@@ -147,13 +107,15 @@ export class BettingRound {
   /**
    * 콜
    *
-   * 현재 베팅 금액까지 맞춥니다.
+   * 현재 최고 베팅 금액까지 자신의 베팅 금액을 맞춘다.
    */
   call(player: Player): void {
     this.checkTurn(player);
 
     if (this.currentBet <= 0) {
-      throw new Error("현재 베팅이 없습니다. 체크 또는 베팅을 사용하세요.");
+      throw new Error(
+        "현재 베팅이 없습니다. 체크 또는 하프/쿼터/더블을 사용하세요.",
+      );
     }
 
     const requiredAmount = this.currentBet - player.bet;
@@ -167,7 +129,7 @@ export class BettingRound {
     }
 
     if (requiredAmount > player.maxBet - player.totalBet) {
-      throw new Error("판당 최대 베팅 금액을 초과했습니다.");
+      throw new Error("판당 최대 베팅 금액을 초과했습니다. 올인을 사용하세요.");
     }
 
     player.chips -= requiredAmount;
@@ -183,80 +145,50 @@ export class BettingRound {
   }
 
   /**
-   * 레이즈
+   * 하프/쿼터/더블 — 베팅을 열 때든 레이즈할 때든 같은 공식 하나로 처리한다.
    *
-   * amount는 최종적으로 플레이어가 해당 라운드에 걸고 있는 총액입니다.
-   *
-   * 예:
-   * 현재 베팅 100
-   * 내 베팅 100
-   * raise(200)
-   *
-   * -> 추가로 100칩 지불
-   * -> 내 베팅 200
-   * -> 현재 베팅 200
-   *
-   * isHalf가 true면 "하프 레이즈" 액션이다 — 목표 금액(현재 베팅 금액 +
-   * 판돈의 1/2)을 직접 계산하며, 호출자가 함께 넘긴 amount는 무시한다
-   * (bet()의 isHalf와 같은 이유).
+   * 목표 금액(이 라운드에 걸고 있을 총액) = 현재 팟 × 배율(1.5/1.25/2).
+   * 이미 낸 금액을 뺀 나머지만큼만 추가로 낸다.
    */
-  raise(player: Player, amount: number, isHalf: boolean): void {
+  raiseByRatio(player: Player, ratio: RaiseRatio): void {
     this.checkTurn(player);
 
-    if (this.currentBet <= 0) {
-      throw new Error("아직 베팅이 없습니다. 처음에는 베팅을 사용하세요.");
+    const target = Math.floor(this.deps.getPot() * RAISE_RATIOS[ratio]);
+
+    if (target <= this.currentBet) {
+      throw new Error("지금은 판돈이 작아 이 베팅을 쓸 수 없습니다.");
     }
 
-    if (isHalf) {
-      amount = this.currentBet + Math.max(1, Math.floor(this.deps.getPot() / 2));
-    }
-
-    if (amount <= this.currentBet) {
-      throw new Error(
-        `레이즈 금액은 현재 베팅 금액(${this.currentBet})보다 커야 합니다.`,
-      );
-    }
-
-    const raiseSize = amount - this.currentBet;
-
-    if (raiseSize < this.lastRaiseIncrement) {
-      throw new Error(
-        `최소 레이즈 금액은 ${(this.currentBet + this.lastRaiseIncrement).toLocaleString()} 이상이어야 합니다.`,
-      );
-    }
-
-    const additionalAmount = amount - player.bet;
+    const additionalAmount = target - player.bet;
 
     if (additionalAmount <= 0) {
-      throw new Error("레이즈할 금액이 없습니다.");
+      throw new Error("이미 그 금액 이상 베팅했습니다.");
     }
 
     if (additionalAmount > player.chips) {
-      throw new Error("칩이 부족합니다.");
+      throw new Error("칩이 부족합니다. 올인을 사용하세요.");
     }
 
     if (additionalAmount > player.maxBet - player.totalBet) {
-      throw new Error("판당 최대 베팅 금액을 초과했습니다.");
+      throw new Error("판당 최대 베팅 금액을 초과했습니다. 올인을 사용하세요.");
     }
 
     player.chips -= additionalAmount;
-    player.bet = amount;
+    player.bet = target;
     player.totalBet += additionalAmount;
 
     this.deps.addToPot(additionalAmount);
-    this.currentBet = amount;
-    this.lastRaiseIncrement = raiseSize;
+    this.currentBet = target;
 
-    // 레이즈가 발생했으므로 이전 행동 기록을 초기화
+    // 베팅액이 갱신됐으므로 다른 플레이어들은 다시 행동해야 한다.
     this.actedPlayers.clear();
     this.actedPlayers.add(player.id);
 
-    // 레이즈로 인해 다른 플레이어들은 다시 행동해야 하므로 표시된 행동도 지운다
     for (const p of this.players) {
       p.lastAction = null;
     }
 
-    player.lastAction = `${isHalf ? "하프 레이즈" : "레이즈"} ${amount.toLocaleString()}`;
+    player.lastAction = `${RAISE_LABELS[ratio]} ${target.toLocaleString()}`;
 
     this.advanceTurn();
   }
@@ -264,21 +196,17 @@ export class BettingRound {
   /**
    * 올인
    *
-   * 남은 칩과 이번 판 개인별 최대 베팅 상한(maxBet) 중 더 작은 만큼을
-   * 전부 베팅한다. 콜(call)과 달리, 그 금액이 currentBet에 못 미치더라도
-   * (=완전히 콜하기엔 부족한 올인) 거부하지 않고 있는 만큼만 베팅해
-   * 사이드 팟을 형성시킨다 — 보유 칩이 적은 플레이어가 큰 판에서도 정상적으로
-   * 승부에 참여할 수 있게 하는 유일한 방법이다.
-   *
-   * 그 결과 currentBet을 넘어서면 레이즈로 취급해 다른 플레이어가 다시
-   * 행동해야 하지만, 넘지 못하면(콜에도 못 미치는 부족한 올인) 조용히
-   * 맞출 수 있는 만큼만 맞추고 currentBet과 다른 사람들의 행동 여부는
-   * 그대로 둔다.
+   * 남은 칩을 전부 베팅한다. 판당 최대 베팅 금액(maxBet)의 유일한 예외로,
+   * 이 한도를 넘어서도 걸 수 있다. 그 금액이 currentBet에 못 미치더라도
+   * (=완전히 콜하기엔 부족한 올인) 거부하지 않고 있는 만큼만 베팅한다 —
+   * 보유 칩이 적은 플레이어가 큰 판에서도 정상적으로 승부에 참여할 수
+   * 있게 하는 유일한 방법이다. 이렇게 서로 다른 금액으로 올인이 발생하면
+   * potManager.buildPots()가 쇼다운에서 메인 팟/사이드 팟으로 나눈다.
    */
   allIn(player: Player): void {
     this.checkTurn(player);
 
-    const amount = Math.min(player.chips, player.maxBet - player.totalBet);
+    const amount = player.chips;
 
     if (amount <= 0) {
       throw new Error("더 이상 베팅할 수 없습니다.");
@@ -290,23 +218,10 @@ export class BettingRound {
 
     this.deps.addToPot(amount);
 
-    const label =
-      player.chips === 0
-        ? `올인 ${amount.toLocaleString()}`
-        : `상한 도달 ${amount.toLocaleString()}`;
-
     if (player.bet > this.currentBet) {
-      const raiseSize = player.bet - this.currentBet;
-
-      this.currentBet = player.bet;
-
       // 콜을 넘어서는(=레이즈에 해당하는) 올인이므로 다른 사람들은 다시
-      // 행동해야 한다. 다만 최소 레이즈 증가폭에 못 미치는 "불완전한" 올인
-      // 레이즈라면 — 예: 남은 칩이 얼마 없어 어쩔 수 없이 조금만 더 얹은
-      // 경우 — 최소 레이즈 기준 자체는 갱신하지 않는다.
-      if (raiseSize >= this.lastRaiseIncrement) {
-        this.lastRaiseIncrement = raiseSize;
-      }
+      // 행동해야 한다.
+      this.currentBet = player.bet;
 
       this.actedPlayers.clear();
 
@@ -315,7 +230,7 @@ export class BettingRound {
       }
     }
 
-    player.lastAction = label;
+    player.lastAction = `올인 ${amount.toLocaleString()}`;
 
     this.actedPlayers.add(player.id);
 

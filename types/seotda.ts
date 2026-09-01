@@ -41,14 +41,6 @@ export type GamePhase =
   | "showdown"
   | "finished";
 
-// 플레이어마다 보유 칩(개인별 최대 베팅 상한)이 달라 올인 시점도 서로 다르면
-// 팟이 메인 팟과 사이드 팟으로 나뉜다. eligiblePlayerIds는 그 팟을 받을 수
-// 있는(=다이하지 않고 그 금액까지 낸) 플레이어 id 목록이다.
-export interface Pot {
-  amount: number;
-  eligiblePlayerIds: string[];
-}
-
 export interface ClientGameState {
   phase: GamePhase;
 
@@ -61,8 +53,6 @@ export interface ClientGameState {
   // 구사/멍텅구리 구사로 재경기가 진행되는 짧은 동안(phase가 "showdown")만
   // 값이 채워진다 — 재경기는 앤티·베팅 변화 없이 그 자리에서 즉시 진행된다.
   redealReason: string | null;
-  // 쇼다운/종료 시점에 확정되는 팟 구성. 베팅이 끝나기 전에는 null이다.
-  pots: Pot[] | null;
 }
 
 export interface RestartVotesInfo {
@@ -94,6 +84,10 @@ export interface ChatMessage {
 
 export interface RoomInfo {
   roomId: string;
+  // 방 목록에 표시되는 이름 — 방장이 정하지 않았으면 서버가 기본값을 붙인다.
+  name: string;
+  // 이 방에 비밀번호가 걸려 있는지 — 원문은 클라이언트로 전달되지 않는다.
+  hasPassword: boolean;
   playerId: string;
   // 새로고침 등으로 끊긴 뒤 rejoin-room으로 같은 자리를 되찾을 때 본인임을
   // 증명하는 값. 서버만 발급하며, 다른 플레이어에게는 전달되지 않는다.
@@ -102,4 +96,15 @@ export interface RoomInfo {
   maxPlayers: number;
   players: RoomPlayerInfo[];
   chatMessages: ChatMessage[];
+}
+
+// 로비 화면에 뜨는 방 하나의 요약 정보. list-rooms 요청에 대한 응답으로
+// 받으며, 이미 시작됐거나 정원이 찬 방은 서버가 애초에 포함시키지 않는다.
+// 모든 방이 항상 뜨고, hasPassword로 잠긴 방만 구분한다.
+export interface RoomListEntry {
+  roomId: string;
+  name: string;
+  hasPassword: boolean;
+  playerCount: number;
+  maxPlayers: number;
 }

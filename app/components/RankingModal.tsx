@@ -43,9 +43,8 @@ export function RankingModal({
           return;
         }
 
-        const { collection, getDocs, limit, orderBy, query } = await import(
-          "firebase/firestore"
-        );
+        const { collection, getDocs, limit, orderBy, query } =
+          await import("firebase/firestore");
 
         if (cancelled) return;
 
@@ -128,7 +127,9 @@ export function RankingModal({
           )}
 
           {!loading && error && (
-            <p className="py-8 text-center text-[15px] text-crimson-bright">{error}</p>
+            <p className="py-8 text-center text-[15px] text-crimson-bright">
+              {error}
+            </p>
           )}
 
           {!loading && !error && entries.length === 0 && (

@@ -30,9 +30,8 @@ export function GoogleSignInButton({
       if (!auth || cancelled) return;
 
       // firebase/auth는 실제로 로그인 UI를 그릴 때만 불러온다.
-      const { GoogleAuthProvider, signInWithCredential } = await import(
-        "firebase/auth"
-      );
+      const { GoogleAuthProvider, signInWithCredential } =
+        await import("firebase/auth");
 
       if (cancelled) return;
 

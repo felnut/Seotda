@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0b0f0d;
-  --foreground: #eceae4;
+  --background: #161d19;
+  --foreground: #f5f3ee;
 }
 
 @theme inline {
@@ -12,35 +12,36 @@
   /* 중립색(white/black/zinc)을 순색 대신 차분한 슬레이트 톤으로 다시
      정의한다. bg-white/10, text-zinc-400 같은 기존 유틸리티가 전부 이
      톤을 그대로 물려받으므로, 마크업을 건드리지 않고도 화면 전체의
-     "칩 색"이 깔끔하고 현대적인 인상으로 바뀐다. */
-  --color-white: #eceae4;
-  --color-black: #060807;
+     "칩 색"이 깔끔하고 현대적인 인상으로 바뀐다. 전체적으로 어둡다는
+     피드백이 있어 기존 대비 한 단계씩 밝혔다. */
+  --color-white: #f5f3ee;
+  --color-black: #0c0f0e;
 
-  --color-zinc-100: #e9eaec;
-  --color-zinc-200: #cbcdd2;
-  --color-zinc-300: #9fa3ab;
-  --color-zinc-400: #7c8189;
-  --color-zinc-500: #5f646c;
-  --color-zinc-600: #464a51;
-  --color-zinc-800: #23262a;
-  --color-zinc-900: #17191c;
-  --color-zinc-950: #101214;
+  --color-zinc-100: #f2f3f4;
+  --color-zinc-200: #dbdde1;
+  --color-zinc-300: #b6bac1;
+  --color-zinc-400: #979ca4;
+  --color-zinc-500: #7c8189;
+  --color-zinc-600: #5c616a;
+  --color-zinc-800: #33373d;
+  --color-zinc-900: #23262b;
+  --color-zinc-950: #191b1e;
 
   /* 놋쇠(주요 액션·강조) */
-  --color-gold: #c9974a;
-  --color-gold-bright: #e3bd74;
-  --color-gold-deep: #8f6a2e;
+  --color-gold: #dba95a;
+  --color-gold-bright: #f0cb85;
+  --color-gold-deep: #a67d3a;
 
   /* 옥색 펠트(테이블·차분한/진행형 액션, "나" 표시) */
-  --color-felt: #2f6b45;
-  --color-felt-bright: #4f9468;
+  --color-felt: #3b8557;
+  --color-felt-bright: #63b381;
 
   /* 인주(위험·이탈) */
-  --color-crimson: #9c3b2e;
-  --color-crimson-bright: #c96354;
+  --color-crimson: #c14e3b;
+  --color-crimson-bright: #e0776a;
 
   /* 잉걸불(올인 — 놋쇠와 인주 사이의 긴장감) */
-  --color-ember: #b5541f;
+  --color-ember: #d97328;
 
   --font-sans: var(--font-noto-sans-kr);
   --font-mono: var(--font-plex-mono);
