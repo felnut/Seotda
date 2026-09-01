@@ -234,8 +234,8 @@ export class SeotdaGame {
   }
 
   /**
-   * 하프/쿼터/더블 — 베팅을 열 때든 레이즈할 때든 같은 액션입니다. 목표
-   * 금액(현재 팟 × 배율)은 서버가 계산합니다.
+   * 하프/쿼터/더블 — 베팅을 열 때든 레이즈할 때든 같은 액션입니다. 추가로
+   * 낼 금액(현재 팟 × 배율)은 서버가 계산합니다.
    */
   raiseByRatio(playerId: string, ratio: RaiseRatio): void {
     if (!this.isBettingPhase()) {
