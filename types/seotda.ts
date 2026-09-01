@@ -99,12 +99,16 @@ export interface RoomInfo {
 }
 
 // 로비 화면에 뜨는 방 하나의 요약 정보. list-rooms 요청에 대한 응답으로
-// 받으며, 이미 시작됐거나 정원이 찬 방은 서버가 애초에 포함시키지 않는다.
-// 모든 방이 항상 뜨고, hasPassword로 잠긴 방만 구분한다.
+// 받으며, 모든 방이 항상 뜨고 hasPassword로 잠긴 방만 구분한다. 이미
+// 게임이 시작된 방도 정원이 차지 않았다면 그대로 노출되며, 그런 방에
+// 입장하면 이번 판은 관전만 하고 다음 판부터 실제로 참여하게 된다.
 export interface RoomListEntry {
   roomId: string;
   name: string;
   hasPassword: boolean;
   playerCount: number;
   maxPlayers: number;
+  // 게임이 이미 시작되어 진행 중인 방인지 — true면 입장 시 이번 판은
+  // 관전만 하고 다음 판부터 실제로 참여한다.
+  inProgress: boolean;
 }

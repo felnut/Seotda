@@ -93,6 +93,8 @@ export default function RoomsPage() {
   };
 
   const handleRoomClick = (room: RoomListEntry) => {
+    if (room.playerCount >= room.maxPlayers) return;
+
     if (room.hasPassword) {
       setPasswordPromptRoom(room);
       setPasswordInput("");
@@ -123,24 +125,36 @@ export default function RoomsPage() {
           </p>
         )}
 
-        {roomList.map((room) => (
-          <button
-            key={room.roomId}
-            type="button"
-            onClick={() => handleRoomClick(room)}
-            disabled={isJoining}
-            className="animate-fade-up flex w-full items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/3 px-4 py-3.5 text-left transition hover:scale-[1.01] hover:border-gold/40 hover:bg-gold/8 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <span className="truncate text-[17px] font-semibold text-zinc-100">
-              {room.hasPassword ? "🔒 " : ""}
-              {room.name}
-            </span>
+        {roomList.map((room) => {
+          const isFull = room.playerCount >= room.maxPlayers;
 
-            <span className="shrink-0 font-mono text-[15px] tabular-nums text-zinc-500">
-              {room.playerCount}/{room.maxPlayers}명
-            </span>
-          </button>
-        ))}
+          return (
+            <button
+              key={room.roomId}
+              type="button"
+              onClick={() => handleRoomClick(room)}
+              disabled={isJoining || isFull}
+              className="animate-fade-up flex w-full items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/3 px-4 py-3.5 text-left transition hover:scale-[1.01] hover:border-gold/40 hover:bg-gold/8 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="truncate text-[17px] font-semibold text-zinc-100">
+                  {room.hasPassword ? "🔒 " : ""}
+                  {room.name}
+                </span>
+
+                {room.inProgress && (
+                  <span className="shrink-0 rounded-full bg-gold/15 px-2 py-0.5 text-[12.5px] font-bold text-gold">
+                    진행중 · 관전 참가
+                  </span>
+                )}
+              </span>
+
+              <span className="shrink-0 font-mono text-[15px] tabular-nums text-zinc-500">
+                {isFull ? "가득 참" : `${room.playerCount}/${room.maxPlayers}명`}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {error && (

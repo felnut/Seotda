@@ -52,6 +52,7 @@ export class SeotdaGame {
       anteHandPaid: 0,
       lastAction: null,
       isSpectator: false,
+      pendingActivation: false,
       hasLeft: false,
     }));
 
@@ -98,6 +99,13 @@ export class SeotdaGame {
     this.redealReason = null;
 
     for (const player of this.players) {
+      // 진행 중인 판 도중 새로 들어와 이번 판까지만 관전했던 플레이어는
+      // 이제 시작하는 판부터 실제 참가자로 전환한다.
+      if (player.pendingActivation) {
+        player.isSpectator = false;
+        player.pendingActivation = false;
+      }
+
       player.cards = null;
       player.revealedCardIndex = null;
       player.selectedIndices = null;
@@ -319,6 +327,10 @@ export class SeotdaGame {
     }
 
     player.isSpectator = true;
+    // 다음 판부터 참가자로 전환될 예정이었더라도, 방을 나간 이상 그
+    // 예약은 취소한다 — 안 그러면 다음 start()에서 이미 나간 플레이어가
+    // 참가자로 되살아난다.
+    player.pendingActivation = false;
     player.hasLeft = true;
 
     return causedAutoLoss;
@@ -656,6 +668,38 @@ export class SeotdaGame {
     }
 
     this.findPlayer(playerId).isSpectator = true;
+  }
+
+  /**
+   * 진행 중인 판 도중에 새 플레이어를 등록합니다.
+   *
+   * 이미 카드가 돌고 있는 판에 끼워 넣을 수는 없으므로, 이번 판은 관전
+   * 상태(isSpectator)로 들어와 카드도 앤티도 없이 지켜만 보다가, 다음
+   * start() 호출(다음 판) 때 pendingActivation 플래그를 보고 자동으로
+   * 실제 참가자가 됩니다.
+   */
+  addPlayer(id: string, name: string, chips: number): void {
+    if (this.players.some((player) => player.id === id)) {
+      throw new Error("이미 존재하는 플레이어입니다.");
+    }
+
+    this.players.push({
+      id,
+      name,
+      cards: null,
+      revealedCardIndex: null,
+      selectedIndices: null,
+      status: "folded",
+      chips,
+      bet: 0,
+      totalBet: 0,
+      maxBet: 0,
+      anteHandPaid: 0,
+      lastAction: null,
+      isSpectator: true,
+      pendingActivation: true,
+      hasLeft: false,
+    });
   }
 
   /**

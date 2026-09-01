@@ -426,22 +426,21 @@ function roomInfoPayload(room: Room) {
   };
 }
 
-// 로비 화면(list-rooms)에 노출할 방 목록 — 모든 방은 항상 목록에 뜨며,
-// 이미 시작됐거나 정원이 찬 방만 제외한다. 비밀번호가 걸린 방은
-// hasPassword로만 표시하고, 원문은 절대 포함하지 않는다.
+// 로비 화면(list-rooms)에 노출할 방 목록 — 이미 시작됐거나 정원이 찬
+// 방을 포함해 모든 방이 항상 목록에 뜬다. 진행 중이면서 정원이 차지
+// 않은 방은 입장 시 이번 판은 관전, 다음 판부터 참여가 가능하다.
+// 비밀번호가 걸린 방은 hasPassword로만 표시하고, 원문은 절대 포함하지 않는다.
 function publicRoomsPayload(): RoomListEntry[] {
   const entries: RoomListEntry[] = [];
 
   for (const [roomId, room] of rooms) {
-    if (room.game) continue;
-    if (room.joinedPlayers.length >= room.maxPlayers) continue;
-
     entries.push({
       roomId,
       name: room.name,
       hasPassword: room.password !== null,
       playerCount: room.joinedPlayers.length,
       maxPlayers: room.maxPlayers,
+      inProgress: room.game !== null,
     });
   }
 
@@ -792,14 +791,6 @@ io.on("connection", (socket) => {
         return;
       }
 
-      if (room.game) {
-        socket.emit("error-message", {
-          message: "이미 게임이 시작된 방입니다.",
-        });
-
-        return;
-      }
-
       if (room.joinedPlayers.length >= room.maxPlayers) {
         socket.emit("error-message", {
           message: "방이 가득 찼습니다.",
@@ -843,6 +834,17 @@ io.on("connection", (socket) => {
       });
 
       broadcastPlayersUpdated(roomId, room);
+
+      // 이미 게임이 진행 중인 방이라면, 이번 판은 관전으로 참가하고
+      // 다음 판부터 실제로 플레이하도록 게임에도 등록한다.
+      if (room.game) {
+        try {
+          room.game.addPlayer(playerId, resolvedName, resolved.startingChips);
+          broadcastGameState(room);
+        } catch (error) {
+          console.warn("중도 참가자 등록 실패(무시):", error);
+        }
+      }
     },
   );
 
