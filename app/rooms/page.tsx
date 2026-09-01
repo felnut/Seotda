@@ -116,11 +116,6 @@ export default function RoomsPage() {
         방 찾기
       </h1>
 
-      <p className="mb-8 text-[17.5px] text-zinc-500">
-        참가할 수 있는 방 목록입니다. 공개방은 클릭하면 바로 들어가고, 잠긴 방은
-        비밀번호를 입력해야 합니다.
-      </p>
-
       <div className="flex min-h-64 flex-col gap-2 rounded-2xl border border-white/10 bg-white/3 p-3 shadow-xl shadow-black/30">
         {roomList.length === 0 && (
           <p className="flex flex-1 items-center justify-center py-12 text-center text-[15px] text-zinc-500">
