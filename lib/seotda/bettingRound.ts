@@ -1,12 +1,15 @@
 import { Player } from "./types";
 
-// 팟 대비 목표 배율 — 하프/쿼터/더블 모두 "이 라운드에 걸고 있을 총액"을
-// 직접 계산하며, 지금 최고 베팅액이 얼마인지는 신경 쓰지 않는다(=베팅을
-// 여는 것이든 레이즈든 같은 공식 하나). 최소 레이즈 증가폭 같은 규칙이
-// 필요 없어져 로직이 단순해진다.
+// 팟 대비 "지금 추가로 낼 금액"의 배율 — 하프는 팟의 1/2, 쿼터는 팟의
+// 1/4, 더블은 팟의 2배를 그대로 낸다. 베팅을 여는 것이든 레이즈든 같은
+// 공식 하나(현재 팟 × 배율)이며, 지금 최고 베팅액이 얼마인지는 신경
+// 쓰지 않는다. 최소 레이즈 증가폭 같은 규칙이 필요 없어져 로직이
+// 단순해진다.
+//
+// 예: 판돈 1,000 → 하프 500 / 쿼터 250 / 더블 2,000
 export const RAISE_RATIOS = {
-  half: 1.5,
-  quarter: 1.25,
+  half: 0.5,
+  quarter: 0.25,
   double: 2,
 } as const;
 
@@ -147,22 +150,23 @@ export class BettingRound {
   /**
    * 하프/쿼터/더블 — 베팅을 열 때든 레이즈할 때든 같은 공식 하나로 처리한다.
    *
-   * 목표 금액(이 라운드에 걸고 있을 총액) = 현재 팟 × 배율(1.5/1.25/2).
-   * 이미 낸 금액을 뺀 나머지만큼만 추가로 낸다.
+   * 지금 추가로 낼 금액 = 현재 팟 × 배율(1/2, 1/4, 2배). 이미 이번
+   * 라운드에 낸 금액 위에 그대로 더해진다(레이즈라면 currentBet 위에
+   * 얹는 게 아니라, 이 추가분 자체가 배율 그대로다).
    */
   raiseByRatio(player: Player, ratio: RaiseRatio): void {
     this.checkTurn(player);
 
-    const target = Math.floor(this.deps.getPot() * RAISE_RATIOS[ratio]);
+    const additionalAmount = Math.floor(this.deps.getPot() * RAISE_RATIOS[ratio]);
 
-    if (target <= this.currentBet) {
+    if (additionalAmount <= 0) {
       throw new Error("지금은 판돈이 작아 이 베팅을 쓸 수 없습니다.");
     }
 
-    const additionalAmount = target - player.bet;
+    const target = player.bet + additionalAmount;
 
-    if (additionalAmount <= 0) {
-      throw new Error("이미 그 금액 이상 베팅했습니다.");
+    if (target <= this.currentBet) {
+      throw new Error("지금은 판돈이 작아 이 베팅을 쓸 수 없습니다.");
     }
 
     if (additionalAmount > player.chips) {
@@ -188,7 +192,7 @@ export class BettingRound {
       p.lastAction = null;
     }
 
-    player.lastAction = `${RAISE_LABELS[ratio]} ${target.toLocaleString()}`;
+    player.lastAction = `${RAISE_LABELS[ratio]} ${additionalAmount.toLocaleString()}`;
 
     this.advanceTurn();
   }

@@ -1837,8 +1837,8 @@ export default function Home() {
     socket.emit("check", roomId);
   };
 
-  // 하프/쿼터/더블 — 베팅을 열 때든 레이즈할 때든 같은 액션이다. 목표
-  // 금액(현재 팟 × 배율)은 서버가 계산한다.
+  // 하프/쿼터/더블 — 베팅을 열 때든 레이즈할 때든 같은 액션이다. 추가로
+  // 낼 금액(현재 팟 × 배율)은 서버가 계산한다.
   const raiseByRatio = (ratio: "half" | "quarter" | "double") => {
     if (!roomId) return;
 

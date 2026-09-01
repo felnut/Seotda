@@ -1151,8 +1151,8 @@ io.on("connection", (socket) => {
   });
 
   // 하프/쿼터/더블 — 베팅을 열 때든 레이즈할 때든 같은 이벤트 하나로
-  // 처리한다. 목표 금액(현재 팟 × 배율)은 서버가 계산하므로 클라이언트는
-  // 배율(ratio)만 보낸다.
+  // 처리한다. 추가로 낼 금액(현재 팟 × 배율)은 서버가 계산하므로
+  // 클라이언트는 배율(ratio)만 보낸다.
   socket.on(
     "raise",
     ({ roomId, ratio }: { roomId: string; ratio: RaiseRatio }) => {
