@@ -1,13 +1,8 @@
 import { ANTE, STARTING_CHIPS } from "./constants";
-import { BettingRound } from "./bettingRound";
+import { BettingRound, RaiseRatio } from "./bettingRound";
 import { Deck } from "./deck";
-import { buildPots, collectDdaengFeeForPot } from "./potManager";
-import {
-  compareHandResults,
-  evaluateHand,
-  findPrioritySpecialWinner,
-  HandResult,
-} from "./ranking";
+import { buildPots, collectDdaengFee, distributePot } from "./potManager";
+import { evaluateHand, HandResult } from "./ranking";
 import { RematchResolver } from "./rematchResolver";
 import { GamePhase, GameState, Player } from "./types";
 import { SeotdaCard } from "@/types/seotda";
@@ -19,7 +14,7 @@ export type { GamePhase, GameState, Player, PlayerStatus } from "./types";
  * 한 판(딜)의 진행을 오케스트레이션한다. 각 부분의 실제 로직은 전담
  * 모듈에 위임한다.
  *
- *   - BettingRound   — 베팅 라운드 하나의 순서·상한·최소 레이즈
+ *   - BettingRound   — 베팅 라운드 하나의 순서·상한·하프/쿼터/더블·올인
  *   - RematchResolver — 구사류 재경기 판정과 즉시 재대결
  *   - potManager      — 메인 팟/사이드 팟 계산과 땡값
  *
@@ -33,7 +28,6 @@ export class SeotdaGame {
   private deck = new Deck();
   private winnerId: string | null = null;
   private redealReason: string | null = null;
-  private pots: GameState["pots"] = null;
 
   private bettingRound: BettingRound;
   private rematchResolver = new RematchResolver();
@@ -81,7 +75,6 @@ export class SeotdaGame {
       deck: this.deck,
       winnerId: this.winnerId,
       redealReason: this.redealReason,
-      pots: this.pots,
     };
   }
 
@@ -103,7 +96,6 @@ export class SeotdaGame {
     this.pot = 0;
     this.winnerId = null;
     this.redealReason = null;
-    this.pots = null;
 
     for (const player of this.players) {
       player.cards = null;
@@ -120,13 +112,25 @@ export class SeotdaGame {
       }
     }
 
+    // 베팅 한도 = 판 시작 시점(앤티를 내기 전) 참가자 전원의 보유 칩
+    // 평균값(버림). 판마다 참가자들의 칩 상황에 맞춰 다시 계산되는 값이며,
+    // 모든 참가자에게 공통으로 적용되는 상한이다.
+    const activePlayers = this.players.filter((player) => !player.isSpectator);
+    const totalChipsBeforeAnte = activePlayers.reduce(
+      (sum, player) => sum + player.chips,
+      0,
+    );
+    const sharedBetLimit =
+      activePlayers.length > 0
+        ? Math.floor(totalChipsBeforeAnte / activePlayers.length)
+        : 0;
+
     // 시작금(앤티) 자동 징수 — 칩이 부족하면 있는 만큼만 낸다(파산 처리는
     // 베팅 단계에서 자동으로 진행된다). 관전자는 앤티를 내지 않는다.
     //
-    // 앤티를 낸 직후의 보유 칩을 기준으로, 이번 판 개인별 최대 베팅 상한
-    // (판당 최대 베팅 금액)을 여기서 한 번만 확정한다. 플레이어마다 보유
-    // 칩이 다르면 상한도 서로 달라지고, 이 차이가 나중에 올인이 발생했을 때
-    // 메인 팟/사이드 팟이 나뉘는 원인이 된다.
+    // 앤티를 낸 직후의 보유 칩과 위에서 구한 공통 베팅 한도 중 더 작은
+    // 값을, 이번 판 개인별 최대 베팅 상한(판당 최대 베팅 금액)으로 여기서
+    // 한 번만 확정한다. 올인은 이 상한의 예외다(bettingRound.allIn 참고).
     for (const player of this.players) {
       if (player.isSpectator) continue;
 
@@ -134,7 +138,7 @@ export class SeotdaGame {
 
       player.chips -= paid;
       player.anteHandPaid = paid;
-      player.maxBet = Math.min(ANTE * 10, player.chips);
+      player.maxBet = Math.min(sharedBetLimit, player.chips);
 
       this.pot += paid;
     }
@@ -208,17 +212,6 @@ export class SeotdaGame {
   }
 
   /**
-   * 첫 베팅 — 현재 베팅 금액이 0일 때만 사용할 수 있습니다.
-   */
-  bet(playerId: string, amount: number, isHalf = false): void {
-    if (!this.isBettingPhase()) {
-      throw new Error("현재 베팅 단계가 아닙니다.");
-    }
-
-    this.bettingRound.bet(this.findPlayer(playerId), amount, isHalf);
-  }
-
-  /**
    * 체크 — 현재까지 베팅된 금액과 자신의 베팅 금액이 같아야 합니다.
    */
   check(playerId: string): void {
@@ -241,20 +234,20 @@ export class SeotdaGame {
   }
 
   /**
-   * 레이즈 — amount는 최종적으로 플레이어가 해당 라운드에 걸고 있는
-   * 총액입니다.
+   * 하프/쿼터/더블 — 베팅을 열 때든 레이즈할 때든 같은 액션입니다. 목표
+   * 금액(현재 팟 × 배율)은 서버가 계산합니다.
    */
-  raise(playerId: string, amount: number, isHalf = false): void {
+  raiseByRatio(playerId: string, ratio: RaiseRatio): void {
     if (!this.isBettingPhase()) {
       throw new Error("현재 베팅 단계가 아닙니다.");
     }
 
-    this.bettingRound.raise(this.findPlayer(playerId), amount, isHalf);
+    this.bettingRound.raiseByRatio(this.findPlayer(playerId), ratio);
   }
 
   /**
-   * 올인 — 남은 칩과 이번 판 개인별 최대 베팅 상한 중 더 작은 만큼을
-   * 전부 베팅합니다. 자세한 내용은 BettingRound.allIn()을 참고하세요.
+   * 올인 — 남은 칩을 전부 베팅합니다. 판당 최대 베팅 금액의 예외입니다.
+   * 자세한 내용은 BettingRound.allIn()을 참고하세요.
    */
   allIn(playerId: string): void {
     if (!this.isBettingPhase()) {
@@ -523,10 +516,8 @@ export class SeotdaGame {
       return { type: "redeal", reason: redealReason };
     }
 
-    // 재경기 조건이 아니라면, 실제 승자 결정은 finishShowdownWithResults()가
-    // 팟(메인 팟/사이드 팟)마다 그 팟의 참가자 범위로 따로 수행한다 — 참가자가
-    // 다르면 팟마다 승자가 달라질 수 있기 때문에 여기서는 전체 1등을
-    // 미리 정하지 않는다.
+    // 재경기 조건이 아니라면, 실제 승자·수령액 결정은
+    // finishShowdownWithResults()가 순위별로 수행한다.
     return { type: "winner", results };
   }
 
@@ -551,8 +542,8 @@ export class SeotdaGame {
   }
 
   /**
-   * 팟(메인 팟 + 사이드 팟)마다 그 팟에 낼 자격이 있는(=올인 등으로 빠지지
-   * 않고 다이도 하지 않은) 참가자 범위 안에서 따로 승자를 정해 지급한다.
+   * 팟(메인 팟 + 사이드 팟)마다 그 팟에 낼 자격이 있는(=그 금액까지
+   * 내고 다이하지 않은) 참가자 범위 안에서 따로 승자(들)를 정해 지급한다.
    * 한 팟이라도 받은 플레이어는 "winner"로 표시한다.
    */
   private finishShowdownWithResults(
@@ -562,34 +553,28 @@ export class SeotdaGame {
     const pots = buildPots(this.players);
 
     const potWinnerIds: string[] = [];
+    let mainPotWinnerId: string | null = null;
 
     for (const pot of pots) {
-      if (pot.eligiblePlayerIds.length === 0) continue;
+      const payouts = distributePot(pot, results, this.players);
 
-      // 땡잡이·암행어사처럼 특정 패를 잡는 효과가 이 팟 참가자 범위 안에서
-      // 발동하는지 먼저 확인한다(17.1) — 발동하면 그 소지자가 팟 전체를
-      // 가져가며, 발동하지 않은 다른 참가자의 일반 족보 등급은 비교하지
-      // 않는다. 아무도 발동하지 않을 때만 일반 순위(rank/value)로 비교한다.
-      const potWinnerId =
-        findPrioritySpecialWinner(pot.eligiblePlayerIds, results) ??
-        pot.eligiblePlayerIds.reduce((best, candidateId) =>
-          compareHandResults(results.get(candidateId)!, results.get(best)!) ===
-          1
-            ? candidateId
-            : best,
+      for (const [playerId, amount] of payouts) {
+        if (amount <= 0) continue;
+
+        const winner = this.findPlayer(playerId);
+
+        winner.chips += amount;
+        potWinnerIds.push(playerId);
+        mainPotWinnerId ??= playerId;
+
+        collectDdaengFee(
+          winner,
+          results.get(playerId)!,
+          amount,
+          pot.eligiblePlayerIds,
+          this.players,
         );
-
-      const potWinner = this.findPlayer(potWinnerId);
-
-      potWinner.chips += pot.amount;
-      potWinnerIds.push(potWinnerId);
-
-      collectDdaengFeeForPot(
-        potWinner,
-        results.get(potWinnerId)!,
-        pot,
-        this.players,
-      );
+      }
     }
 
     const winnerIds = new Set(potWinnerIds);
@@ -598,11 +583,10 @@ export class SeotdaGame {
       player.status = winnerIds.has(player.id) ? "winner" : "loser";
     }
 
-    this.pots = pots;
     // 다음 판 선(先) 순서는 항상 메인 팟(가장 먼저 형성되는, 가장 많은
     // 인원이 걸린 팟)의 승자를 기준으로 한다 — pots는 오름차순 레이어로
-    // 쌓이므로 pots[0]이 곧 메인 팟이다.
-    this.winnerId = potWinnerIds[0] ?? null;
+    // 쌓이므로 가장 먼저 지급되는 승자가 곧 메인 팟 승자다.
+    this.winnerId = mainPotWinnerId;
     this.redealReason = null;
     this.phase = "finished";
   }
