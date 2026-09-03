@@ -331,6 +331,8 @@ function createClientGameState(room: Room, playerId: string): ClientGameState {
         status: player.status,
         chips: player.chips,
         bet: player.bet,
+        totalBet: player.totalBet,
+        maxBet: player.maxBet,
         lastAction: player.lastAction,
         isSpectator: player.isSpectator,
         isAI: aiIds.has(player.id),

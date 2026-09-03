@@ -15,6 +15,7 @@ import {
 } from "@/types/seotda";
 import { HAND_GUIDE, SPECIAL_HAND_GUIDE } from "@/lib/seotda/handGuide";
 import { evaluateHand, getDisplayHandName } from "@/lib/seotda/ranking";
+import { RAISE_RATIOS, RaiseRatio } from "@/lib/seotda/bettingRound";
 import { getFirebaseAuth, getFirebaseDb } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/useAuth";
 import { PROFILES_COLLECTION, UserProfile } from "@/lib/profile";
@@ -578,6 +579,47 @@ const PHASE_LABEL: Partial<Record<ClientGameState["phase"], string>> = {
   showdown: "쇼다운",
   finished: "게임 종료",
 };
+
+// 베팅 버튼(콜/하프/쿼터/더블/올인)을 눌렀을 때 실제로 낼 금액을 미리
+// 계산한다. lib/seotda/bettingRound.ts의 call()·raiseByRatio()·allIn()과
+// 정확히 같은 공식을 그대로 따라야, 버튼에 보여주는 숫자와 실제로
+// 서버에서 빠져나가는 금액이 어긋나지 않는다.
+interface BettingAmounts {
+  callAmount: number;
+  raiseAmounts: Record<RaiseRatio, number>;
+  allInAmount: number;
+  // 이번 판(1차+2차 베팅 전체)에 이미 얼마를 걸었고, 개인별 상한(maxBet)까지
+  // 얼마가 남았는지. 올인은 이 한도의 유일한 예외다.
+  totalBet: number;
+  maxBet: number;
+  remainingRoom: number;
+}
+
+function computeBettingAmounts(
+  pot: number,
+  currentBet: number,
+  me: Pick<ClientPlayer, "bet" | "chips" | "totalBet" | "maxBet">,
+): BettingAmounts {
+  const callAmount = Math.max(0, currentBet - me.bet);
+
+  const raiseAmounts = Object.fromEntries(
+    (Object.keys(RAISE_RATIOS) as RaiseRatio[]).map((ratio) => {
+      const raiseSize = Math.floor(pot * RAISE_RATIOS[ratio]);
+      const target = currentBet + raiseSize;
+
+      return [ratio, Math.max(0, target - me.bet)];
+    }),
+  ) as Record<RaiseRatio, number>;
+
+  return {
+    callAmount,
+    raiseAmounts,
+    allInAmount: me.chips,
+    totalBet: me.totalBet,
+    maxBet: me.maxBet,
+    remainingRoom: Math.max(0, me.maxBet - me.totalBet),
+  };
+}
 
 // 실제 카지노 칩처럼, 금액 구간마다 다른 색의 칩 한 종류를 대응시킨다.
 // 던지는 칩의 색(PlayerPanel)과 판돈 무더기(ChipStack)에 표시하는 색·숫자가
@@ -2499,6 +2541,12 @@ export default function Home() {
       .map((visibleCard) => visibleCard.card)
       .filter((card): card is SeotdaCard => !!card) ?? [];
 
+  const bettingAmounts = myPlayer
+    ? computeBettingAmounts(gameState.pot, gameState.currentBet, myPlayer)
+    : null;
+
+  const isMyTurn = gameState.players[gameState.currentPlayerIndex]?.id === playerId;
+
   /*
    * 게임 화면 — 스크롤 없이 한 화면(h-dvh)에 들어오도록 세로 구성
    */
@@ -2617,95 +2665,117 @@ export default function Home() {
           )}
 
           {(gameState.phase === "betting1" ||
-            gameState.phase === "betting2") && (
-            <div className="animate-fade-up grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:justify-center sm:gap-3">
-              {gameState.currentBet === 0 ? (
-                <button
-                  type="button"
-                  onClick={check}
-                  disabled={
-                    gameState.players[gameState.currentPlayerIndex]?.id !==
-                    playerId
-                  }
-                  className="rounded-xl border border-white/15 bg-white/3 px-5 py-2.5 text-[17.5px] font-semibold text-zinc-200 transition hover:scale-[1.03] hover:bg-white/10 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
-                >
-                  체크
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={call}
-                  disabled={
-                    gameState.players[gameState.currentPlayerIndex]?.id !==
-                    playerId
-                  }
-                  className="rounded-xl bg-felt/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
-                >
-                  콜
-                </button>
-              )}
+            gameState.phase === "betting2") &&
+            bettingAmounts && (
+              <>
+                <p className="mb-1.5 text-center text-[13px] text-zinc-500 sm:text-[14px]">
+                  이번 판 베팅 한도{" "}
+                  <span className="font-mono text-zinc-300">
+                    {bettingAmounts.totalBet.toLocaleString()}
+                  </span>
+                  {" / "}
+                  <span className="font-mono text-zinc-300">
+                    {bettingAmounts.maxBet.toLocaleString()}
+                  </span>
+                  {" · 남은 여유 "}
+                  <span className="font-mono font-semibold text-gold-bright">
+                    {bettingAmounts.remainingRoom.toLocaleString()}
+                  </span>
+                </p>
 
-              <button
-                type="button"
-                onClick={() => raiseByRatio("half")}
-                disabled={
-                  gameState.players[gameState.currentPlayerIndex]?.id !==
-                  playerId
-                }
-                className="rounded-xl bg-felt/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
-              >
-                하프
-              </button>
+                <div className="animate-fade-up grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:justify-center sm:gap-3">
+                  {gameState.currentBet === 0 ? (
+                    <button
+                      type="button"
+                      onClick={check}
+                      disabled={!isMyTurn}
+                      className="rounded-xl border border-white/15 bg-white/3 px-5 py-2.5 text-[17.5px] font-semibold text-zinc-200 transition hover:scale-[1.03] hover:bg-white/10 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                    >
+                      체크
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={call}
+                      disabled={
+                        !isMyTurn ||
+                        bettingAmounts.callAmount > bettingAmounts.allInAmount ||
+                        bettingAmounts.callAmount > bettingAmounts.remainingRoom
+                      }
+                      className="rounded-xl bg-felt/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                    >
+                      콜 {bettingAmounts.callAmount.toLocaleString()}
+                    </button>
+                  )}
 
-              <button
-                type="button"
-                onClick={() => raiseByRatio("quarter")}
-                disabled={
-                  gameState.players[gameState.currentPlayerIndex]?.id !==
-                  playerId
-                }
-                className="rounded-xl bg-felt/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
-              >
-                쿼터
-              </button>
+                  <button
+                    type="button"
+                    onClick={() => raiseByRatio("half")}
+                    disabled={
+                      !isMyTurn ||
+                      bettingAmounts.raiseAmounts.half <= 0 ||
+                      bettingAmounts.raiseAmounts.half >
+                        bettingAmounts.allInAmount ||
+                      bettingAmounts.raiseAmounts.half >
+                        bettingAmounts.remainingRoom
+                    }
+                    className="rounded-xl bg-felt/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                  >
+                    하프 {bettingAmounts.raiseAmounts.half.toLocaleString()}
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => raiseByRatio("double")}
-                disabled={
-                  gameState.players[gameState.currentPlayerIndex]?.id !==
-                  playerId
-                }
-                className="rounded-xl bg-gold px-5 py-2.5 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.03] hover:bg-gold-bright active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
-              >
-                더블
-              </button>
+                  <button
+                    type="button"
+                    onClick={() => raiseByRatio("quarter")}
+                    disabled={
+                      !isMyTurn ||
+                      bettingAmounts.raiseAmounts.quarter <= 0 ||
+                      bettingAmounts.raiseAmounts.quarter >
+                        bettingAmounts.allInAmount ||
+                      bettingAmounts.raiseAmounts.quarter >
+                        bettingAmounts.remainingRoom
+                    }
+                    className="rounded-xl bg-felt/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                  >
+                    쿼터 {bettingAmounts.raiseAmounts.quarter.toLocaleString()}
+                  </button>
 
-              <button
-                type="button"
-                onClick={allIn}
-                disabled={
-                  gameState.players[gameState.currentPlayerIndex]?.id !==
-                  playerId
-                }
-                className="rounded-xl bg-ember/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-ember active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
-              >
-                올인
-              </button>
+                  <button
+                    type="button"
+                    onClick={() => raiseByRatio("double")}
+                    disabled={
+                      !isMyTurn ||
+                      bettingAmounts.raiseAmounts.double <= 0 ||
+                      bettingAmounts.raiseAmounts.double >
+                        bettingAmounts.allInAmount ||
+                      bettingAmounts.raiseAmounts.double >
+                        bettingAmounts.remainingRoom
+                    }
+                    className="rounded-xl bg-gold px-5 py-2.5 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.03] hover:bg-gold-bright active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                  >
+                    더블 {bettingAmounts.raiseAmounts.double.toLocaleString()}
+                  </button>
 
-              <button
-                type="button"
-                onClick={fold}
-                disabled={
-                  gameState.players[gameState.currentPlayerIndex]?.id !==
-                  playerId
-                }
-                className="rounded-xl border border-crimson/40 bg-crimson/10 px-5 py-2.5 text-[17.5px] font-semibold text-crimson-bright transition hover:scale-[1.02] hover:bg-crimson/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
-              >
-                다이
-              </button>
-            </div>
-          )}
+                  <button
+                    type="button"
+                    onClick={allIn}
+                    disabled={!isMyTurn || bettingAmounts.allInAmount <= 0}
+                    className="rounded-xl bg-ember/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-ember active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                  >
+                    올인 {bettingAmounts.allInAmount.toLocaleString()}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={fold}
+                    disabled={!isMyTurn}
+                    className="rounded-xl border border-crimson/40 bg-crimson/10 px-5 py-2.5 text-[17.5px] font-semibold text-crimson-bright transition hover:scale-[1.02] hover:bg-crimson/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                  >
+                    다이
+                  </button>
+                </div>
+              </>
+            )}
 
           {error && (
             <p className="animate-fade-up mx-auto mt-2 max-w-md rounded-xl border border-crimson/30 bg-crimson/10 p-3 text-center text-[17.5px] font-medium text-crimson-bright">
