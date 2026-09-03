@@ -579,26 +579,109 @@ const PHASE_LABEL: Partial<Record<ClientGameState["phase"], string>> = {
   finished: "게임 종료",
 };
 
-// 판돈 규모에 따라 쌓이는 칩 색만 다르게 보여주는 장식용 스택이다 — 정확한
-// 금액은 항상 바로 아래 텍스트로 표기하므로, 이 그림은 눈대중용일 뿐이다.
+// 실제 카지노 칩처럼, 금액 구간마다 다른 색의 칩 한 종류를 대응시킨다.
+// 던지는 칩의 색(PlayerPanel)과 판돈 무더기(ChipStack)에 표시하는 색·숫자가
+// 모두 이 표를 공유해 항상 같은 색은 같은 액수를 뜻하게 한다. 내림차순으로
+// 두어 chipDenominationFor()가 "이 금액이 속하는 가장 큰 단위"를 찾는다.
+// side는 두께(옆면)를 표현하는 box-shadow용 어두운 색이다.
+const CHIP_DENOMINATIONS = [
+  {
+    value: 10_000,
+    label: "1만",
+    bg: "bg-crimson",
+    border: "border-crimson-bright",
+    side: "#8a3a2c",
+  },
+  {
+    value: 5_000,
+    label: "5천",
+    bg: "bg-ember",
+    border: "border-gold-bright",
+    side: "#a35a1f",
+  },
+  {
+    value: 1_000,
+    label: "1천",
+    bg: "bg-gold",
+    border: "border-gold-bright",
+    side: "#a67d3a",
+  },
+  {
+    value: 500,
+    label: "500",
+    bg: "bg-felt",
+    border: "border-felt-bright",
+    side: "#2b6640",
+  },
+  {
+    value: 100,
+    label: "100",
+    bg: "bg-zinc-400",
+    border: "border-zinc-300",
+    side: "#6b7078",
+  },
+] as const;
+
+function chipDenominationFor(amount: number) {
+  return (
+    CHIP_DENOMINATIONS.find((d) => amount >= d.value) ??
+    CHIP_DENOMINATIONS[CHIP_DENOMINATIONS.length - 1]
+  );
+}
+
+const CHIP_PILE_SIZE = 28;
+// 칩의 두께(옆면 높이) — box-shadow로 칩 아래에 진한 색 띠를 깔아,
+// 위(윗면)와 옆(옆면)이 함께 보이는 원통형 칩처럼 보이게 한다.
+const CHIP_PILE_THICKNESS = 6;
+// 가로 간격을 칩 지름보다 넉넉히 크게 둬서, 종류(단위)가 다른 칩끼리는
+// 옆면(그림자)까지 포함해도 절대 서로 겹치지 않게 한다 — 세로 간격은
+// 계단처럼 올라가는 느낌만 주면 되므로 그보다 작아도 된다.
+const CHIP_PILE_H_STEP = 35;
+const CHIP_PILE_V_STEP = 18;
+// 맨 아래(0번) 칩의 그림자(옆면 두께 + 번짐)는 그 칩 자신의 박스 밑으로
+// 삐져나오는데, 그 칩이 컨테이너 맨 아래에 딱 붙어 있으면 이 그림자가
+// 컨테이너 밖으로, 즉 바로 밑의 POT 박스 쪽으로 새어나간다. 모든 칩을
+// 이만큼 위로 올려 그 여백을 컨테이너 안에 미리 확보해둔다.
+const CHIP_PILE_SHADOW_RESERVE = CHIP_PILE_THICKNESS + 6;
+
+// 판돈 규모에 따라, 그 금액이 걸쳐 있는 단위의 칩들을 사선으로 쌓아 올린
+// 무더기 그림이다 — 정확한 금액은 항상 바로 아래 텍스트로 표기하므로, 이
+// 그림은 판돈이 얼마나 두둑한지 눈대중으로 보여주는 용도일 뿐이다. 낮은
+// 단위일수록 왼쪽 아래, 높은 단위일수록 오른쪽 위로 계단처럼 쌓아, 각
+// 칩의 윗면(숫자)과 옆면(두께)이 함께 드러나게 한다.
 function ChipStack({ amount }: { amount: number }) {
-  const colors =
-    amount >= 20_000
-      ? ["bg-crimson", "bg-gold", "bg-felt"]
-      : amount >= 5_000
-        ? ["bg-gold", "bg-felt"]
-        : amount >= 1_000
-          ? ["bg-felt", "bg-zinc-400"]
-          : ["bg-zinc-400"];
+  const denominations = CHIP_DENOMINATIONS.filter(
+    (d) => amount >= d.value,
+  ).reverse();
+
+  if (denominations.length === 0) return null;
+
+  const width =
+    CHIP_PILE_SIZE + (denominations.length - 1) * CHIP_PILE_H_STEP;
+  const height =
+    CHIP_PILE_SIZE +
+    CHIP_PILE_SHADOW_RESERVE +
+    (denominations.length - 1) * CHIP_PILE_V_STEP;
 
   return (
-    <div className="flex flex-col-reverse items-center" aria-hidden>
-      {colors.map((color, index) => (
+    <div className="relative" style={{ width, height }} aria-hidden>
+      {denominations.map((d, index) => (
         <span
-          key={index}
-          className={`h-2 w-7 rounded-full border border-black/40 sm:w-8 ${color}`}
-          style={{ marginTop: index === 0 ? 0 : "-5px" }}
-        />
+          key={d.value}
+          className={`absolute flex items-center justify-center rounded-full border-2 font-mono text-[11px] leading-none font-bold text-zinc-900 ${d.bg} ${d.border}`}
+          style={{
+            width: CHIP_PILE_SIZE,
+            height: CHIP_PILE_SIZE,
+            left: index * CHIP_PILE_H_STEP,
+            bottom: index * CHIP_PILE_V_STEP + CHIP_PILE_SHADOW_RESERVE,
+            zIndex: index,
+            boxShadow: `0 ${CHIP_PILE_THICKNESS}px 0 0 ${d.side}, 0 ${
+              CHIP_PILE_THICKNESS + 2
+            }px 4px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.35)`,
+          }}
+        >
+          {d.label}
+        </span>
       ))}
     </div>
   );
@@ -664,6 +747,38 @@ function PlayerPanel({
     player.status === "playing" &&
     !player.hasSelectedHand;
 
+  // 베팅액이 늘어날 때마다(콜/하프/쿼터/더블/올인) 칩 하나가 팟 방향으로
+  // 튀어 나가는 짧은 애니메이션을 재생한다. 라운드가 바뀌며 베팅액이
+  // 0으로 리셋되는 것은 "베팅"이 아니므로, 늘어날 때만 반응한다.
+  const prevBetRef = useRef(player.bet);
+  const nextChipIdRef = useRef(0);
+  const [flyingChips, setFlyingChips] = useState<
+    { id: number; amount: number }[]
+  >([]);
+
+  useEffect(() => {
+    if (player.bet > prevBetRef.current) {
+      const id = ++nextChipIdRef.current;
+      // 이번에 새로 걸린 만큼(총 베팅액이 아니라 이번 행동으로 늘어난
+      // 증가분)에 맞춰 칩 색을 고른다 — 얼마를 던졌는지가 색으로 보인다.
+      const amount = player.bet - prevBetRef.current;
+
+      setFlyingChips((prev) => [...prev, { id, amount }]);
+
+      // onAnimationEnd가 어떤 이유로든(예: prefers-reduced-motion로 애니메이션
+      // 자체가 꺼진 경우) 발동하지 않을 때를 대비한 안전장치.
+      window.setTimeout(() => {
+        setFlyingChips((prev) => prev.filter((chip) => chip.id !== id));
+      }, 900);
+    }
+
+    prevBetRef.current = player.bet;
+  }, [player.bet]);
+
+  const removeFlyingChip = (id: number) => {
+    setFlyingChips((prev) => prev.filter((chip) => chip.id !== id));
+  };
+
   return (
     <div
       className={`rounded-2xl border px-4 py-2.5 backdrop-blur-sm transition sm:px-5 ${
@@ -715,11 +830,28 @@ function PlayerPanel({
           </span>
 
           {player.bet > 0 && (
-            <span className="shrink-0 font-mono text-[15px] tabular-nums text-zinc-500">
+            <span className="relative shrink-0 font-mono text-[15px] tabular-nums text-zinc-500">
               베팅{" "}
               <span className="text-zinc-300">
                 {player.bet.toLocaleString()}
               </span>
+
+              {flyingChips.map(({ id, amount }) => {
+                const denom = chipDenominationFor(amount);
+
+                return (
+                  <span
+                    key={id}
+                    aria-hidden
+                    onAnimationEnd={() => removeFlyingChip(id)}
+                    className={`pointer-events-none absolute top-0 left-1/2 h-8 w-8 rounded-full border-2 shadow-[0_2px_4px_rgba(0,0,0,0.5),inset_0_0_0_3px_rgba(0,0,0,0.25)] ${denom.bg} ${denom.border} ${
+                      compact
+                        ? "animate-chip-toss-down"
+                        : "animate-chip-toss-up"
+                    }`}
+                  />
+                );
+              })}
             </span>
           )}
         </div>
@@ -946,9 +1078,10 @@ function SeatCard({
           type="button"
           onClick={onRemove}
           aria-label={`${name} 빼기`}
-          className="absolute top-2 right-2 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[12px] font-semibold text-zinc-400 transition hover:border-crimson/40 hover:bg-crimson/10 hover:text-crimson-bright"
+          title="빼기"
+          className="absolute top-1.5 right-1.5 flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-[17px] leading-none transition hover:scale-110 hover:border-crimson/40 hover:bg-crimson/10 active:scale-95"
         >
-          빼기
+          ❌
         </button>
       )}
 

@@ -119,6 +119,42 @@ body {
   }
 }
 
+/* 베팅 시 칩이 팟 쪽으로 튀어 나가는 애니메이션. 상대방(위쪽에 앉음)은
+   아래(팟) 방향으로, 나(아래쪽에 앉음)는 위(팟) 방향으로 던진다. */
+@keyframes chip-toss-up {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0) scale(0.5) rotate(0deg);
+  }
+
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -8px) scale(1) rotate(70deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + 10px), -72px) scale(0.7) rotate(240deg);
+  }
+}
+
+@keyframes chip-toss-down {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0) scale(0.5) rotate(0deg);
+  }
+
+  20% {
+    opacity: 1;
+    transform: translate(-50%, 8px) scale(1) rotate(-70deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% - 10px), 72px) scale(0.7) rotate(-240deg);
+  }
+}
+
 .animate-card-in {
   animation: card-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -135,11 +171,21 @@ body {
   animation: turn-glow 1.8s ease-out infinite;
 }
 
+.animate-chip-toss-up {
+  animation: chip-toss-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-chip-toss-down {
+  animation: chip-toss-down 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-card-in,
   .animate-fade-up,
   .animate-pop-in,
-  .animate-turn-glow {
+  .animate-turn-glow,
+  .animate-chip-toss-up,
+  .animate-chip-toss-down {
     animation: none;
   }
 }
