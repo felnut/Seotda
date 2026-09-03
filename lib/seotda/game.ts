@@ -559,15 +559,18 @@ export class SeotdaGame {
   /**
    * 팟(메인 팟 + 사이드 팟)마다 그 팟에 낼 자격이 있는(=그 금액까지
    * 내고 다이하지 않은) 참가자 범위 안에서 따로 승자(들)를 정해 지급한다.
-   * 한 팟이라도 받은 플레이어는 "winner"로 표시한다.
+   * 화면상 "승리"로 표시되는 건 메인 팟(pots[0] — 가장 먼저 형성되는,
+   * 가장 많은 인원이 걸린 팟) 승자뿐이다. 사이드 팟만 받은 플레이어는
+   * 칩은 늘어나지만 이 판의 실제 승자는 아니므로 "패배"로 남는다.
    */
   private finishShowdownWithResults(
     results: Map<string, HandResult>,
     activePlayers: Player[],
   ): void {
     const pots = buildPots(this.players);
+    const mainPot = pots[0];
 
-    const potWinnerIds: string[] = [];
+    const mainPotWinnerIds = new Set<string>();
     let mainPotWinnerId: string | null = null;
 
     for (const pot of pots) {
@@ -579,8 +582,11 @@ export class SeotdaGame {
         const winner = this.findPlayer(playerId);
 
         winner.chips += amount;
-        potWinnerIds.push(playerId);
-        mainPotWinnerId ??= playerId;
+
+        if (pot === mainPot) {
+          mainPotWinnerIds.add(playerId);
+          mainPotWinnerId ??= playerId;
+        }
 
         collectDdaengFee(
           winner,
@@ -592,15 +598,12 @@ export class SeotdaGame {
       }
     }
 
-    const winnerIds = new Set(potWinnerIds);
-
     for (const player of activePlayers) {
-      player.status = winnerIds.has(player.id) ? "winner" : "loser";
+      player.status = mainPotWinnerIds.has(player.id) ? "winner" : "loser";
     }
 
-    // 다음 판 선(先) 순서는 항상 메인 팟(가장 먼저 형성되는, 가장 많은
-    // 인원이 걸린 팟)의 승자를 기준으로 한다 — pots는 오름차순 레이어로
-    // 쌓이므로 가장 먼저 지급되는 승자가 곧 메인 팟 승자다.
+    // 다음 판 선(先) 순서도 항상 메인 팟 승자를 기준으로 한다(공동 우승이면
+    // 그중 먼저 지급된 한 명).
     this.winnerId = mainPotWinnerId;
     this.redealReason = null;
     this.phase = "finished";

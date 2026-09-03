@@ -26,6 +26,12 @@ export interface ClientPlayer {
   status: PlayerStatus;
   chips: number;
   bet: number;
+  // 이번 판(1차+2차 베팅 라운드 전체)에 걸쳐 누적된 베팅액 — maxBet과
+  // 함께, 이번 판에 더 낼 수 있는 여유(베팅 한도)를 계산하는 데 쓰인다.
+  totalBet: number;
+  // 이번 판 개인별 최대 베팅 상한(판마다 참가자 전원의 보유 칩 평균으로
+  // 정해짐). 올인은 이 상한의 예외라 이 값을 넘어설 수 있다.
+  maxBet: number;
   lastAction: string | null;
   // 파산 후 관전을 선택한 플레이어인지
   isSpectator: boolean;
