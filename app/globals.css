@@ -189,3 +189,15 @@ body {
     animation: none;
   }
 }
+
+/* 설정 패널의 "애니메이션 줄이기" — OS 설정과 무관하게 이 앱 안에서만
+   직접 켜고 끌 수 있는 수동 스위치다. <html>에 붙는 클래스 하나로 위
+   media query와 똑같은 효과를 낸다. */
+:root.reduce-motion .animate-card-in,
+:root.reduce-motion .animate-fade-up,
+:root.reduce-motion .animate-pop-in,
+:root.reduce-motion .animate-turn-glow,
+:root.reduce-motion .animate-chip-toss-up,
+:root.reduce-motion .animate-chip-toss-down {
+  animation: none;
+}
