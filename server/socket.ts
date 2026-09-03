@@ -537,8 +537,13 @@ function scheduleShowdownFollowup(room: Room) {
 
 // 판이 끝날 때마다 로그인한(uid가 있는) 참가자의 랭킹 통계를 Firestore에 반영한다.
 // 관전자는 그 판에 참여하지 않았으므로 집계에서 제외한다.
+//
+// 방에 AI가 한 명이라도 있으면 연습 대결로 취급해 아예 반영하지 않는다 —
+// AI와 주고받은 판돈이 랭킹 통계나 로그인 계정의 보유 칩(rankings/{uid}.money)에
+// 흔적을 남기지 않아야 하기 때문이다.
 async function syncRankingStats(room: Room) {
   if (!room.game || !adminDb) return;
+  if (room.joinedPlayers.some((player) => player.isAI)) return;
 
   const db = adminDb;
   const gamePlayers = room.game.getState().players;
