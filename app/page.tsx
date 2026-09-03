@@ -27,7 +27,11 @@ import { loadNickname, saveNickname } from "@/lib/nickname";
 import { RankingModal } from "./components/RankingModal";
 import { GoogleSignInButton } from "./components/GoogleSignInButton";
 
-const CLEAN_BOT_STORAGE_KEY = "seotda-clean-bot";
+// 설정 패널의 개별 항목들 — 서버와 무관한 개인 설정이라 이 브라우저에만
+// 저장한다.
+const SOUND_EFFECTS_STORAGE_KEY = "seotda-sound-effects";
+const REDUCE_MOTION_STORAGE_KEY = "seotda-reduce-motion";
+const CONFIRM_BETS_STORAGE_KEY = "seotda-confirm-bets";
 
 const MIN_ROOM_PLAYERS = 2;
 const MAX_ROOM_PLAYERS = 6;
@@ -299,31 +303,129 @@ function useIsDesktop(): boolean {
   return isDesktop;
 }
 
-// 완전한 검열은 목표가 아니다 — "끄면 원문 그대로, 켜면 흔한 비속어 몇
-// 개는 가려준다" 정도의 개인 설정용 순화 기능이라 목록은 일부러 짧게 둔다.
-const PROFANITY_WORDS = [
-  "씨발",
-  "씨팔",
-  "시발",
-  "개새끼",
-  "병신",
-  "지랄",
-  "좆",
-  "fuck",
-  "shit",
-  "bitch",
-];
+// 알림음은 채팅/차례/베팅 같은 소켓 이벤트·이펙트에서 비동기로 울리는데,
+// 이때마다 새 AudioContext를 만들면 브라우저 자동재생 정책 때문에 그
+// context가 suspended 상태로 태어나 소리가 전혀 안 나면서도 예외조차
+// 던지지 않는다(조용히 실패). 페이지당 하나의 context를 만들어 재사용하고
+// 필요할 때마다 resume()해야 실제로 소리가 난다.
+let sharedAudioContext: AudioContext | null = null;
 
-function maskProfanity(text: string, enabled: boolean): string {
-  if (!enabled) return text;
+function getSharedAudioContext(): AudioContext | null {
+  if (sharedAudioContext) return sharedAudioContext;
 
-  let masked = text;
+  const AudioContextCtor =
+    window.AudioContext ||
+    (window as unknown as { webkitAudioContext?: typeof AudioContext })
+      .webkitAudioContext;
 
-  for (const word of PROFANITY_WORDS) {
-    masked = masked.replaceAll(new RegExp(word, "gi"), "❋".repeat(word.length));
+  if (!AudioContextCtor) return null;
+
+  sharedAudioContext = new AudioContextCtor();
+  return sharedAudioContext;
+}
+
+// 짧은 알림음 하나를 재생한다. 별도 음원 파일 없이 Web Audio API로 톤을
+// 직접 만든다 — 브라우저가 자동재생을 막아 실패하더라도(사용자 상호작용
+// 이전 등) 게임 진행에는 영향이 없어야 하므로 예외는 조용히 무시한다.
+function playBeep(frequency: number, durationMs: number): void {
+  try {
+    const ctx = getSharedAudioContext();
+
+    if (!ctx) return;
+
+    if (ctx.state === "suspended") {
+      void ctx.resume();
+    }
+
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    oscillator.type = "sine";
+    oscillator.frequency.value = frequency;
+
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(
+      0.0001,
+      ctx.currentTime + durationMs / 1000,
+    );
+
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+    oscillator.start();
+    oscillator.stop(ctx.currentTime + durationMs / 1000);
+  } catch {
+    // 오디오가 막힌 환경(자동재생 차단 등)은 그냥 무음으로 넘어간다.
   }
+}
 
-  return masked;
+// 내 차례를 알리는 두 음(높은음이 뒤따라오는 짧은 차임)
+function playTurnSound(): void {
+  playBeep(660, 120);
+  window.setTimeout(() => playBeep(880, 140), 110);
+}
+
+function playChatSound(): void {
+  playBeep(520, 90);
+}
+
+// public/sounds에 저장해둔 실제 음원. 액션마다 다른 느낌의 소리가 나도록
+// 미리 녹음/제작된 파일을 쓴다 — 합성음(playBeep)과 달리 이쪽은 브라우저의
+// 오디오 자동재생 제한을 받지 않는 한 즉시 재생된다(버튼 클릭이라는 사용자
+// 제스처 안에서 바로 호출되기 때문).
+const CHIP_SOUND_PATHS = {
+  check: "/sounds/check.mp3",
+  call: "/sounds/call.mp3",
+  halfQuarter: "/sounds/half-quarter.mp3",
+  double: "/sounds/double.mp3",
+  allIn: ["/sounds/allin1.mp3", "/sounds/allin2.mp3"],
+} as const;
+
+// 같은 음원이 짧은 간격으로 겹쳐 재생될 수 있어(예: 내 콜 직후 곧바로
+// 상대가 베팅) 매번 clone해서 재생한다 — 안 그러면 나중 재생이 앞선
+// 재생을 currentTime 리셋으로 끊어버린다. 디코딩된 오디오 데이터 자체는
+// origin 오디오 엘리먼트에 캐시돼 재사용된다.
+const soundElementCache = new Map<string, HTMLAudioElement>();
+
+function playSoundFile(src: string, volume = 0.55): void {
+  try {
+    let base = soundElementCache.get(src);
+
+    if (!base) {
+      base = new Audio(src);
+      soundElementCache.set(src, base);
+    }
+
+    const instance = base.cloneNode(true) as HTMLAudioElement;
+    instance.volume = volume;
+    void instance.play().catch(() => {
+      // 자동재생이 막힌 환경은 조용히 무시한다.
+    });
+  } catch {
+    // 오디오 로드/재생 실패는 게임 진행에 영향을 주지 않는다.
+  }
+}
+
+function playAllInSound(): void {
+  const [a, b] = CHIP_SOUND_PATHS.allIn;
+  playSoundFile(Math.random() < 0.5 ? a : b);
+}
+
+// 베팅액이 늘어난 원인(player.lastAction, 예: "하프 100"·"콜"·"올인 9,900")에
+// 맞는 음원을 고른다. 클릭한 사람뿐 아니라 상대가 베팅했을 때도 서버가
+// 내려준 lastAction으로 정확히 같은 소리를 재생할 수 있어, 버튼 클릭
+// 시점이 아니라 베팅액이 실제로 반영되는 이 시점 하나에서만 재생한다.
+function playBetActionSound(lastAction: string | null): void {
+  if (!lastAction) return;
+
+  if (lastAction.startsWith("콜")) {
+    playSoundFile(CHIP_SOUND_PATHS.call);
+  } else if (lastAction.startsWith("더블")) {
+    playSoundFile(CHIP_SOUND_PATHS.double);
+  } else if (lastAction.startsWith("하프") || lastAction.startsWith("쿼터")) {
+    playSoundFile(CHIP_SOUND_PATHS.halfQuarter);
+  } else if (lastAction.startsWith("올인")) {
+    playAllInSound();
+  }
 }
 
 const EMOJI_OPTIONS = [
@@ -362,8 +464,6 @@ function ChatPanel({
   onInputChange,
   onSend,
   typingNames,
-  cleanBot,
-  onToggleCleanBot,
 }: {
   open: boolean;
   onClose: () => void;
@@ -373,8 +473,6 @@ function ChatPanel({
   onInputChange: (value: string) => void;
   onSend: () => void;
   typingNames: string[];
-  cleanBot: boolean;
-  onToggleCleanBot: () => void;
 }) {
   const listRef = useRef<HTMLDivElement | null>(null);
   const [isEmojiOpen, setIsEmojiOpen] = useState(false);
@@ -407,30 +505,14 @@ function ChatPanel({
       <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3 sm:py-4">
         <h3 className="text-[17.5px] font-bold sm:text-[22.5px]">채팅</h3>
 
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={onToggleCleanBot}
-            aria-pressed={cleanBot}
-            title="클린봇 — 비속어를 가려서 보여줍니다"
-            className={`rounded-full px-2 py-1 text-[11px] font-semibold transition ${
-              cleanBot
-                ? "bg-felt/20 text-felt-bright"
-                : "bg-white/5 text-zinc-500 hover:bg-white/10"
-            }`}
-          >
-            클린봇 {cleanBot ? "ON" : "OFF"}
-          </button>
-
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="닫기"
-            className="rounded-full p-2 text-zinc-400 transition hover:bg-white/10 hover:text-white sm:hidden"
-          >
-            ✕
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="닫기"
+          className="rounded-full p-2 text-zinc-400 transition hover:bg-white/10 hover:text-white sm:hidden"
+        >
+          ✕
+        </button>
       </div>
 
       <div
@@ -460,7 +542,7 @@ function ChatPanel({
                   isMine ? "bg-gold text-zinc-900" : "bg-white/8 text-zinc-100"
                 }`}
               >
-                {maskProfanity(message.text, cleanBot)}
+                {message.text}
               </p>
             </div>
           );
@@ -621,6 +703,33 @@ function computeBettingAmounts(
   };
 }
 
+const RAISE_RATIO_LABEL: Record<RaiseRatio, string> = {
+  half: "하프",
+  quarter: "쿼터",
+  double: "더블",
+};
+
+// 설정에서 "베팅 전 확인"을 켰을 때, 실제로 낼 금액을 보여주며 한 번 더
+// 묻는다. 액션 핸들러(raiseByRatio/allIn)는 렌더 중에 계산해둔
+// bettingAmounts가 아니라 이 시점의 gameState를 직접 넘겨받으므로,
+// 금액도 여기서 같은 공식(computeBettingAmounts)으로 다시 구한다.
+function confirmBetAmount(
+  actionLabel: string,
+  gameState: ClientGameState | null,
+  playerId: string,
+  pickAmount: (amounts: BettingAmounts) => number,
+): boolean {
+  const me = gameState?.players.find((player) => player.id === playerId);
+
+  if (!gameState || !me) return true;
+
+  const amount = pickAmount(
+    computeBettingAmounts(gameState.pot, gameState.currentBet, me),
+  );
+
+  return window.confirm(`${actionLabel} ${amount.toLocaleString()}을(를) 베팅할까요?`);
+}
+
 // 실제 카지노 칩처럼, 금액 구간마다 다른 색의 칩 한 종류를 대응시킨다.
 // 던지는 칩의 색(PlayerPanel)과 판돈 무더기(ChipStack)에 표시하는 색·숫자가
 // 모두 이 표를 공유해 항상 같은 색은 같은 액수를 뜻하게 한다. 내림차순으로
@@ -764,6 +873,7 @@ interface PlayerPanelProps {
   onRevealCard: (cardIndex: number) => void;
   onToggleSelect: (cardIndex: number) => void;
   onConfirmSelect: () => void;
+  soundEffects: boolean;
 }
 
 function PlayerPanel({
@@ -776,6 +886,7 @@ function PlayerPanel({
   onRevealCard,
   onToggleSelect,
   onConfirmSelect,
+  soundEffects,
 }: PlayerPanelProps) {
   const canRevealNow =
     isMe &&
@@ -789,9 +900,12 @@ function PlayerPanel({
     player.status === "playing" &&
     !player.hasSelectedHand;
 
-  // 베팅액이 늘어날 때마다(콜/하프/쿼터/더블/올인) 칩 하나가 팟 방향으로
-  // 튀어 나가는 짧은 애니메이션을 재생한다. 라운드가 바뀌며 베팅액이
-  // 0으로 리셋되는 것은 "베팅"이 아니므로, 늘어날 때만 반응한다.
+  // 베팅액이 늘어날 때마다(콜/하프/쿼터/더블/올인 — 체크·다이는 베팅액이
+  // 바뀌지 않으므로 해당 없음) 칩 하나가 팟 방향으로 튀어 나가는 짧은
+  // 애니메이션과 함께 딸깍 소리를 재생한다. 라운드가 바뀌며 베팅액이
+  // 0으로 리셋되는 것은 "베팅"이 아니므로, 늘어날 때만 반응한다. 이 값이
+  // 나(isMe)든 상대든 똑같이 적용돼, 누가 얼마를 걸든 그 자리에서 바로
+  // 반응이 보이고 들린다.
   const prevBetRef = useRef(player.bet);
   const nextChipIdRef = useRef(0);
   const [flyingChips, setFlyingChips] = useState<
@@ -807,6 +921,10 @@ function PlayerPanel({
 
       setFlyingChips((prev) => [...prev, { id, amount }]);
 
+      if (soundEffects) {
+        playBetActionSound(player.lastAction);
+      }
+
       // onAnimationEnd가 어떤 이유로든(예: prefers-reduced-motion로 애니메이션
       // 자체가 꺼진 경우) 발동하지 않을 때를 대비한 안전장치.
       window.setTimeout(() => {
@@ -815,7 +933,7 @@ function PlayerPanel({
     }
 
     prevBetRef.current = player.bet;
-  }, [player.bet]);
+  }, [player.bet, player.lastAction, soundEffects]);
 
   const removeFlyingChip = (id: number) => {
     setFlyingChips((prev) => prev.filter((chip) => chip.id !== id));
@@ -1167,6 +1285,7 @@ interface GameBoardProps {
   pendingSelection: number[];
   onToggleSelect: (cardIndex: number) => void;
   onConfirmSelect: () => void;
+  soundEffects: boolean;
 }
 
 function GameBoard({
@@ -1176,6 +1295,7 @@ function GameBoard({
   pendingSelection,
   onToggleSelect,
   onConfirmSelect,
+  soundEffects,
 }: GameBoardProps) {
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   const isBettingPhase =
@@ -1210,6 +1330,7 @@ function GameBoard({
                 onRevealCard={onRevealCard}
                 onToggleSelect={onToggleSelect}
                 onConfirmSelect={onConfirmSelect}
+                soundEffects={soundEffects}
               />
             </div>
           ))}
@@ -1231,6 +1352,7 @@ function GameBoard({
           onRevealCard={onRevealCard}
           onToggleSelect={onToggleSelect}
           onConfirmSelect={onConfirmSelect}
+          soundEffects={soundEffects}
         />
       )}
     </div>
@@ -1365,17 +1487,66 @@ function ProfilePanel({
   );
 }
 
+// 설정 패널의 켜고/끄는 항목 하나. 라벨·설명·스위치 마크업을 공통으로
+// 묶어, 항목이 늘어나도 SettingsPanel 쪽은 나열만 하면 되게 한다.
+function SettingToggleRow({
+  label,
+  description,
+  checked,
+  onToggle,
+}: {
+  label: string;
+  description: string;
+  checked: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/3 px-4 py-2.5">
+      <div>
+        <p className="text-[14px] font-semibold text-zinc-200">{label}</p>
+        <p className="text-[12px] text-zinc-500">{description}</p>
+      </div>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={onToggle}
+        className={`relative h-6 w-11 shrink-0 rounded-full transition ${
+          checked ? "bg-felt" : "bg-white/15"
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+            checked ? "transform-[translateX(20px)]" : "transform-[translateX(0)]"
+          }`}
+        />
+      </button>
+    </div>
+  );
+}
+
+interface SettingsPanelProps {
+  open: boolean;
+  onClose: () => void;
+  soundEffects: boolean;
+  onToggleSoundEffects: () => void;
+  reduceMotion: boolean;
+  onToggleReduceMotion: () => void;
+  confirmBets: boolean;
+  onToggleConfirmBets: () => void;
+}
+
 function SettingsPanel({
   open,
   onClose,
-  cleanBot,
-  onToggleCleanBot,
-}: {
-  open: boolean;
-  onClose: () => void;
-  cleanBot: boolean;
-  onToggleCleanBot: () => void;
-}) {
+  soundEffects,
+  onToggleSoundEffects,
+  reduceMotion,
+  onToggleReduceMotion,
+  confirmBets,
+  onToggleConfirmBets,
+}: SettingsPanelProps) {
   return (
     <>
       <div
@@ -1404,33 +1575,27 @@ function SettingsPanel({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4">
-          <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/3 px-4 py-2.5">
-            <div>
-              <p className="text-[14px] font-semibold text-zinc-200">클린봇</p>
-              <p className="text-[12px] text-zinc-500">
-                채팅에서 비속어를 가려서 보여줍니다
-              </p>
-            </div>
+        <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-5 py-4">
+          <SettingToggleRow
+            label="효과음"
+            description="누군가 베팅하거나(콜·하프·쿼터·더블·올인) 내 차례가 되거나 채팅이 오면 짧은 알림음을 재생합니다"
+            checked={soundEffects}
+            onToggle={onToggleSoundEffects}
+          />
 
-            <button
-              type="button"
-              role="switch"
-              aria-checked={cleanBot}
-              onClick={onToggleCleanBot}
-              className={`relative h-6 w-11 shrink-0 rounded-full transition ${
-                cleanBot ? "bg-felt" : "bg-white/15"
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                  cleanBot
-                    ? "transform-[translateX(20px)]"
-                    : "transform-[translateX(0)]"
-                }`}
-              />
-            </button>
-          </div>
+          <SettingToggleRow
+            label="애니메이션 줄이기"
+            description="카드·칩이 움직이는 연출을 최소화합니다"
+            checked={reduceMotion}
+            onToggle={onToggleReduceMotion}
+          />
+
+          <SettingToggleRow
+            label="베팅 전 확인"
+            description="하프·쿼터·더블·올인을 누르면 금액을 한 번 더 확인합니다"
+            checked={confirmBets}
+            onToggle={onToggleConfirmBets}
+          />
         </div>
       </aside>
     </>
@@ -1501,27 +1666,71 @@ export default function Home() {
   const isTypingRef = useRef(false);
   const typingStopTimer = useRef<number | null>(null);
 
-  // 클린봇(비속어 순화) — 기본은 꺼짐이며, 로비 설정과 채팅창 안에서 모두
-  // 바꿀 수 있다. 내 화면에 보이는 채팅에만 적용되는 개인 설정이라 굳이
-  // 서버와 동기화하지 않고 이 브라우저에만 저장해둔다.
-  //
-  // 서버는 localStorage를 알 수 없으니 항상 false로 렌더링한다. 저장된
-  // 값을 초기 state에서 바로 읽으면 서버가 그린 HTML(false)과 클라이언트가
-  // 곧바로 그리는 값(예: true)이 달라져 하이드레이션 경고가 나므로, 마운트
-  // 이후 이펙트에서 한 번만 실제 값으로 맞춘다.
-  const [cleanBot, setCleanBot] = useState(false);
+  // 설정 패널의 개인 설정들 — 서버와 동기화하지 않고 이 브라우저에만
+  // 저장해둔다. 서버는 localStorage를 알 수 없으니 초기 렌더는 항상
+  // 기본값으로 그려야 하이드레이션 경고가 나지 않는다. 저장된 값은
+  // 마운트 이후 이펙트에서 한 번만 반영한다.
+  const [soundEffects, setSoundEffects] = useState(true);
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const [confirmBets, setConfirmBets] = useState(false);
 
   useEffect(() => {
-    if (window.localStorage.getItem(CLEAN_BOT_STORAGE_KEY) === "1") {
-      setCleanBot(true);
+    if (window.localStorage.getItem(SOUND_EFFECTS_STORAGE_KEY) === "0") {
+      setSoundEffects(false);
+    }
+
+    const storedReduceMotion = window.localStorage.getItem(
+      REDUCE_MOTION_STORAGE_KEY,
+    );
+
+    if (storedReduceMotion === "1") {
+      setReduceMotion(true);
+    } else if (
+      storedReduceMotion === null &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      // 설정을 직접 바꾼 적이 없다면, OS의 "동작 줄이기" 설정을 그대로
+      // 따라간다 — 매번 다시 꺼야 하는 불편을 없앤다.
+      setReduceMotion(true);
+    }
+
+    if (window.localStorage.getItem(CONFIRM_BETS_STORAGE_KEY) === "1") {
+      setConfirmBets(true);
     }
   }, []);
 
-  const toggleCleanBot = () => {
-    setCleanBot((prev) => {
+  // reduceMotion은 이 컴포넌트 밖의 CSS 애니메이션(카드 등장, 칩 던지기
+  // 등)에도 적용돼야 하므로, 클래스 하나를 <html>에 붙여 CSS 쪽에서
+  // "prefers-reduced-motion: reduce"와 동일하게 취급하게 한다.
+  useEffect(() => {
+    document.documentElement.classList.toggle("reduce-motion", reduceMotion);
+  }, [reduceMotion]);
+
+  const toggleSoundEffects = () => {
+    setSoundEffects((prev) => {
       const next = !prev;
 
-      window.localStorage.setItem(CLEAN_BOT_STORAGE_KEY, next ? "1" : "0");
+      window.localStorage.setItem(SOUND_EFFECTS_STORAGE_KEY, next ? "1" : "0");
+
+      return next;
+    });
+  };
+
+  const toggleReduceMotion = () => {
+    setReduceMotion((prev) => {
+      const next = !prev;
+
+      window.localStorage.setItem(REDUCE_MOTION_STORAGE_KEY, next ? "1" : "0");
+
+      return next;
+    });
+  };
+
+  const toggleConfirmBets = () => {
+    setConfirmBets((prev) => {
+      const next = !prev;
+
+      window.localStorage.setItem(CONFIRM_BETS_STORAGE_KEY, next ? "1" : "0");
 
       return next;
     });
@@ -1537,6 +1746,19 @@ export default function Home() {
   useEffect(() => {
     isChatOpenRef.current = isChatOpen || isDesktop;
   }, [isChatOpen, isDesktop]);
+
+  // 같은 이유로, 채팅 알림음 재생 여부와 "내가 보낸 메시지인지" 판단에
+  // 쓰는 playerId도 소켓 리스너 안에서는 ref로 읽는다.
+  const soundEffectsRef = useRef(soundEffects);
+  const playerIdRef = useRef(playerId);
+
+  useEffect(() => {
+    soundEffectsRef.current = soundEffects;
+  }, [soundEffects]);
+
+  useEffect(() => {
+    playerIdRef.current = playerId;
+  }, [playerId]);
 
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isRankingOpen, setIsRankingOpen] = useState(false);
@@ -1811,6 +2033,10 @@ export default function Home() {
       if (!isChatOpenRef.current) {
         setHasUnreadChat(true);
       }
+
+      if (soundEffectsRef.current && message.playerId !== playerIdRef.current) {
+        playChatSound();
+      }
     });
 
     socket.on(
@@ -1881,6 +2107,24 @@ export default function Home() {
       typingExpiryTimers.current = {};
     };
   }, []);
+
+  // 내 차례가 "됐을 때"(이미 내 차례였던 상태가 계속되는 게 아니라, 막
+  // 넘어온 순간)만 알림음을 울린다.
+  const wasMyTurnRef = useRef(false);
+
+  useEffect(() => {
+    const isBettingPhase =
+      gameState?.phase === "betting1" || gameState?.phase === "betting2";
+    const isMyTurnNow =
+      isBettingPhase &&
+      gameState.players[gameState.currentPlayerIndex]?.id === playerId;
+
+    if (isMyTurnNow && !wasMyTurnRef.current && soundEffects) {
+      playTurnSound();
+    }
+
+    wasMyTurnRef.current = Boolean(isMyTurnNow);
+  }, [gameState, playerId, soundEffects]);
 
   // 나감 알림은 5초 뒤 자동으로 닫힌다.
   useEffect(() => {
@@ -2064,6 +2308,10 @@ export default function Home() {
     socket.emit("join-next-round", roomId);
   };
 
+  // 콜/하프/쿼터/더블/올인은 실제 베팅액 변화(player.lastAction)에 맞춰
+  // PlayerPanel의 칩 애니메이션 이펙트에서 소리를 재생한다 — 여기서
+  // 미리 재생하면 상대방 액션과 달리 나만 두 번(클릭 시 한 번, 서버
+  // 응답 반영 시 또 한 번) 울리게 된다.
   const call = () => {
     if (!roomId) return;
 
@@ -2073,13 +2321,21 @@ export default function Home() {
   const check = () => {
     if (!roomId) return;
 
+    if (soundEffects) {
+      playSoundFile(CHIP_SOUND_PATHS.check);
+    }
+
     socket.emit("check", roomId);
   };
 
   // 하프/쿼터/더블 — 베팅을 열 때든 레이즈할 때든 같은 액션이다. 추가로
   // 낼 금액(현재 팟 × 배율)은 서버가 계산한다.
-  const raiseByRatio = (ratio: "half" | "quarter" | "double") => {
+  const raiseByRatio = (ratio: RaiseRatio) => {
     if (!roomId) return;
+
+    if (confirmBets && !confirmBetAmount(RAISE_RATIO_LABEL[ratio], gameState, playerId, (amounts) => amounts.raiseAmounts[ratio])) {
+      return;
+    }
 
     socket.emit("raise", { roomId, ratio });
   };
@@ -2088,6 +2344,10 @@ export default function Home() {
   // 콜/레이즈 여부까지 판단하므로 클라이언트는 그냥 요청만 보낸다.
   const allIn = () => {
     if (!roomId) return;
+
+    if (confirmBets && !confirmBetAmount("올인", gameState, playerId, (amounts) => amounts.allInAmount)) {
+      return;
+    }
 
     socket.emit("all-in", roomId);
   };
@@ -2354,8 +2614,12 @@ export default function Home() {
         <SettingsPanel
           open={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}
-          cleanBot={cleanBot}
-          onToggleCleanBot={toggleCleanBot}
+          soundEffects={soundEffects}
+          onToggleSoundEffects={toggleSoundEffects}
+          reduceMotion={reduceMotion}
+          onToggleReduceMotion={toggleReduceMotion}
+          confirmBets={confirmBets}
+          onToggleConfirmBets={toggleConfirmBets}
         />
       </main>
     );
@@ -2539,8 +2803,6 @@ export default function Home() {
           onInputChange={handleChatInputChange}
           onSend={sendChatMessage}
           typingNames={Object.values(typingUsers)}
-          cleanBot={cleanBot}
-          onToggleCleanBot={toggleCleanBot}
         />
       </main>
     );
@@ -2610,6 +2872,7 @@ export default function Home() {
             pendingSelection={pendingSelection}
             onToggleSelect={toggleSelect}
             onConfirmSelect={confirmSelect}
+            soundEffects={soundEffects}
           />
         </div>
 
@@ -2670,22 +2933,24 @@ export default function Home() {
             </div>
           )}
 
-          {gameState.phase === "finished" && !bankruptcyNotice && (
-            <div className="flex flex-col items-center gap-1.5 pb-1">
-              <button
-                type="button"
-                onClick={restartGame}
-                disabled={hasVotedRestart}
-                className="animate-pop-in rounded-xl bg-gold px-6 py-2.5 text-[17.5px] font-semibold text-zinc-900 shadow-lg shadow-gold/20 transition hover:scale-[1.03] hover:bg-gold-bright active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
-              >
-                {hasVotedRestart ? "동의함 · 대기 중" : "다시 하기"}
-              </button>
+          {gameState.phase === "finished" &&
+            !bankruptcyNotice &&
+            !myPlayer?.isSpectator && (
+              <div className="flex flex-col items-center gap-1.5 pb-1">
+                <button
+                  type="button"
+                  onClick={restartGame}
+                  disabled={hasVotedRestart}
+                  className="animate-pop-in rounded-xl bg-gold px-6 py-2.5 text-[17.5px] font-semibold text-zinc-900 shadow-lg shadow-gold/20 transition hover:scale-[1.03] hover:bg-gold-bright active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+                >
+                  {hasVotedRestart ? "동의함 · 대기 중" : "다시 하기"}
+                </button>
 
-              <p className="text-[15px] text-zinc-500">
-                {restartVotes}/{restartVotesTotal}명 동의
-              </p>
-            </div>
-          )}
+                <p className="text-[15px] text-zinc-500">
+                  {restartVotes}/{restartVotesTotal}명 동의
+                </p>
+              </div>
+            )}
 
           {gameState.phase === "showdown" && gameState.redealReason && (
             <p className="animate-fade-up mx-auto max-w-md rounded-xl border border-gold/30 bg-gold/10 p-3 text-center text-[17.5px] font-semibold text-gold-bright">
@@ -2832,8 +3097,6 @@ export default function Home() {
         onInputChange={handleChatInputChange}
         onSend={sendChatMessage}
         typingNames={Object.values(typingUsers)}
-        cleanBot={cleanBot}
-        onToggleCleanBot={toggleCleanBot}
       />
     </main>
   );

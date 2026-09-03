@@ -639,11 +639,36 @@ function broadcastPlayersUpdated(roomId: string, room: Room) {
   });
 }
 
+// "다시하기" 투표가 필요한 참가자 — 지금 판에 실제로 참여 중인(관전
+// 중이 아닌) 사람만 해당한다. 관전자는 이번 판 결과와 무관하므로 투표
+// 여부를 묻지 않고, 정족수 계산에서도 제외한다.
+function activeVoterIds(room: Room): Set<string> {
+  if (!room.game) return new Set(room.joinedPlayers.map((player) => player.id));
+
+  const spectatorIds = new Set(
+    room.game
+      .getState()
+      .players.filter((player) => player.isSpectator)
+      .map((player) => player.id),
+  );
+
+  return new Set(
+    room.joinedPlayers
+      .filter((player) => !spectatorIds.has(player.id))
+      .map((player) => player.id),
+  );
+}
+
 function broadcastRestartVotes(room: Room) {
+  const voterIds = activeVoterIds(room);
+  const votedPlayerIds = Array.from(room.restartVotes).filter((id) =>
+    voterIds.has(id),
+  );
+
   const payload = {
-    votes: room.restartVotes.size,
-    total: room.joinedPlayers.length,
-    votedPlayerIds: Array.from(room.restartVotes),
+    votes: votedPlayerIds.length,
+    total: voterIds.size,
+    votedPlayerIds,
   };
 
   for (const player of room.joinedPlayers) {
@@ -681,10 +706,15 @@ function tryStartVotedRestart(roomId: string, room: Room) {
   // 이미 파산자의 관전/나가기 결정을 기다리는 중이라면 새로 시작하지 않는다.
   if (room.pendingBankruptcy.size > 0) return;
 
+  const voterIds = activeVoterIds(room);
+  const votesFromActive = Array.from(room.restartVotes).filter((id) =>
+    voterIds.has(id),
+  ).length;
+
   if (
-    room.restartVotes.size > 0 &&
-    room.restartVotes.size >= room.joinedPlayers.length &&
-    room.joinedPlayers.length >= MIN_PLAYERS
+    votesFromActive > 0 &&
+    votesFromActive >= voterIds.size &&
+    voterIds.size >= MIN_PLAYERS
   ) {
     room.restartVotes.clear();
     beginRestart(roomId, room);
