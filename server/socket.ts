@@ -4,6 +4,11 @@ import { Server } from "socket.io";
 import { SeotdaGame, STARTING_CHIPS } from "@/lib/seotda/game";
 import { RaiseRatio } from "@/lib/seotda/bettingRound";
 import { getDisplayHandName } from "@/lib/seotda/ranking";
+import {
+  decideBettingAction,
+  decideRevealIndex,
+  decideSelectIndices,
+} from "@/lib/seotda/ai";
 import { ChatMessage, ClientGameState, RoomListEntry } from "@/types/seotda";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
 import { RANKINGS_COLLECTION, RankingEntry } from "@/lib/ranking";
@@ -85,6 +90,18 @@ const MAX_ROOM_NAME_LENGTH = 20;
 const MAX_ROOM_PASSWORD_LENGTH = 20;
 const MAX_CHAT_LENGTH = 200;
 
+// AI가 행동하기까지 "생각하는" 것처럼 보이도록 두는 무작위 지연 범위
+const AI_MIN_DELAY_MS = 700;
+const AI_MAX_DELAY_MS = 1_600;
+
+// 같은 AI 행동이 버그 등으로 계속 실패할 때, 방이 영원히 재시도 타이머를
+// 도는 것을 막기 위한 연속 실패 허용 횟수
+const AI_MAX_CONSECUTIVE_FAILURES = 5;
+
+function randomAiDelay(): number {
+  return AI_MIN_DELAY_MS + Math.random() * (AI_MAX_DELAY_MS - AI_MIN_DELAY_MS);
+}
+
 interface JoinedPlayer {
   id: string;
   name: string;
@@ -101,6 +118,10 @@ interface JoinedPlayer {
   // 대기실에서 "준비" 버튼을 눌렀는지. 방장(joinedPlayers[0])은 준비 대신
   // 게임 시작 버튼을 쓰므로 이 값을 참고하지 않는다.
   isReady: boolean;
+  // 방장이 "AI 추가"로 채운 컴퓨터 플레이어인지. AI는 실제 소켓이 없고
+  // (socketId는 항상 null), 항상 준비 완료 상태이며, 자기 차례가 되면
+  // scheduleAiActions()가 대신 행동한다.
+  isAI: boolean;
 }
 
 // playerId(player-1, player-2...)는 순차적이라 쉽게 추측할 수 있으므로,
@@ -240,18 +261,33 @@ interface Room {
   pendingBankruptcy: Set<string>;
   // 방이 사라지면 같이 사라지는 순수 인메모리 채팅 기록(최근 것만 유지)
   chatMessages: ChatMessage[];
+  // 지금 예약된 AI 행동 타이머 — 방마다 하나만 유지해, AI가 여럿이어도
+  // 한 번에 하나씩만 순서대로 행동하게 한다.
+  aiTimer: ReturnType<typeof setTimeout> | null;
+  // AI 행동이 연속으로 실패한 횟수 — 버그 등으로 같은 행동이 계속
+  // 실패하며 무한히 재시도하는 것을 막기 위한 안전장치.
+  aiFailureStreak: number;
 }
 
 const rooms = new Map<string, Room>();
 
-function createClientGameState(
-  game: SeotdaGame,
-  playerId: string,
-): ClientGameState {
+function createClientGameState(room: Room, playerId: string): ClientGameState {
+  const game = room.game;
+
+  if (!game) {
+    throw new Error("게임이 시작되지 않았습니다.");
+  }
+
   const state = game.getState();
 
   // 방을 나간 플레이어는 화면 목록에서 완전히 제외한다.
   const currentPlayerId = state.players[state.currentPlayerIndex]?.id ?? null;
+
+  const aiIds = new Set(
+    room.joinedPlayers
+      .filter((player) => player.isAI)
+      .map((player) => player.id),
+  );
 
   const players = state.players
     .filter((player) => !player.hasLeft)
@@ -297,6 +333,7 @@ function createClientGameState(
         bet: player.bet,
         lastAction: player.lastAction,
         isSpectator: player.isSpectator,
+        isAI: aiIds.has(player.id),
       };
     });
 
@@ -325,17 +362,155 @@ function broadcastGameState(room: Room) {
   for (const player of room.joinedPlayers) {
     if (!player.socketId) continue;
 
-    const state = createClientGameState(room.game, player.id);
+    const state = createClientGameState(room, player.id);
 
     io.to(player.socketId).emit("game-state", state);
   }
 
   if (room.game.getState().phase === "finished") {
+    // AI는 다시하기에 항상 동의한 것으로 취급한다 — 사람 참가자가 한 번만
+    // 눌러도(다른 사람이 더 없다면) 곧바로 다음 판이 시작된다.
+    for (const player of room.joinedPlayers) {
+      if (player.isAI) room.restartVotes.add(player.id);
+    }
+
     broadcastRestartVotes(room);
     syncRankingStats(room).catch((err) => {
       console.error("랭킹 동기화 실패:", err);
     });
   }
+
+  scheduleAiActions(room);
+}
+
+function clearAiTimer(room: Room) {
+  if (room.aiTimer) {
+    clearTimeout(room.aiTimer);
+    room.aiTimer = null;
+  }
+}
+
+// 지금 당장 처리해야 할 AI 행동이 있으면 그 행동 하나를 실행하는 함수를
+// 반환하고, 없으면 null을 반환한다. 베팅 차례든 카드 공개든 족보
+// 선택이든 한 번에 정확히 하나만 고른다 — 방마다 타이머 하나로만
+// 처리하므로, AI가 여럿이어도 서로 겹치지 않고 순서대로 진행된다.
+function findNextAiAction(room: Room): (() => void) | null {
+  const game = room.game;
+
+  if (!game) return null;
+
+  const aiIds = new Set(
+    room.joinedPlayers.filter((player) => player.isAI).map((player) => player.id),
+  );
+
+  if (aiIds.size === 0) return null;
+
+  const state = game.getState();
+
+  if (state.phase === "reveal") {
+    const player = state.players.find(
+      (p) =>
+        aiIds.has(p.id) &&
+        p.status === "playing" &&
+        p.revealedCardIndex === null &&
+        p.cards,
+    );
+
+    if (!player?.cards) return null;
+
+    const index = decideRevealIndex(player.cards);
+
+    return () => game.revealCard(player.id, index);
+  }
+
+  if (state.phase === "select") {
+    const player = state.players.find(
+      (p) =>
+        aiIds.has(p.id) &&
+        p.status === "playing" &&
+        p.selectedIndices === null &&
+        p.cards,
+    );
+
+    if (!player?.cards) return null;
+
+    const indices = decideSelectIndices(player.cards);
+
+    return () => game.selectHand(player.id, indices);
+  }
+
+  if (state.phase === "betting1" || state.phase === "betting2") {
+    const current = game.getCurrentPlayer();
+
+    if (!aiIds.has(current.id)) return null;
+
+    const action = decideBettingAction({
+      player: current,
+      pot: state.pot,
+      currentBet: state.currentBet,
+    });
+
+    return () => {
+      switch (action.type) {
+        case "check":
+          game.check(current.id);
+          break;
+        case "call":
+          game.call(current.id);
+          break;
+        case "raise":
+          game.raiseByRatio(current.id, action.ratio);
+          break;
+        case "allIn":
+          game.allIn(current.id);
+          break;
+        case "fold":
+          game.fold(current.id);
+          break;
+      }
+    };
+  }
+
+  return null;
+}
+
+// AI의 다음 행동을 예약한다. broadcastGameState()가 끝날 때마다 호출되므로
+// — 사람의 행동이든 AI 자신의 행동이든 — 매 상태 변화마다 다시 판단해
+// 필요하면 다음 AI 행동을 잇달아 예약한다.
+function scheduleAiActions(room: Room) {
+  clearAiTimer(room);
+
+  if (!room.game) return;
+
+  const action = findNextAiAction(room);
+
+  if (!action) {
+    room.aiFailureStreak = 0;
+    return;
+  }
+
+  room.aiTimer = setTimeout(() => {
+    room.aiTimer = null;
+
+    let succeeded = true;
+
+    try {
+      action();
+    } catch (error) {
+      succeeded = false;
+      room.aiFailureStreak += 1;
+      console.warn("AI 행동 실패(무시):", error);
+    }
+
+    if (succeeded) {
+      room.aiFailureStreak = 0;
+    } else if (room.aiFailureStreak >= AI_MAX_CONSECUTIVE_FAILURES) {
+      console.error("AI가 연속으로 실패해 이 방의 자동 진행을 중단합니다.");
+      return;
+    }
+
+    broadcastGameState(room);
+  }, randomAiDelay());
 }
 
 // 쇼다운에서 재경기가 결정되면(구사/멍텅구리 구사) 공개된 패를 잠시 보여준
@@ -410,6 +585,7 @@ function roomPlayersPayload(room: Room) {
     id: player.id,
     name: player.name,
     isReady: player.isReady,
+    isAI: player.isAI,
   }));
 }
 
@@ -491,7 +667,7 @@ function broadcastBankruptcyNotice(room: Room) {
 }
 
 // 모든 참가자가 다시하기에 동의했으면 파산자 유무를 확인한 뒤 새 판을 시작한다.
-function tryStartVotedRestart(room: Room) {
+function tryStartVotedRestart(roomId: string, room: Room) {
   if (!room.game || room.game.getState().phase !== "finished") return;
 
   // 이미 파산자의 관전/나가기 결정을 기다리는 중이라면 새로 시작하지 않는다.
@@ -503,7 +679,7 @@ function tryStartVotedRestart(room: Room) {
     room.joinedPlayers.length >= MIN_PLAYERS
   ) {
     room.restartVotes.clear();
-    beginRestart(room);
+    beginRestart(roomId, room);
   } else {
     broadcastRestartVotes(room);
   }
@@ -511,7 +687,7 @@ function tryStartVotedRestart(room: Room) {
 
 // 다시하기가 확정된 뒤 실제로 새 판을 시작한다. 파산한 플레이어가 있다면
 // 먼저 전원에게 한 번 알리고, 그 플레이어들이 관전/나가기를 고를 때까지 기다린다.
-function beginRestart(room: Room) {
+function beginRestart(roomId: string, room: Room) {
   if (!room.game) return;
 
   const bankruptPlayers = room.game
@@ -523,6 +699,9 @@ function beginRestart(room: Room) {
       bankruptPlayers.map((player) => player.id),
     );
     broadcastBankruptcyNotice(room);
+    // 파산한 게 AI라면 관전/나가기를 물어볼 사람이 없으므로, 곧바로
+    // "나가기"로 자동 결정해 다시하기가 막히지 않게 한다.
+    autoResolveAiBankruptcy(roomId, room);
     return;
   }
 
@@ -532,6 +711,48 @@ function beginRestart(room: Room) {
     broadcastGameState(room);
   } catch (error) {
     console.warn("다시하기 시작 실패(무시):", error);
+  }
+}
+
+// 파산한 플레이어의 관전/나가기 결정을 실제로 적용한다. 사람이 직접
+// 고르는 경우("bankruptcy-decision" 핸들러)와 AI를 대신 결정해주는
+// 경우(autoResolveAiBankruptcy) 모두 이 함수를 거친다.
+function applyBankruptcyDecision(
+  roomId: string,
+  room: Room,
+  playerId: string,
+  choice: "spectate" | "leave",
+  onError?: (message: string) => void,
+) {
+  if (!room.game || !room.pendingBankruptcy.has(playerId)) return;
+
+  room.pendingBankruptcy.delete(playerId);
+
+  try {
+    room.game.setSpectator(playerId);
+  } catch (error) {
+    onError?.(
+      error instanceof Error ? error.message : "관전 처리에 실패했습니다.",
+    );
+  }
+
+  if (choice === "leave") {
+    removePlayerFromRoom(roomId, room, playerId);
+  }
+
+  resumeRestartAfterBankruptcy(room);
+}
+
+// 파산해서 관전/나가기 결정을 기다리는 AI가 있으면, 사람의 입력 없이
+// 곧바로 "나가기"로 자동 결정한다 — 방장은 필요하면 다음 판 전에 새
+// AI를 다시 추가하면 된다.
+function autoResolveAiBankruptcy(roomId: string, room: Room) {
+  const bankruptAiIds = room.joinedPlayers
+    .filter((player) => player.isAI && room.pendingBankruptcy.has(player.id))
+    .map((player) => player.id);
+
+  for (const aiId of bankruptAiIds) {
+    applyBankruptcyDecision(roomId, room, aiId, "leave");
   }
 }
 
@@ -599,6 +820,7 @@ function removePlayerFromRoom(roomId: string, room: Room, playerId: string) {
   }
 
   if (room.joinedPlayers.length === 0) {
+    clearAiTimer(room);
     rooms.delete(roomId);
     return;
   }
@@ -629,12 +851,39 @@ function removePlayerFromRoom(roomId: string, room: Room, playerId: string) {
     resumeRestartAfterBankruptcy(room);
   } else {
     // 남은 인원만으로 이미 만장일치라면(예: 미투표자가 방을 나간 경우) 바로 재시작
-    tryStartVotedRestart(room);
+    tryStartVotedRestart(roomId, room);
   }
 }
 
 function createRoomId(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+// 다음에 배정할 player-N id. joinedPlayers.length + 1로 정하면, 대기실
+// 도중 누군가 나가서 번호에 빈틈이 생겼을 때 새로 들어오는 사람(또는
+// 새 AI)이 이미 쓰이고 있는 id를 다시 받을 수 있다 — 실제로 비어있는
+// 가장 작은 번호를 찾아 그 문제를 피한다.
+function nextPlayerId(room: Room): string {
+  let index = 1;
+
+  while (room.joinedPlayers.some((player) => player.id === `player-${index}`)) {
+    index++;
+  }
+
+  return `player-${index}`;
+}
+
+// 이미 있는 이름과 겹치지 않는 AI 이름을 찾는다.
+function createAiName(room: Room): string {
+  let index = 1;
+  let name = `AI ${index}`;
+
+  while (room.joinedPlayers.some((player) => player.name === name)) {
+    index++;
+    name = `AI ${index}`;
+  }
+
+  return name;
 }
 
 io.on("connection", (socket) => {
@@ -707,6 +956,7 @@ io.on("connection", (socket) => {
             startingChips: STARTING_CHIPS,
             rejoinToken: hostRejoinToken,
             isReady: false,
+            isAI: false,
           },
         ],
         game: null,
@@ -714,6 +964,8 @@ io.on("connection", (socket) => {
         restartVotes: new Set(),
         pendingBankruptcy: new Set(),
         chatMessages: [],
+        aiTimer: null,
+        aiFailureStreak: 0,
       };
 
       rooms.set(roomId, room);
@@ -799,10 +1051,10 @@ io.on("connection", (socket) => {
         return;
       }
 
-      const playerIndex = room.joinedPlayers.length + 1;
-      const playerId = `player-${playerIndex}`;
+      const playerId = nextPlayerId(room);
       const resolved = await resolveJoiningPlayer(idToken, name);
-      const resolvedName = resolved.name ?? `플레이어 ${playerIndex}`;
+      const resolvedName =
+        resolved.name ?? `플레이어 ${room.joinedPlayers.length + 1}`;
 
       if (room.joinedPlayers.some((p) => p.name === resolvedName)) {
         socket.emit("error-message", {
@@ -822,6 +1074,7 @@ io.on("connection", (socket) => {
         startingChips: resolved.startingChips,
         rejoinToken: joinerRejoinToken,
         isReady: false,
+        isAI: false,
       });
 
       socket.join(roomId);
@@ -902,7 +1155,7 @@ io.on("connection", (socket) => {
       broadcastPlayersUpdated(roomId, room);
 
       if (room.game) {
-        socket.emit("game-state", createClientGameState(room.game, playerId));
+        socket.emit("game-state", createClientGameState(room, playerId));
       }
 
       if (room.pendingBankruptcy.size > 0) {
@@ -930,6 +1183,70 @@ io.on("connection", (socket) => {
 
     broadcastPlayersUpdated(roomId, room);
   });
+
+  // 방장이 대기실의 빈자리를 AI로 채운다. 게임이 이미 시작된 뒤에는 쓸 수
+  // 없다 — 진행 중인 판 도중에 AI를 끼워 넣는 경우는 다루지 않는다.
+  socket.on("add-ai-player", (roomId: string) => {
+    const room = rooms.get(roomId);
+
+    if (!room || room.game) return;
+
+    const host = room.joinedPlayers[0];
+    const playerId = findPlayerIdBySocket(room, socket.id);
+
+    if (!host || playerId !== host.id) {
+      socket.emit("error-message", {
+        message: "방장만 AI를 추가할 수 있습니다.",
+      });
+
+      return;
+    }
+
+    if (room.joinedPlayers.length >= room.maxPlayers) {
+      socket.emit("error-message", {
+        message: "방이 가득 찼습니다.",
+      });
+
+      return;
+    }
+
+    room.joinedPlayers.push({
+      id: nextPlayerId(room),
+      name: createAiName(room),
+      socketId: null,
+      uid: null,
+      startingChips: STARTING_CHIPS,
+      rejoinToken: randomUUID(),
+      // AI는 항상 준비된 상태로 취급해 방장의 시작을 막지 않는다.
+      isReady: true,
+      isAI: true,
+    });
+
+    broadcastPlayersUpdated(roomId, room);
+  });
+
+  // 방장이 대기실에 추가해둔 AI를 뺀다.
+  socket.on(
+    "remove-ai-player",
+    ({ roomId, playerId }: { roomId: string; playerId: string }) => {
+      const room = rooms.get(roomId);
+
+      if (!room || room.game) return;
+
+      const host = room.joinedPlayers[0];
+      const requesterId = findPlayerIdBySocket(room, socket.id);
+
+      if (!host || requesterId !== host.id) return;
+
+      const target = room.joinedPlayers.find((p) => p.id === playerId);
+
+      if (!target || !target.isAI) return;
+
+      room.joinedPlayers = room.joinedPlayers.filter((p) => p.id !== playerId);
+
+      broadcastPlayersUpdated(roomId, room);
+    },
+  );
 
   socket.on("start-game", (roomId: string) => {
     const room = rooms.get(roomId);
@@ -968,7 +1285,11 @@ io.on("connection", (socket) => {
         return;
       }
 
+      // id를 명시적으로 넘긴다 — SeotdaGame이 배열 순서로만 id를 매기면,
+      // 대기실 도중 누군가 나가 joinedPlayers에 빈틈이 생겼을 때 실제
+      // JoinedPlayer.id와 게임 내부 id가 어긋날 수 있다.
       const players = room.joinedPlayers.map((player) => ({
+        id: player.id,
         name: player.name,
         chips: player.startingChips,
       }));
@@ -1019,7 +1340,7 @@ io.on("connection", (socket) => {
 
     room.restartVotes.add(playerId);
 
-    tryStartVotedRestart(room);
+    tryStartVotedRestart(roomId, room);
   });
 
   // 로그인 계정의 영구 보유 칩(rankings/{uid}.money)이 0 이하로 파산해
@@ -1068,25 +1389,13 @@ io.on("connection", (socket) => {
 
       if (!playerId || !room.pendingBankruptcy.has(playerId)) return;
 
-      room.pendingBankruptcy.delete(playerId);
-
-      try {
-        room.game.setSpectator(playerId);
-      } catch (error) {
-        socket.emit("error-message", {
-          message:
-            error instanceof Error
-              ? error.message
-              : "관전 처리에 실패했습니다.",
-        });
-      }
-
       if (choice === "leave") {
         socket.leave(roomId);
-        removePlayerFromRoom(roomId, room, playerId);
       }
 
-      resumeRestartAfterBankruptcy(room);
+      applyBankruptcyDecision(roomId, room, playerId, choice, (message) => {
+        socket.emit("error-message", { message });
+      });
     },
   );
 

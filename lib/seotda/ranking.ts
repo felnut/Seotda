@@ -390,6 +390,34 @@ export function evaluateHand(cards: [SeotdaCard, SeotdaCard]): HandResult {
   };
 }
 
+// 3장 중 최종 족보로 쓸 가장 좋은 2장을 고른다. 다이로 이겨 스스로 족보를
+// 고르지 못한 승자를 표시용으로 확정할 때(game.ts)와, 혼자 하기 AI가 항상
+// 최선의 조합을 쓰도록 할 때(ai.ts) 공통으로 쓰인다.
+export function bestHandFromThree(
+  cards: [SeotdaCard, SeotdaCard, SeotdaCard],
+): { indices: [number, number]; result: HandResult } {
+  const pairs: [number, number][] = [
+    [0, 1],
+    [0, 2],
+    [1, 2],
+  ];
+
+  let best = pairs[0];
+  let bestResult = evaluateHand([cards[best[0]], cards[best[1]]]);
+
+  for (let i = 1; i < pairs.length; i++) {
+    const [a, b] = pairs[i];
+    const result = evaluateHand([cards[a], cards[b]]);
+
+    if (compareHandResults(result, bestResult) > 0) {
+      best = pairs[i];
+      bestResult = result;
+    }
+  }
+
+  return { indices: best, result: bestResult };
+}
+
 export type CompareResult = -1 | 0 | 1;
 
 //특정 땡을 땡잡이가 잡을 수 있는지 확인

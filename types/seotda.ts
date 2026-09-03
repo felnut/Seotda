@@ -29,6 +29,8 @@ export interface ClientPlayer {
   lastAction: string | null;
   // 파산 후 관전을 선택한 플레이어인지
   isSpectator: boolean;
+  // 방장이 "AI 추가"로 채운 컴퓨터 플레이어인지
+  isAI: boolean;
 }
 
 export type GamePhase =
@@ -72,6 +74,9 @@ export interface RoomPlayerInfo {
   id: string;
   name: string;
   isReady: boolean;
+  // 방장이 "AI 추가"로 채운 컴퓨터 플레이어인지 — true면 대기실에서
+  // 준비 상태 대신 AI 표시와(방장에게는) 빼기 버튼을 보여준다.
+  isAI: boolean;
 }
 
 export interface ChatMessage {
