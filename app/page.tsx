@@ -31,6 +31,9 @@ const CLEAN_BOT_STORAGE_KEY = "seotda-clean-bot";
 const MIN_ROOM_PLAYERS = 2;
 const MAX_ROOM_PLAYERS = 6;
 
+// 방장이 최소 인원 미달인 채로 "게임 시작"을 눌렀을 때 보여주는 안내.
+const NOT_ENOUGH_PLAYERS_ERROR = "함께할 플레이어가 부족합니다.";
+
 // compact: 상대방 카드처럼 화면 공간을 아끼는 작은 크기 / cozy: 내 카드처럼 강조되는 큰 크기
 type CardSize = "compact" | "cozy";
 
@@ -699,6 +702,12 @@ function PlayerPanel({
                 나
               </span>
             )}
+
+            {player.isAI && (
+              <span className="ml-2 shrink-0 rounded-full bg-felt/15 px-2 py-0.5 text-[13px] font-bold text-felt-bright">
+                AI
+              </span>
+            )}
           </h2>
 
           <span className="shrink-0 font-mono text-[15px] tabular-nums text-zinc-500">
@@ -902,12 +911,17 @@ function SeatCard({
   filled,
   isHost,
   isReady,
+  isAI,
+  onRemove,
 }: {
   name: string;
   isMe: boolean;
   filled: boolean;
   isHost: boolean;
   isReady: boolean;
+  isAI: boolean;
+  // 방장 화면에서 이 자리가 AI일 때만 전달된다 — 있으면 "빼기" 버튼을 보여준다.
+  onRemove?: () => void;
 }) {
   if (!filled) {
     return (
@@ -923,10 +937,21 @@ function SeatCard({
 
   return (
     <div
-      className={`flex flex-1 flex-col items-center justify-center gap-2 rounded-2xl border px-6 py-6 text-center sm:py-8 ${
+      className={`relative flex flex-1 flex-col items-center justify-center gap-2 rounded-2xl border px-6 py-6 text-center sm:py-8 ${
         isMe ? "border-gold/25 bg-gold/4" : "border-white/10 bg-white/3"
       }`}
     >
+      {onRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          aria-label={`${name} 빼기`}
+          className="absolute top-2 right-2 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[12px] font-semibold text-zinc-400 transition hover:border-crimson/40 hover:bg-crimson/10 hover:text-crimson-bright"
+        >
+          빼기
+        </button>
+      )}
+
       <div className="flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-gold/80 to-gold-deep/80 text-[17.5px] font-bold text-zinc-900 sm:h-10 sm:w-10">
         {name.charAt(0)}
       </div>
@@ -945,14 +970,16 @@ function SeatCard({
 
       <span
         className={`rounded-full px-2.5 py-0.5 text-[12.5px] font-semibold ${
-          isHost
-            ? "bg-gold/15 text-gold-bright"
-            : isReady
-              ? "bg-felt/20 text-felt-bright"
-              : "bg-white/5 text-zinc-500"
+          isAI
+            ? "bg-felt/15 text-felt-bright"
+            : isHost
+              ? "bg-gold/15 text-gold-bright"
+              : isReady
+                ? "bg-felt/20 text-felt-bright"
+                : "bg-white/5 text-zinc-500"
         }`}
       >
-        {isHost ? "방장" : isReady ? "준비 완료" : "대기 중"}
+        {isAI ? "AI" : isHost ? "방장" : isReady ? "준비 완료" : "대기 중"}
       </span>
     </div>
   );
@@ -1561,10 +1588,6 @@ export default function Home() {
         setPlayerCount(count);
         setMaxPlayers(maxPlayers);
         setRoomPlayers(players);
-
-        if (count < MIN_ROOM_PLAYERS) {
-          setError("함께할 플레이어가 부족합니다.");
-        }
       },
     );
 
@@ -1688,6 +1711,15 @@ export default function Home() {
     return () => window.clearTimeout(timer);
   }, [leaveNotice]);
 
+  // 최소 인원 미달로 게임 시작에 실패했다는 안내도 5초 뒤 자동으로 닫힌다.
+  useEffect(() => {
+    if (error !== NOT_ENOUGH_PLAYERS_ERROR) return;
+
+    const timer = window.setTimeout(() => setError(""), 5000);
+
+    return () => window.clearTimeout(timer);
+  }, [error]);
+
   // 마운트 시 이전에 있던 방이 저장돼 있으면 자동으로 재접속을 시도한다.
   //
   // 로그인 계정 자리는 서버가 idToken으로 uid까지 확인하므로, Firebase
@@ -1747,6 +1779,11 @@ export default function Home() {
   const startGame = () => {
     if (!roomId) return;
 
+    if (playerCount < MIN_ROOM_PLAYERS) {
+      setError(NOT_ENOUGH_PLAYERS_ERROR);
+      return;
+    }
+
     socket.emit("start-game", roomId);
   };
 
@@ -1755,6 +1792,19 @@ export default function Home() {
     if (!roomId) return;
 
     socket.emit("toggle-ready", roomId);
+  };
+
+  // 대기실에서 방장이 빈자리를 AI로 채우거나 뺀다.
+  const addAiPlayer = () => {
+    if (!roomId) return;
+
+    socket.emit("add-ai-player", roomId);
+  };
+
+  const removeAiPlayer = (aiPlayerId: string) => {
+    if (!roomId) return;
+
+    socket.emit("remove-ai-player", { roomId, playerId: aiPlayerId });
   };
 
   // 방을 나갈 때 로컬에 남아있던 방/게임 상태를 정리한다.
@@ -1803,7 +1853,9 @@ export default function Home() {
     resetRoomState();
   };
 
-  // 다시하기 투표 — 참가자 전원이 동의해야 실제로 재시작된다.
+  // 다시하기 투표 — 참가자 전원이 동의해야 실제로 재시작된다. AI는 항상
+  // 자동으로 동의한 것으로 취급되므로, AI만 남은 상대라면 클릭 한 번으로
+  // 바로 재시작된다.
   const restartGame = () => {
     if (!roomId || hasVotedRestart) return;
 
@@ -2129,18 +2181,34 @@ export default function Home() {
   if (!gameState) {
     const hostId = roomPlayers[0]?.id ?? null;
 
+    // roomPlayers는 서버가 실제로 들고 있는 참가자 배열(항상 앞이
+    // 채워져 있음)이므로, 인덱스로 그대로 좌석에 채워 넣는다. 좌석을
+    // "player-N" id로 다시 찾아 매칭하면, 누군가(특히 AI)가 중간에
+    // 빠져나가 번호에 빈틈이 생겼을 때 실제로는 채워진 자리를 빈 자리로
+    // 잘못 그리게 된다.
     const seats = Array.from({ length: maxPlayers }, (_, index) => {
-      const seatId = `player-${index + 1}`;
-      const filled = index + 1 <= playerCount;
-      const roomPlayer = roomPlayers.find((player) => player.id === seatId);
+      const roomPlayer = roomPlayers[index];
+
+      if (!roomPlayer) {
+        return {
+          id: `empty-${index}`,
+          name: `플레이어 ${index + 1}`,
+          isMe: false,
+          filled: false,
+          isHost: false,
+          isReady: false,
+          isAI: false,
+        };
+      }
 
       return {
-        id: seatId,
-        name: roomPlayer?.name ?? `플레이어 ${index + 1}`,
-        isMe: seatId === playerId,
-        filled,
-        isHost: seatId === hostId,
-        isReady: roomPlayer?.isReady ?? false,
+        id: roomPlayer.id,
+        name: roomPlayer.name,
+        isMe: roomPlayer.id === playerId,
+        filled: true,
+        isHost: roomPlayer.id === hostId,
+        isReady: roomPlayer.isReady,
+        isAI: roomPlayer.isAI,
       };
     });
 
@@ -2151,8 +2219,10 @@ export default function Home() {
     const allOthersReady = roomPlayers
       .filter((player) => player.id !== hostId)
       .every((player) => player.isReady);
-    const canStart =
-      isHost && playerCount >= MIN_ROOM_PLAYERS && allOthersReady;
+    // 인원 미달로는 버튼을 막지 않는다 — 눌렀을 때 안내 문구가 뜨도록
+    // startGame()이 직접 검사한다. (다른 참가자가 아직 준비 전이라면
+    // 그건 계속 버튼 자체를 막아 "전원 준비 대기 중" 문구로 안내한다.)
+    const canStart = isHost && allOthersReady;
 
     return (
       <main className="flex h-dvh flex-col overflow-hidden px-3 py-2 sm:flex-row sm:gap-0 sm:px-6 sm:py-4">
@@ -2207,6 +2277,12 @@ export default function Home() {
                   filled={seat.filled}
                   isHost={seat.isHost}
                   isReady={seat.isReady}
+                  isAI={seat.isAI}
+                  onRemove={
+                    isHost && seat.isAI
+                      ? () => removeAiPlayer(seat.id)
+                      : undefined
+                  }
                 />
               ))}
             </div>
@@ -2216,11 +2292,22 @@ export default function Home() {
                 ? "정원이 모두 찼습니다."
                 : roomHasPassword
                   ? "친구에게 비밀번호를 알려주고 방 찾기에서 참가하도록 안내하세요."
-                  : "친구에게 방 찾기에서 이 방을 찾아 참가하도록 안내하세요."}
+                  : "친구에게 방 찾기에서 이 방을 찾아 참가하도록 안내하거나, AI를 추가해보세요."}
             </p>
           </div>
 
           <div className="shrink-0 pt-2">
+            {/* 방장은 빈자리를 AI로 채울 수 있다 */}
+            {isHost && !roomFull && (
+              <button
+                type="button"
+                onClick={addAiPlayer}
+                className="mb-2 w-full rounded-xl border border-felt/30 bg-felt/10 px-6 py-2.5 text-[15.5px] font-semibold text-felt-bright transition hover:scale-[1.02] hover:border-felt/50 hover:bg-felt/20 active:scale-[0.98]"
+              >
+                AI 추가
+              </button>
+            )}
+
             {/* 9. 게임 시작 / 준비 */}
             {isHost ? (
               <button

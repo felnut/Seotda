@@ -2,7 +2,7 @@ import { ANTE, STARTING_CHIPS } from "./constants";
 import { BettingRound, RaiseRatio } from "./bettingRound";
 import { Deck } from "./deck";
 import { buildPots, collectDdaengFee, distributePot } from "./potManager";
-import { evaluateHand, HandResult } from "./ranking";
+import { bestHandFromThree, evaluateHand, HandResult } from "./ranking";
 import { RematchResolver } from "./rematchResolver";
 import { GamePhase, GameState, Player } from "./types";
 import { SeotdaCard } from "@/types/seotda";
@@ -33,13 +33,16 @@ export class SeotdaGame {
   private rematchResolver = new RematchResolver();
 
   constructor(
-    players: { name: string; chips?: number }[] = [
+    players: { id?: string; name: string; chips?: number }[] = [
       { name: "플레이어 1" },
       { name: "플레이어 2" },
     ],
   ) {
+    // id를 명시적으로 넘기면 그 값을 그대로 쓴다 — 호출부(server/socket.ts)가
+    // 이미 확정된 안정적인 플레이어 id(JoinedPlayer.id)를 그대로 전달하기
+    // 위함이며, 넘기지 않으면(기본 생성자 등) 배열 순서대로 매긴다.
     this.players = players.map((player, index) => ({
-      id: `player-${index + 1}`,
+      id: player.id ?? `player-${index + 1}`,
       name: player.name,
       cards: null,
       revealedCardIndex: null,
@@ -738,26 +741,8 @@ export class SeotdaGame {
    * 3장 중 가장 높은 족보가 되는 2장의 인덱스를 반환합니다.
    */
   private bestPairIndices(cards: SeotdaCard[]): [number, number] {
-    const pairs: [number, number][] = [
-      [0, 1],
-      [0, 2],
-      [1, 2],
-    ];
-
-    let best = pairs[0];
-    let bestResult = evaluateHand([cards[best[0]], cards[best[1]]]);
-
-    for (let i = 1; i < pairs.length; i++) {
-      const [a, b] = pairs[i];
-      const result = evaluateHand([cards[a], cards[b]]);
-
-      if (result.rank > bestResult.rank) {
-        best = pairs[i];
-        bestResult = result;
-      }
-    }
-
-    return best;
+    return bestHandFromThree(cards as [SeotdaCard, SeotdaCard, SeotdaCard])
+      .indices;
   }
 
   /**

@@ -150,38 +150,37 @@ export class BettingRound {
   /**
    * 하프/쿼터/더블 — 베팅을 열 때든 레이즈할 때든 같은 공식 하나로 처리한다.
    *
-   * 지금 추가로 낼 금액 = 현재 팟 × 배율(1/2, 1/4, 2배). 이미 이번
-   * 라운드에 낸 금액 위에 그대로 더해진다(레이즈라면 currentBet 위에
-   * 얹는 게 아니라, 이 추가분 자체가 배율 그대로다).
+   * 이 액션의 크기 = 현재 팟 × 배율(1/2, 1/4, 2배). 베팅을 여는 것이라면
+   * (currentBet=0) 그 금액 자체가 이번 라운드 베팅 총액이 되고, 레이즈라면
+   * 현재 최고 베팅액 위에 그 크기만큼을 얹는다 — 안 그러면 이미 걸린
+   * 베팅이 큰 상황에서 하프/쿼터가 그보다 작게 계산돼 아예 낼 수 없는
+   * 경우가 생긴다.
    */
   raiseByRatio(player: Player, ratio: RaiseRatio): void {
     this.checkTurn(player);
 
-    const additionalAmount = Math.floor(this.deps.getPot() * RAISE_RATIOS[ratio]);
+    const raiseSize = Math.floor(this.deps.getPot() * RAISE_RATIOS[ratio]);
 
-    if (additionalAmount <= 0) {
+    if (raiseSize <= 0) {
       throw new Error("지금은 판돈이 작아 이 베팅을 쓸 수 없습니다.");
     }
 
-    const target = player.bet + additionalAmount;
+    const target = this.currentBet + raiseSize;
+    const amountToPay = target - player.bet;
 
-    if (target <= this.currentBet) {
-      throw new Error("지금은 판돈이 작아 이 베팅을 쓸 수 없습니다.");
-    }
-
-    if (additionalAmount > player.chips) {
+    if (amountToPay > player.chips) {
       throw new Error("칩이 부족합니다. 올인을 사용하세요.");
     }
 
-    if (additionalAmount > player.maxBet - player.totalBet) {
+    if (amountToPay > player.maxBet - player.totalBet) {
       throw new Error("판당 최대 베팅 금액을 초과했습니다. 올인을 사용하세요.");
     }
 
-    player.chips -= additionalAmount;
+    player.chips -= amountToPay;
     player.bet = target;
-    player.totalBet += additionalAmount;
+    player.totalBet += amountToPay;
 
-    this.deps.addToPot(additionalAmount);
+    this.deps.addToPot(amountToPay);
     this.currentBet = target;
 
     // 베팅액이 갱신됐으므로 다른 플레이어들은 다시 행동해야 한다.
@@ -192,7 +191,7 @@ export class BettingRound {
       p.lastAction = null;
     }
 
-    player.lastAction = `${RAISE_LABELS[ratio]} ${additionalAmount.toLocaleString()}`;
+    player.lastAction = `${RAISE_LABELS[ratio]} ${raiseSize.toLocaleString()}`;
 
     this.advanceTurn();
   }
