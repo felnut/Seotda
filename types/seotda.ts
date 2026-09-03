@@ -33,8 +33,13 @@ export interface ClientPlayer {
   // 정해짐). 올인은 이 상한의 예외라 이 값을 넘어설 수 있다.
   maxBet: number;
   lastAction: string | null;
-  // 파산 후 관전을 선택한 플레이어인지
+  // 파산 후 관전을 선택했거나, 진행 중인 판 도중 새로 들어와 관전 중인
+  // 플레이어인지. 후자는 스스로 "경기 참여"를 누르기 전까지(=pendingActivation이
+  // true가 되기 전까지) 계속 관전 상태에 머문다.
   isSpectator: boolean;
+  // 관전 중인 플레이어가 "경기 참여"를 눌러, 다음 판부터 참가하도록
+  // 예약해뒀는지. isSpectator가 false면 의미가 없다.
+  pendingActivation: boolean;
   // 방장이 "AI 추가"로 채운 컴퓨터 플레이어인지
   isAI: boolean;
 }

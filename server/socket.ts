@@ -335,6 +335,7 @@ function createClientGameState(room: Room, playerId: string): ClientGameState {
         maxBet: player.maxBet,
         lastAction: player.lastAction,
         isSpectator: player.isSpectator,
+        pendingActivation: player.pendingActivation,
         isAI: aiIds.has(player.id),
       };
     });
@@ -1095,8 +1096,9 @@ io.on("connection", (socket) => {
 
       broadcastPlayersUpdated(roomId, room);
 
-      // 이미 게임이 진행 중인 방이라면, 이번 판은 관전으로 참가하고
-      // 다음 판부터 실제로 플레이하도록 게임에도 등록한다.
+      // 이미 게임이 진행 중인 방이라면 관전으로 참가한다. 스스로 "경기
+      // 참여"를 눌러 requestJoinNextRound()를 호출하기 전까지는 계속
+      // 관전만 한다(join-next-round 핸들러 참고).
       if (room.game) {
         try {
           room.game.addPlayer(playerId, resolvedName, resolved.startingChips);
@@ -1107,6 +1109,56 @@ io.on("connection", (socket) => {
       }
     },
   );
+
+  // 관전 중인 플레이어가 "경기 참여"를 눌러 다음 판부터 참가하겠다고
+  // 예약한다. 지금 관전 중인 다른 사람들에게만 알린다 — 이미 판에
+  // 참여해 진행 중인 사람들에게는 방해가 되지 않게 알리지 않는다.
+  socket.on("join-next-round", (roomId: string) => {
+    const room = rooms.get(roomId);
+
+    if (!room || !room.game) return;
+
+    const playerId = findPlayerIdBySocket(room, socket.id);
+    const joined = playerId
+      ? room.joinedPlayers.find((p) => p.id === playerId)
+      : undefined;
+
+    if (!playerId || !joined) return;
+
+    try {
+      room.game.requestJoinNextRound(playerId);
+    } catch (error) {
+      socket.emit("error-message", {
+        message:
+          error instanceof Error
+            ? error.message
+            : "참가 신청에 실패했습니다.",
+      });
+
+      return;
+    }
+
+    const spectatorIds = new Set(
+      room.game
+        .getState()
+        .players.filter((player) => player.isSpectator)
+        .map((player) => player.id),
+    );
+
+    const notice = {
+      message: `${withSubjectParticle(joined.name)} 다음 판부터 참가합니다.`,
+    };
+
+    for (const player of room.joinedPlayers) {
+      if (!player.socketId) continue;
+      if (player.id === playerId) continue;
+      if (!spectatorIds.has(player.id)) continue;
+
+      io.to(player.socketId).emit("spectator-notice", notice);
+    }
+
+    broadcastGameState(room);
+  });
 
   // 새로고침 등으로 끊겼던 세션을 복구합니다.
   //
