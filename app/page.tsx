@@ -1797,6 +1797,10 @@ export default function Home() {
       setLeaveNotice(message);
     });
 
+    socket.on("spectator-notice", ({ message }: { message: string }) => {
+      setLeaveNotice(message);
+    });
+
     socket.on("bankruptcy-refill-result", ({ money }: { money: number }) => {
       setChips(money);
     });
@@ -1864,6 +1868,7 @@ export default function Home() {
       socket.off("restart-votes-updated");
       socket.off("bankruptcy-notice");
       socket.off("player-left");
+      socket.off("spectator-notice");
       socket.off("bankruptcy-refill-result");
       socket.off("chat-message");
       socket.off("chat-typing");
@@ -2050,6 +2055,13 @@ export default function Home() {
     if (choice === "leave") {
       resetRoomState();
     }
+  };
+
+  // 관전 중인 플레이어가 "경기 참여"를 눌러 다음 판부터 참가하겠다고 알린다.
+  const joinNextRound = () => {
+    if (!roomId) return;
+
+    socket.emit("join-next-round", roomId);
   };
 
   const call = () => {
@@ -2602,6 +2614,24 @@ export default function Home() {
         </div>
 
         <div className="shrink-0 pt-2">
+          {myPlayer?.isSpectator && (
+            <div className="mb-2 flex flex-col items-center gap-1.5">
+              {myPlayer.pendingActivation ? (
+                <p className="animate-fade-up rounded-xl border border-felt/30 bg-felt/10 px-4 py-2 text-center text-[15px] font-medium text-felt-bright">
+                  다음 판부터 참가합니다. 이번 판이 끝날 때까지 기다려주세요.
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={joinNextRound}
+                  className="animate-fade-up rounded-xl bg-felt/90 px-6 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.02] hover:bg-felt active:scale-95"
+                >
+                  경기 참여
+                </button>
+              )}
+            </div>
+          )}
+
           {gameState.phase === "finished" && bankruptcyNotice && (
             <div className="animate-pop-in flex flex-col items-center gap-2 rounded-xl border border-gold/30 bg-gold/10 p-3 text-center">
               <p className="text-[17.5px] font-semibold text-gold-bright">
@@ -2666,6 +2696,7 @@ export default function Home() {
 
           {(gameState.phase === "betting1" ||
             gameState.phase === "betting2") &&
+            !myPlayer?.isSpectator &&
             bettingAmounts && (
               <>
                 <p className="mb-1.5 text-center text-[13px] text-zinc-500 sm:text-[14px]">
