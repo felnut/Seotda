@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Noto_Sans_KR } from "next/font/google";
+import { IBM_Plex_Mono, Nanum_Myeongjo, Noto_Sans_KR } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
@@ -18,16 +18,42 @@ const plexMono = IBM_Plex_Mono({
   variable: "--font-plex-mono",
 });
 
+// "섯다" 로고·브랜드 타이틀 전용 포인트 서체 — 본문은 계속 고딕으로 두고,
+// 이 서체 하나만 골라 써서 전통 화투/도박판 느낌을 살짝 얹는다.
+const nanumMyeongjo = Nanum_Myeongjo({
+  weight: ["700", "800"],
+  subsets: ["latin"],
+  variable: "--font-nanum-myeongjo",
+});
+
+const SITE_URL = "https://seotda.felnut.com";
+const SITE_TITLE = "섯다";
+const SITE_DESCRIPTION = "친구와 온라인으로 즐기는 전통 섯다 카드 게임";
+
 export const metadata: Metadata = {
-  title: "섯다",
-  description: "친구와 온라인으로 즐기는 전통 섯다 카드 게임",
+  metadataBase: new URL(SITE_URL),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    siteName: SITE_TITLE,
+    locale: "ko_KR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ko"
-      className={`${notoSansKr.variable} ${plexMono.variable} h-full antialiased`}
+      className={`${notoSansKr.variable} ${plexMono.variable} ${nanumMyeongjo.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <Analytics />

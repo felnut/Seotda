@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -42,9 +43,12 @@ const NOT_ENOUGH_PLAYERS_ERROR = "함께할 플레이어가 부족합니다.";
 // compact: 상대방 카드처럼 화면 공간을 아끼는 작은 크기 / cozy: 내 카드처럼 강조되는 큰 크기
 type CardSize = "compact" | "cozy";
 
+// sm/lg 같은 고정 구간마다 뚝뚝 끊겨 커지는 대신, 뷰포트 폭에 비례해
+// 연속적으로 커지도록 clamp()로 정의했다 — 창 크기를 드래그하면 카드가
+// 계단식이 아니라 부드럽게 늘어난다.
 const CARD_SIZE_CLASS: Record<CardSize, string> = {
-  compact: "w-9 sm:w-11",
-  cozy: "w-14 sm:w-16 lg:w-20",
+  compact: "w-[clamp(2.25rem,3vw,3rem)]",
+  cozy: "w-[clamp(3.5rem,6vw,6rem)]",
 };
 
 interface CardProps {
@@ -428,31 +432,97 @@ function playBetActionSound(lastAction: string | null): void {
   }
 }
 
-const EMOJI_OPTIONS = [
-  "😀",
-  "😂",
-  "😅",
-  "😉",
-  "😍",
-  "🤔",
-  "😮",
-  "😢",
-  "😡",
-  "🥳",
-  "😴",
-  "🤐",
-  "👍",
-  "👎",
-  "🙏",
-  "👏",
-  "🔥",
-  "💰",
-  "💸",
-  "🎉",
-  "🎲",
-  "🍀",
-  "🃏",
-  "😱",
+// 유니코드 이모지 공식 그룹(Smileys & Emotion, People & Body, Component,
+// Animals & Nature, Food & Drink, Travel & Places, Activities, Objects,
+// Symbols, Flags) 체계를 그대로 따르되, 카드 게임 채팅창에서 감당 가능한
+// 분량으로 그룹별 대표 이모지를 추려 담았다. icon은 탭 버튼에 쓰는
+// 대표 이모지다.
+const EMOJI_CATEGORIES: { label: string; icon: string; emojis: string[] }[] = [
+  {
+    label: "스마일리",
+    icon: "😀",
+    emojis: [
+      "😀", "😃", "😄", "😁", "😆", "🤣", "😂", "🙂", "😉", "😊",
+      "😇", "🥰", "😍", "🤩", "😘", "😋", "🤔", "😐", "🙄", "😴",
+      "😮", "😱", "😭", "😢", "😠", "🤯", "🥳", "🥺", "😳", "🤫",
+    ],
+  },
+  {
+    label: "사람",
+    icon: "👋",
+    emojis: [
+      "👋", "🤚", "✋", "👌", "🤌", "✌️", "🤞", "🤟", "🤙", "👈",
+      "👉", "👆", "👇", "👍", "👎", "✊", "👊", "👏", "🙌", "🙏",
+      "💪", "🦾", "👀", "👄", "💋", "🧠", "👣", "🤝", "🫡", "🧑",
+    ],
+  },
+  {
+    label: "구성",
+    icon: "🦰",
+    emojis: ["🦰", "🦱", "🦳", "🦲", "🫱", "🫲"],
+  },
+  {
+    label: "동물·자연",
+    icon: "🐶",
+    emojis: [
+      "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯",
+      "🦁", "🐮", "🐷", "🐸", "🐵", "🐔", "🐧", "🦉", "🐺", "🦄",
+      "🐝", "🦋", "🐢", "🐍", "🐙", "🌸", "🌻", "🍀", "🌈", "⭐",
+    ],
+  },
+  {
+    label: "음식",
+    icon: "🍔",
+    emojis: [
+      "🍏", "🍎", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🥑", "🌽",
+      "🍞", "🧀", "🍖", "🍗", "🍔", "🍟", "🍕", "🌭", "🌮", "🍣",
+      "🍦", "🍩", "🎂", "🍫", "🍭", "☕", "🍵", "🍺", "🍷", "🥂",
+    ],
+  },
+  {
+    label: "여행",
+    icon: "✈️",
+    emojis: [
+      "🚗", "🚕", "🚌", "🚑", "🚒", "🚲", "✈️", "🚀", "🚁", "⛵",
+      "🚢", "🚂", "🗽", "🗼", "🏰", "🎡", "🎢", "🏖️", "🏝️", "🏔️",
+      "🌋", "⛺", "🏠", "🌃", "🌉", "🌍", "🌌", "🎆",
+    ],
+  },
+  {
+    label: "활동",
+    icon: "⚽",
+    emojis: [
+      "⚽", "🏀", "🏈", "⚾", "🎾", "🏐", "🎱", "🏓", "🏸", "🥊",
+      "🎯", "🎣", "🎿", "🎮", "🎲", "🎰", "🎳", "🎭", "🎨", "🎬",
+      "🎤", "🎧", "🎹", "🥁", "🎸", "🏆", "🥇", "🥈", "🥉",
+    ],
+  },
+  {
+    label: "사물",
+    icon: "💡",
+    emojis: [
+      "⌚", "📱", "💻", "🖥️", "📷", "📺", "⏰", "🔋", "💡", "🔦",
+      "📖", "📚", "💰", "💵", "💳", "💎", "🔨", "🔧", "⚙️", "🔑",
+      "🔒", "💊", "🎁", "🧧", "🎈", "📌", "✂️", "🪙",
+    ],
+  },
+  {
+    label: "기호",
+    icon: "❤️",
+    emojis: [
+      "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "💔", "💕",
+      "💯", "✅", "❌", "❗", "❓", "🔥", "✨", "⭐", "💫", "♠️",
+      "♥️", "♦️", "♣️", "🀄", "🎴", "🆗", "🆕", "🔞", "㊙️", "㊗️",
+    ],
+  },
+  {
+    label: "깃발",
+    icon: "🏁",
+    emojis: [
+      "🏁", "🚩", "🎌", "🏳️", "🏳️‍🌈", "🇰🇷", "🇺🇸", "🇯🇵", "🇨🇳", "🇬🇧",
+      "🇫🇷", "🇩🇪", "🇪🇸", "🇮🇹", "🇨🇦", "🇦🇺", "🇧🇷", "🇮🇳", "🇷🇺",
+    ],
+  },
 ];
 
 function ChatPanel({
@@ -476,17 +546,59 @@ function ChatPanel({
 }) {
   const listRef = useRef<HTMLDivElement | null>(null);
   const [isEmojiOpen, setIsEmojiOpen] = useState(false);
+  const [emojiCategoryIndex, setEmojiCategoryIndex] = useState(0);
+  // 이모지 패널의 기준점(입력창 위 아이콘+입력 줄) — 채팅 패널 자체가
+  // overflow-hidden이라(접기 애니메이션 때문에 필요) 그 안에 그냥
+  // 절대배치하면 패널 폭보다 넓은 이모지 팝업이 잘려 보인다. 그래서 이
+  // 기준점의 화면 좌표를 읽어 팝업을 portal로 body에 fixed 배치한다.
+  const emojiAnchorRef = useRef<HTMLDivElement | null>(null);
+  const [emojiPopupPos, setEmojiPopupPos] = useState<{
+    bottom: number;
+    right: number;
+  } | null>(null);
+
+  useEffect(() => {
+    // 닫혀 있을 땐 좌표를 다시 계산할 필요가 없다 — 렌더링 쪽에서 이미
+    // isEmojiOpen으로 걸러내므로, 여기서 굳이 null로 되돌리지 않아도 된다.
+    if (!isEmojiOpen) return;
+
+    const updatePosition = () => {
+      const rect = emojiAnchorRef.current?.getBoundingClientRect();
+
+      if (!rect) return;
+
+      setEmojiPopupPos({
+        bottom: window.innerHeight - rect.top + 8,
+        right: window.innerWidth - rect.right + 10,
+      });
+    };
+
+    updatePosition();
+
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [isEmojiOpen]);
+  // 데스크톱에서 채팅이 비어있을 때도 화면의 상당 부분을 늘 차지하는 게
+  // 문제로 지적돼, 도킹된 상태에서도 폭을 좁은 아이콘 레일로 접을 수 있게
+  // 했다. 모바일 오버레이의 열림/닫힘(open)과는 별개 개념이다.
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const isDesktop = useIsDesktop();
   // 데스크톱에서는 채팅이 항상 화면에 붙박이로 보이므로 open 상태와
   // 무관하게 늘 조작 가능해야 한다 — 모바일일 때만 open이 실제 표시 여부다.
   const isVisible = isDesktop || open;
+  const isDockCollapsed = isDesktop && isCollapsed;
 
   // 패널이 보이거나 새 메시지가 도착하면 항상 맨 아래로 스크롤한다.
   useEffect(() => {
-    if (!isVisible) return;
+    if (!isVisible || isDockCollapsed) return;
 
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
-  }, [isVisible, messages]);
+  }, [isVisible, isDockCollapsed, messages]);
 
   // 데스크톱(sm 이상)에서는 레이아웃에 자리를 차지하는 도킹 패널로,
   // 모바일에서는 문서 흐름 밖의 fixed 오버레이로 오른쪽에서 슬라이드인한다.
@@ -496,24 +608,54 @@ function ChatPanel({
       // 입력창/버튼이 키보드 탭 이동으로 포커스되지 않도록 inert 처리한다.
       // 데스크톱에서는 항상 보이므로 inert를 걸지 않는다.
       inert={!isVisible}
-      className={`z-40 flex w-56 shrink-0 flex-col overflow-hidden border-white/10 bg-zinc-950/95 transition-transform duration-300 sm:relative sm:w-72 sm:translate-x-0 sm:border-l sm:bg-zinc-950/60 sm:shadow-none md:w-80 lg:w-96 ${
+      className={`z-40 flex shrink-0 flex-col overflow-hidden border-white/10 bg-zinc-950/95 transition-[width,transform] duration-300 sm:relative sm:translate-x-0 sm:border-l sm:bg-zinc-950/60 sm:shadow-none ${
+        isDockCollapsed
+          ? "sm:w-12"
+          : "w-56 sm:w-[clamp(14rem,22vw,20rem)]"
+      } ${
         open
           ? "fixed inset-y-0 right-0 translate-x-0 border-l shadow-2xl"
           : "fixed inset-y-0 right-0 translate-x-full border-l shadow-2xl"
       }`}
     >
-      <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3 sm:py-4">
-        <h3 className="text-[17.5px] font-bold sm:text-[22.5px]">채팅</h3>
-
+      {isDockCollapsed ? (
         <button
           type="button"
-          onClick={onClose}
-          aria-label="닫기"
-          className="rounded-full p-2 text-zinc-400 transition hover:bg-white/10 hover:text-white sm:hidden"
+          onClick={() => setIsCollapsed(false)}
+          aria-label="채팅 펼치기"
+          className="flex h-full w-full flex-col items-center justify-center gap-3 py-6 text-zinc-500 transition hover:text-gold-bright"
         >
-          ✕
+          <span className="text-[18px]">💬</span>
+          <span className="text-[12.5px] font-semibold tracking-widest [writing-mode:vertical-rl]">
+            채팅
+          </span>
         </button>
-      </div>
+      ) : (
+        <>
+          <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3 sm:py-4">
+            <h3 className="text-[17.5px] font-bold sm:text-[22.5px]">채팅</h3>
+
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setIsCollapsed(true)}
+                aria-label="채팅 접기"
+                title="채팅 접기"
+                className="hidden rounded-full p-2 text-zinc-400 transition hover:bg-white/10 hover:text-white sm:inline-flex"
+              >
+                »
+              </button>
+
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="닫기"
+                className="rounded-full p-2 text-zinc-400 transition hover:bg-white/10 hover:text-white sm:hidden"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
 
       <div
         ref={listRef}
@@ -565,24 +707,52 @@ function ChatPanel({
         </p>
       </div>
 
-      <div className="relative shrink-0">
-        {isEmojiOpen && (
-          <div className="absolute right-2.5 bottom-full mb-2 grid w-52 grid-cols-6 gap-1 rounded-xl border border-white/10 bg-zinc-900 p-2 shadow-2xl sm:right-3">
-            {EMOJI_OPTIONS.map((emoji) => (
-              <button
-                key={emoji}
-                type="button"
-                onClick={() => {
-                  onInputChange(`${input}${emoji}`);
-                  setIsEmojiOpen(false);
-                }}
-                className="rounded-lg py-1 text-[19px] transition hover:bg-white/10"
-              >
-                {emoji}
-              </button>
-            ))}
-          </div>
-        )}
+      <div ref={emojiAnchorRef} className="relative shrink-0">
+        {isEmojiOpen &&
+          emojiPopupPos &&
+          createPortal(
+            <div
+              style={{ bottom: emojiPopupPos.bottom, right: emojiPopupPos.right }}
+              className="fixed z-50 w-72 rounded-xl border border-white/10 bg-zinc-900 shadow-2xl"
+            >
+              <div className="flex gap-0.5 overflow-x-auto border-b border-white/10 p-1.5">
+                {EMOJI_CATEGORIES.map((category, index) => (
+                  <button
+                    key={category.label}
+                    type="button"
+                    title={category.label}
+                    aria-label={category.label}
+                    aria-pressed={emojiCategoryIndex === index}
+                    onClick={() => setEmojiCategoryIndex(index)}
+                    className={`shrink-0 rounded-lg px-2 py-1 text-[16px] transition ${
+                      emojiCategoryIndex === index
+                        ? "bg-gold/15 ring-1 ring-gold/40"
+                        : "hover:bg-white/10"
+                    }`}
+                  >
+                    {category.icon}
+                  </button>
+                ))}
+              </div>
+
+              <div className="grid max-h-40 grid-cols-6 gap-1 overflow-y-auto p-2">
+                {EMOJI_CATEGORIES[emojiCategoryIndex].emojis.map((emoji, index) => (
+                  <button
+                    key={`${emoji}-${index}`}
+                    type="button"
+                    onClick={() => {
+                      onInputChange(`${input}${emoji}`);
+                      setIsEmojiOpen(false);
+                    }}
+                    className="rounded-lg py-1 text-[19px] transition hover:bg-white/10"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>,
+            document.body,
+          )}
 
         <form
           onSubmit={(event) => {
@@ -611,7 +781,7 @@ function ChatPanel({
             onChange={(event) => onInputChange(event.target.value)}
             placeholder="메시지 입력..."
             maxLength={200}
-            className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-[13.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20 sm:px-3.5 sm:py-2.5 sm:text-[15px]"
+            className="min-w-0 flex-1 rounded-xl border border-white/20 bg-black/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] px-3 py-2 text-[13.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20 sm:px-3.5 sm:py-2.5 sm:text-[15px]"
           />
 
           <button
@@ -623,6 +793,8 @@ function ChatPanel({
           </button>
         </form>
       </div>
+        </>
+      )}
     </aside>
   );
 }
@@ -826,9 +998,14 @@ function ChipStack({ amount }: { amount: number }) {
             left: index * CHIP_PILE_H_STEP,
             bottom: index * CHIP_PILE_V_STEP + CHIP_PILE_SHADOW_RESERVE,
             zIndex: index,
+            // 왼쪽 위에서 빛을 받는 듯한 하이라이트 + 가장자리를 따라 도는
+            // 얇은 점선형 테두리로, 평면 원이 아니라 광택 있는 실물 칩처럼
+            // 보이게 한다.
+            backgroundImage: `radial-gradient(circle at 32% 28%, rgba(255,255,255,0.55), rgba(255,255,255,0) 45%), repeating-conic-gradient(rgba(255,255,255,0.4) 0deg 6deg, transparent 6deg 18deg)`,
+            backgroundBlendMode: "overlay, normal",
             boxShadow: `0 ${CHIP_PILE_THICKNESS}px 0 0 ${d.side}, 0 ${
               CHIP_PILE_THICKNESS + 2
-            }px 4px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.35)`,
+            }px 5px rgba(0,0,0,0.4), inset 0 0 0 3px rgba(0,0,0,0.15), inset 0 1px 1px rgba(255,255,255,0.4)`,
           }}
         >
           {d.label}
@@ -843,14 +1020,20 @@ function PotBadge({ pot, turnLabel }: { pot: number; turnLabel: string }) {
     <div className="flex shrink-0 flex-col items-center justify-center gap-1.5 py-1">
       <ChipStack amount={pot} />
 
-      <div className="flex flex-col items-center rounded-2xl border border-gold/40 bg-zinc-950/80 px-5 py-1.5">
-        <p className="text-[10px] font-bold tracking-widest text-gold-bright">
+      <div
+        className="flex flex-col items-center rounded-2xl border border-gold/40 bg-zinc-950/80 px-5 py-1.5 sm:px-6 sm:py-2"
+        style={{
+          boxShadow:
+            "0 0 24px -4px rgba(219, 169, 90, 0.35), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -2px 6px rgba(0,0,0,0.5)",
+        }}
+      >
+        <p className="text-[10px] font-bold tracking-widest text-gold-bright sm:text-[11px]">
           POT
         </p>
 
         <p
           key={pot}
-          className="animate-pop-in font-mono text-[17.5px] font-bold tabular-nums text-gold sm:text-[19px]"
+          className="animate-pop-in font-mono text-[17.5px] font-bold tabular-nums text-gold sm:text-[22px]"
         >
           {pot.toLocaleString()}
         </p>
@@ -1311,7 +1494,7 @@ function GameBoard({
     : (PHASE_LABEL[gameState.phase] ?? gameState.phase);
 
   return (
-    <div className="relative flex flex-1 flex-col justify-between gap-2 rounded-4xl border border-gold/25 bg-felt/8 p-2.5 sm:gap-3 sm:p-4">
+    <div className="table-felt relative flex flex-1 flex-col justify-between gap-[clamp(0.5rem,1.2vw,0.75rem)] rounded-4xl border border-gold/20 p-[clamp(0.625rem,2vw,1.5rem)]">
       {/* 상대방은 테이블 위쪽에 가로로 둘러앉는다(둥근 테이블 흉내) */}
       {opponents.length > 0 && (
         <div className="flex min-h-0 flex-1 flex-wrap content-start justify-center gap-1.5 overflow-y-auto sm:gap-2">
@@ -1443,7 +1626,7 @@ function ProfilePanel({
             }}
             placeholder="닉네임을 입력하세요"
             maxLength={13}
-            className="mb-3 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-[17.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
+            className="mb-3 w-full rounded-xl border border-white/20 bg-black/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] px-4 py-2.5 text-[17.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
           />
 
           <p className="mb-4 text-[13px] text-zinc-500">
@@ -2485,7 +2668,7 @@ export default function Home() {
           )}
         </div>
 
-        <h1 className="mb-1 text-[36px] font-black tracking-tight text-gold">
+        <h1 className="font-serif mb-1 text-[36px] font-black tracking-tight text-gold">
           섯다
         </h1>
 
@@ -2506,7 +2689,7 @@ export default function Home() {
             }}
             placeholder="입력하지 않으면 기본 이름이 부여됩니다"
             maxLength={13}
-            className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2 text-[17.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
+            className="w-full rounded-xl border border-white/20 bg-black/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] px-4 py-2 text-[17.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
           />
         </div>
 
@@ -2525,7 +2708,7 @@ export default function Home() {
                 onChange={(event) => setCreateRoomName(event.target.value)}
                 placeholder="방 이름"
                 maxLength={20}
-                className="mb-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2 text-[15.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
+                className="mb-2 w-full rounded-xl border border-white/20 bg-black/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] px-4 py-2 text-[15.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
               />
 
               <input
@@ -2533,7 +2716,7 @@ export default function Home() {
                 onChange={(event) => setCreatePassword(event.target.value)}
                 placeholder="비밀번호"
                 maxLength={20}
-                className="mb-3 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2 text-[15.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
+                className="mb-3 w-full rounded-xl border border-white/20 bg-black/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] px-4 py-2 text-[15.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
               />
 
               <p className="mb-1.5 text-[14px] font-medium text-zinc-500">
@@ -2551,8 +2734,8 @@ export default function Home() {
                     onClick={() => setCreateMaxPlayers(count)}
                     className={`flex-1 rounded-lg border py-1.5 text-[16px] font-semibold transition ${
                       createMaxPlayers === count
-                        ? "border-gold/60 bg-gold/15 text-gold-bright"
-                        : "border-white/10 bg-white/3 text-zinc-400 hover:border-white/20"
+                        ? "border-gold/70 bg-gold/15 text-gold-bright shadow-[0_0_0_1px_rgba(219,169,90,0.25)]"
+                        : "border-white/20 bg-black/20 text-zinc-400 hover:border-white/35 hover:bg-white/8 hover:text-zinc-200"
                     }`}
                   >
                     {count}
@@ -2682,7 +2865,7 @@ export default function Home() {
         <div className="mx-auto flex w-full min-w-0 flex-1 flex-col overflow-hidden sm:pr-4">
           <header className="mb-2 flex shrink-0 items-center justify-between gap-3 sm:mb-4">
             <div className="flex min-w-0 items-baseline gap-2">
-              <h1 className="shrink-0 text-[22px] font-black tracking-tight text-gold sm:text-[26px]">
+              <h1 className="font-serif shrink-0 text-[22px] font-black tracking-tight text-gold sm:text-[26px]">
                 섯다
               </h1>
 
@@ -2821,6 +3004,12 @@ export default function Home() {
 
   const isMyTurn = gameState.players[gameState.currentPlayerIndex]?.id === playerId;
 
+  const infoRailPhaseLabel =
+    PHASE_LABEL[gameState.phase] ??
+    (gameState.phase === "betting1" || gameState.phase === "betting2"
+      ? "베팅 중"
+      : gameState.phase);
+
   /*
    * 게임 화면 — 스크롤 없이 한 화면(h-dvh)에 들어오도록 세로 구성
    */
@@ -2828,9 +3017,52 @@ export default function Home() {
     <main className="flex h-dvh flex-col overflow-hidden px-3 py-2 sm:flex-row sm:gap-4 sm:px-6 sm:py-4">
       <LeaveNoticeToast message={leaveNotice} />
 
-      <div className="mx-auto flex w-full min-w-0 flex-1 flex-col overflow-hidden sm:pr-4">
+      {/* 노트북/데스크톱처럼 넓은 화면에서는 채팅을 접어도 테이블 반대편에
+          빈 공간이 남는다 — 그 공간을 장식이 아니라 실제 있는 정보(방·내
+          현황)를 상시 보여주는 패널로 채운다. xl 미만에서는 아예 렌더링하지
+          않아 좁은 화면 레이아웃에는 영향이 없다. */}
+      <aside className="hidden w-56 shrink-0 flex-col gap-3 xl:flex">
+        <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
+          <p className="mb-1 truncate text-[15px] font-semibold text-zinc-200">
+            {roomHasPassword ? "🔒 " : ""}
+            {roomName}
+          </p>
+          <p className="text-[13px] text-zinc-500">
+            {gameState.players.length}/{maxPlayers}명 참가 중
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
+          <p className="mb-3 text-[12px] font-semibold tracking-wide text-zinc-500">
+            내 현황
+          </p>
+
+          <div className="mb-2.5 flex items-baseline justify-between">
+            <span className="text-[13.5px] text-zinc-400">보유 칩</span>
+            <span className="font-mono text-[16px] font-bold tabular-nums text-gold-bright">
+              {(myPlayer?.chips ?? 0).toLocaleString()}
+            </span>
+          </div>
+
+          <div className="flex items-baseline justify-between">
+            <span className="text-[13.5px] text-zinc-400">이번 판 팟</span>
+            <span className="font-mono text-[16px] font-bold tabular-nums text-gold-bright">
+              {gameState.pot.toLocaleString()}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-center gap-2 rounded-2xl border border-gold/15 bg-gold/4 p-3">
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-gold-bright" />
+          <p className="text-[13.5px] font-medium text-zinc-300">
+            {infoRailPhaseLabel}
+          </p>
+        </div>
+      </aside>
+
+      <div className="mx-auto flex w-full min-w-0 flex-1 flex-col overflow-hidden sm:pr-4 2xl:max-w-[1400px]">
         <header className="mb-2 flex shrink-0 items-center justify-between gap-3 sm:mb-4">
-          <h1 className="text-[25px] font-bold tracking-tight text-gold sm:text-3xl">
+          <h1 className="font-serif text-[25px] font-bold tracking-tight text-gold sm:text-3xl">
             섯다
           </h1>
 
@@ -3052,20 +3284,24 @@ export default function Home() {
                     더블 {bettingAmounts.raiseAmounts.double.toLocaleString()}
                   </button>
 
+                  {/* 올인은 되돌릴 수 없는 가장 큰 액션이라, 다른 버튼보다 한 단계
+                      크고 은은하게 맥동하는 테두리를 둬 눈에 먼저 들어오게 한다. */}
                   <button
                     type="button"
                     onClick={allIn}
                     disabled={!isMyTurn || bettingAmounts.allInAmount <= 0}
-                    className="rounded-xl bg-ember/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-ember active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                    className="animate-allin-glow rounded-xl border-2 border-gold-bright/30 bg-ember px-6 py-3 text-[18px] font-black text-white transition hover:scale-[1.04] hover:bg-ember active:scale-95 disabled:cursor-not-allowed disabled:animate-none disabled:opacity-30 disabled:hover:scale-100 sm:px-9 sm:py-3.5 sm:text-[21px]"
                   >
                     올인 {bettingAmounts.allInAmount.toLocaleString()}
                   </button>
 
+                  {/* 다이는 포기하는 액션이라, 나머지 그룹과 시각적으로 거리를
+                      두고(왼쪽 여백) 기본 상태에서는 옅게 눌러둔다. */}
                   <button
                     type="button"
                     onClick={fold}
                     disabled={!isMyTurn}
-                    className="rounded-xl border border-crimson/40 bg-crimson/10 px-5 py-2.5 text-[17.5px] font-semibold text-crimson-bright transition hover:scale-[1.02] hover:bg-crimson/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                    className="rounded-xl border border-crimson/30 px-5 py-2.5 text-[15.5px] font-medium text-crimson-bright/80 transition hover:scale-[1.02] hover:border-crimson/50 hover:bg-crimson/10 hover:text-crimson-bright active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:ml-2 sm:px-7 sm:py-3 sm:text-[16px]"
                   >
                     다이
                   </button>
