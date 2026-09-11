@@ -340,13 +340,15 @@ export class SeotdaGame {
   }
 
   /**
-   * 방에 이 사람 한 명만 남았을 때, 진행 중이던 판/직전 판 결과와 무관하게
-   * 그 사람을 승자로 확정한다. 이미 이 사람이 승자로 확정돼 있다면(예:
-   * leaveGame이 다이 처리로 방금 finishByFold를 실행한 경우) 아무 일도
-   * 하지 않는다 — 판돈을 중복으로 지급하지 않기 위함이다.
+   * 방에 이 사람 한 명만 남았을 때, 아직 진행 중이던 판이라면 그 사람을
+   * 승자로 확정한다. 이미 판이 끝난 뒤(예: leaveGame이 다이 처리로 방금
+   * finishByFold를 실행했거나, 정상적으로 쇼다운까지 끝난 경우)라면 판돈은
+   * 이미 정산이 끝났으므로 아무 일도 하지 않는다 — 그렇지 않으면 실제
+   * 승자가 아닌 이 플레이어를 승자로 잘못 표시(winnerId 덮어쓰기)하면서도
+   * 판돈은 다시 지급하지 않아, 랭킹 집계 등에 잘못된 승패 기록만 남긴다.
    */
   declareSoleSurvivorWinner(playerId: string): void {
-    if (this.phase === "finished" && this.winnerId === playerId) return;
+    if (this.phase === "finished") return;
 
     const player = this.findPlayer(playerId);
 
