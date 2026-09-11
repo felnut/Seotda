@@ -4,11 +4,8 @@ import { Server } from "socket.io";
 import { SeotdaGame, STARTING_CHIPS } from "@/lib/seotda/game";
 import { RaiseRatio } from "@/lib/seotda/bettingRound";
 import { getDisplayHandName } from "@/lib/seotda/ranking";
-import {
-  decideBettingAction,
-  decideRevealIndex,
-  decideSelectIndices,
-} from "@/lib/seotda/ai";
+import { decideRevealIndex, decideSelectIndices } from "@/lib/seotda/ai";
+import { decideBettingActionWithLlm } from "@/lib/seotda/llmAi";
 import { ChatMessage, ClientGameState, RoomListEntry } from "@/types/seotda";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
 import { RANKINGS_COLLECTION, RankingEntry } from "@/lib/ranking";
@@ -267,6 +264,10 @@ interface Room {
   // AI 행동이 연속으로 실패한 횟수 — 버그 등으로 같은 행동이 계속
   // 실패하며 무한히 재시도하는 것을 막기 위한 안전장치.
   aiFailureStreak: number;
+  // LLM에게 베팅 판단을 묻는 중인지 — 응답을 기다리는 동안(수백 ms~수 초)
+  // scheduleAiActions가 중복으로 다시 호출돼도 같은 차례를 두 번 묻지
+  // 않도록 막는 가드.
+  aiThinking: boolean;
   // 이번 판(딜)의 랭킹 통계를 이미 Firestore에 반영했는지. broadcastGameState는
   // phase가 "finished"인 동안(재시작 투표를 기다리는 사이) 관전자 입장/퇴장
   // 등으로 여러 번 호출될 수 있는데, 이 값 없이는 같은 판의 승패가 매번 다시
@@ -411,7 +412,7 @@ function clearAiTimer(room: Room) {
 // 반환하고, 없으면 null을 반환한다. 베팅 차례든 카드 공개든 족보
 // 선택이든 한 번에 정확히 하나만 고른다 — 방마다 타이머 하나로만
 // 처리하므로, AI가 여럿이어도 서로 겹치지 않고 순서대로 진행된다.
-function findNextAiAction(room: Room): (() => void) | null {
+async function findNextAiAction(room: Room): Promise<(() => void) | null> {
   const game = room.game;
 
   if (!game) return null;
@@ -461,7 +462,7 @@ function findNextAiAction(room: Room): (() => void) | null {
 
     if (!aiIds.has(current.id)) return null;
 
-    const action = decideBettingAction({
+    const action = await decideBettingActionWithLlm({
       player: current,
       pot: state.pot,
       currentBet: state.currentBet,
@@ -497,37 +498,49 @@ function findNextAiAction(room: Room): (() => void) | null {
 function scheduleAiActions(room: Room) {
   clearAiTimer(room);
 
-  if (!room.game) return;
+  // LLM 응답을 기다리는 중이면 중복으로 다시 묻지 않는다 — 응답이 오면
+  // 그 결과를 처리하는 쪽(아래 .then)이 다시 broadcastGameState를 거쳐
+  // scheduleAiActions를 자연히 재호출한다.
+  if (!room.game || room.aiThinking) return;
 
-  const action = findNextAiAction(room);
+  room.aiThinking = true;
 
-  if (!action) {
-    room.aiFailureStreak = 0;
-    return;
-  }
+  findNextAiAction(room)
+    .then((action) => {
+      room.aiThinking = false;
 
-  room.aiTimer = setTimeout(() => {
-    room.aiTimer = null;
+      if (!action) {
+        room.aiFailureStreak = 0;
+        return;
+      }
 
-    let succeeded = true;
+      room.aiTimer = setTimeout(() => {
+        room.aiTimer = null;
 
-    try {
-      action();
-    } catch (error) {
-      succeeded = false;
-      room.aiFailureStreak += 1;
-      console.warn("AI 행동 실패(무시):", error);
-    }
+        let succeeded = true;
 
-    if (succeeded) {
-      room.aiFailureStreak = 0;
-    } else if (room.aiFailureStreak >= AI_MAX_CONSECUTIVE_FAILURES) {
-      console.error("AI가 연속으로 실패해 이 방의 자동 진행을 중단합니다.");
-      return;
-    }
+        try {
+          action();
+        } catch (error) {
+          succeeded = false;
+          room.aiFailureStreak += 1;
+          console.warn("AI 행동 실패(무시):", error);
+        }
 
-    broadcastGameState(room);
-  }, randomAiDelay());
+        if (succeeded) {
+          room.aiFailureStreak = 0;
+        } else if (room.aiFailureStreak >= AI_MAX_CONSECUTIVE_FAILURES) {
+          console.error("AI가 연속으로 실패해 이 방의 자동 진행을 중단합니다.");
+          return;
+        }
+
+        broadcastGameState(room);
+      }, randomAiDelay());
+    })
+    .catch((error) => {
+      room.aiThinking = false;
+      console.warn("AI 행동 결정 실패(무시):", error);
+    });
 }
 
 // 쇼다운에서 재경기가 결정되면(구사/멍텅구리 구사) 공개된 패를 잠시 보여준
@@ -1020,6 +1033,7 @@ io.on("connection", (socket) => {
         chatMessages: [],
         aiTimer: null,
         aiFailureStreak: 0,
+        aiThinking: false,
         rankingSynced: false,
       };
 
