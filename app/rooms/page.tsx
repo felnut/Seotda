@@ -8,6 +8,7 @@ import { socket } from "@/lib/socket";
 import { saveSession } from "@/lib/session";
 import { loadNickname } from "@/lib/nickname";
 import { useAuth } from "@/lib/useAuth";
+import { EmptyState } from "../components/EmptyState";
 
 export default function RoomsPage() {
   const router = useRouter();
@@ -114,15 +115,16 @@ export default function RoomsPage() {
         ← 돌아가기
       </Link>
 
-      <h1 className="mb-1 text-[32px] font-black tracking-tight text-gold">
+      <h1 className="font-serif mb-1 text-[32px] font-black tracking-tight text-gold">
         방 찾기
       </h1>
 
       <div className="flex min-h-64 flex-col gap-2 rounded-2xl border border-white/10 bg-white/3 p-3 shadow-xl shadow-black/30">
         {roomList.length === 0 && (
-          <p className="flex flex-1 items-center justify-center py-12 text-center text-[15px] text-zinc-500">
-            참가할 수 있는 방이 없습니다. 새 방을 만들어보세요.
-          </p>
+          <EmptyState
+            title="참가할 수 있는 방이 없습니다"
+            subtitle="아래에서 새 방을 만들고 친구를 초대해보세요."
+          />
         )}
 
         {roomList.map((room) => {
@@ -198,7 +200,7 @@ export default function RoomsPage() {
               onChange={(event) => setPasswordInput(event.target.value)}
               placeholder="비밀번호"
               maxLength={20}
-              className="mb-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-[17.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
+              className="mb-2 w-full rounded-xl border border-white/20 bg-black/40 px-4 py-2.5 text-[17.5px] text-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
             />
 
             {passwordError && (

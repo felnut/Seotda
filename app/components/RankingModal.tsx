@@ -7,6 +7,11 @@ import {
   RANKINGS_COLLECTION,
   RankingEntry,
 } from "@/lib/ranking";
+import { EmptyState } from "./EmptyState";
+
+// 기록이 1~4개뿐이어도 목록이 휑해 보이지 않도록, 상위 자리를 이 개수까지
+// 빈 슬롯(placeholder)으로 채워 보여준다.
+const MIN_DISPLAY_SLOTS = 5;
 
 export function RankingModal({
   open,
@@ -133,9 +138,10 @@ export function RankingModal({
           )}
 
           {!loading && !error && entries.length === 0 && (
-            <p className="py-8 text-center text-[15px] text-zinc-500">
-              아직 기록이 없습니다.
-            </p>
+            <EmptyState
+              title="아직 기록이 없습니다"
+              subtitle="게임을 한 판 마치면 이 자리에 순위가 쌓여요."
+            />
           )}
 
           {!loading && !error && entries.length > 0 && (
@@ -155,6 +161,25 @@ export function RankingModal({
 
                   <p className="font-mono text-[15px] font-medium tabular-nums text-gold-bright">
                     {metric.format(entry)}
+                  </p>
+                </li>
+              ))}
+
+              {/* 기록이 몇 개 안 될 때도 목록이 휑해 보이지 않도록, 남은
+                  순위 칸을 옅은 빈 슬롯으로 채워 "곧 채워질 자리"처럼 보이게 한다. */}
+              {Array.from({
+                length: Math.max(0, MIN_DISPLAY_SLOTS - entries.length),
+              }).map((_, index) => (
+                <li
+                  key={`placeholder-${index}`}
+                  className="flex items-center gap-3 rounded-lg border border-dashed border-white/5 p-3"
+                >
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[15px] font-bold text-zinc-700">
+                    {entries.length + index + 1}
+                  </span>
+
+                  <p className="flex-1 text-[15px] text-zinc-700">
+                    아직 없음
                   </p>
                 </li>
               ))}
