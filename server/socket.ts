@@ -267,6 +267,12 @@ interface Room {
   // AI 행동이 연속으로 실패한 횟수 — 버그 등으로 같은 행동이 계속
   // 실패하며 무한히 재시도하는 것을 막기 위한 안전장치.
   aiFailureStreak: number;
+  // 이번 판(딜)의 랭킹 통계를 이미 Firestore에 반영했는지. broadcastGameState는
+  // phase가 "finished"인 동안(재시작 투표를 기다리는 사이) 관전자 입장/퇴장
+  // 등으로 여러 번 호출될 수 있는데, 이 값 없이는 같은 판의 승패가 매번 다시
+  // 집계돼 wins/gamesPlayed가 중복으로 늘어난다. start()로 다음 판이 시작될
+  // 때 다시 false로 되돌린다.
+  rankingSynced: boolean;
 }
 
 const rooms = new Map<string, Room>();
@@ -378,9 +384,17 @@ function broadcastGameState(room: Room) {
     }
 
     broadcastRestartVotes(room);
-    syncRankingStats(room).catch((err) => {
-      console.error("랭킹 동기화 실패:", err);
-    });
+
+    // finished 단계는 재시작 투표를 기다리는 동안 관전자 입장/퇴장 등으로
+    // broadcastGameState가 여러 번 더 호출될 수 있다. rankingSynced로 판마다
+    // 한 번만 반영해, 같은 판의 승패가 중복 집계되지 않게 한다.
+    if (!room.rankingSynced) {
+      room.rankingSynced = true;
+
+      syncRankingStats(room).catch((err) => {
+        console.error("랭킹 동기화 실패:", err);
+      });
+    }
   }
 
   scheduleAiActions(room);
@@ -745,6 +759,7 @@ function beginRestart(roomId: string, room: Room) {
 
   // 칩은 초기화하지 않고 그대로 이어서 시작한다.
   try {
+    room.rankingSynced = false;
     room.game.start(false);
     broadcastGameState(room);
   } catch (error) {
@@ -815,6 +830,7 @@ function resumeRestartAfterBankruptcy(room: Room) {
   }
 
   try {
+    room.rankingSynced = false;
     room.game.start(false);
     broadcastGameState(room);
   } catch (error) {
@@ -1004,6 +1020,7 @@ io.on("connection", (socket) => {
         chatMessages: [],
         aiTimer: null,
         aiFailureStreak: 0,
+        rankingSynced: false,
       };
 
       rooms.set(roomId, room);
@@ -1089,8 +1106,22 @@ io.on("connection", (socket) => {
         return;
       }
 
-      const playerId = nextPlayerId(room);
+      // idToken 검증 등 await가 끼어 있는 동안 다른 join-room 요청이 먼저
+      // 끼어들어 room.joinedPlayers가 바뀔 수 있으므로, id는 항상 await
+      // 이후 최신 상태를 기준으로 계산한다 — await 전에 계산해두면 두 소켓이
+      // 동시에 들어올 때 같은 id(예: 둘 다 "player-2")를 받아 게임 내부
+      // 상태가 꼬인다.
       const resolved = await resolveJoiningPlayer(idToken, name);
+
+      if (room.joinedPlayers.length >= room.maxPlayers) {
+        socket.emit("error-message", {
+          message: "방이 가득 찼습니다.",
+        });
+
+        return;
+      }
+
+      const playerId = nextPlayerId(room);
       const resolvedName =
         resolved.name ?? `플레이어 ${room.joinedPlayers.length + 1}`;
 
@@ -1387,6 +1418,7 @@ io.on("connection", (socket) => {
     }
 
     try {
+      room.rankingSynced = false;
       room.game.start();
       broadcastGameState(room);
     } catch (error) {

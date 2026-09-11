@@ -14,7 +14,7 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["name"])
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
-        && request.resource.data.name.size() <= 8;
+        && request.resource.data.name.size() <= 13;
     }
 
     // 프로필(닉네임)은 본인만 쓸 수 있고, 랭킹 표시를 위해 누구나 읽을 수 있다.
@@ -24,7 +24,7 @@ service cloud.firestore {
         && request.auth.uid == uid
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
-        && request.resource.data.name.size() <= 8;
+        && request.resource.data.name.size() <= 13;
     }
   }
 }
