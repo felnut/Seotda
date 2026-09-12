@@ -2942,7 +2942,7 @@ export default function Home() {
           <span className="font-serif text-[36px] font-black tracking-tight text-gold">
             섯다
           </span>
-
+          {" "}
           <span className="text-[17.5px] font-normal text-zinc-500">
             친구와 온라인으로 즐기는 전통 카드 게임
           </span>
