@@ -27,6 +27,7 @@ import { clearSession, loadSession, saveSession } from "@/lib/session";
 import { loadNickname, saveNickname } from "@/lib/nickname";
 import { RankingModal } from "./components/RankingModal";
 import { GoogleSignInButton } from "./components/GoogleSignInButton";
+import { ShareButtons } from "./components/ShareButtons";
 
 // 설정 패널의 개별 항목들 — 서버와 무관한 개인 설정이라 이 브라우저에만
 // 저장한다.
@@ -2867,6 +2868,14 @@ export default function Home() {
             </a>
             를 참고해보세요.
           </p>
+
+          <div className="mt-6">
+            <p className="mb-2 text-[13px] font-medium text-zinc-500">
+              친구에게 공유하기
+            </p>
+
+            <ShareButtons />
+          </div>
         </section>
 
         <RankingModal
