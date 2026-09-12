@@ -2778,13 +2778,21 @@ export default function Home() {
             섯다란?
           </h2>
 
+          <p className="mb-4 text-[14.5px] leading-relaxed">
+            이 사이트는 친구와 온라인으로 즐기는 전통 카드 게임, 섯다를
+            다룹니다. 섯다는 화투 카드 20장 중 2장(경우에 따라 3장)만으로
+            승부를 겨루는 한국의 전통 카드 게임으로, 두 장의 카드가 이루는
+            월(月) 숫자 조합, 즉 족보의 높낮이를 겨룹니다. 광땡·알리·독사·
+            구사 같은 특수 족보가 나오면 판의 흐름이 순식간에 뒤바뀌는 것이
+            이 게임의 가장 큰 매력입니다.
+          </p>
+
           <p className="mb-6 text-[14.5px] leading-relaxed">
-            섯다는 화투 카드 20장 중 2장(경우에 따라 3장)만으로 승부를 겨루는
-            한국의 전통 카드 게임입니다. 두 장의 카드가 이루는 월(月) 숫자
-            조합, 즉 족보의 높낮이를 겨루며, 광땡·알리·독사·구사 같은 특수
-            족보가 나오면 판의 흐름이 순식간에 뒤바뀌는 것이 매력입니다.
             명절에 온 가족이 둘러앉아 즐기던 놀이를 이제는 브라우저만 있으면
-            언제 어디서나, 멀리 있는 친구와도 함께 즐길 수 있습니다.
+            언제 어디서나, 멀리 있는 친구와도 함께 즐길 수 있습니다. 방을
+            하나 만들어 방 이름만 알려주면 곧바로 접속할 수 있고, 인원이
+            둘뿐이어도 AI를 채워 바로 대전을 시작할 수 있어 별도의 설치나
+            준비 없이 바로 즐기는 전통 카드 게임을 경험할 수 있습니다.
           </p>
 
           <h2 className="mb-2 text-[18px] font-bold text-zinc-200">
@@ -2814,7 +2822,14 @@ export default function Home() {
             </li>
             <li>
               족보 가이드 — 헷갈리기 쉬운 광땡·알리·독사·구사 같은 족보를
-              게임 화면에서 바로 확인할 수 있습니다.
+              게임 화면과{" "}
+              <Link
+                href="/rules"
+                className="text-gold-bright underline underline-offset-2 hover:text-gold"
+              >
+                족보 가이드 페이지
+              </Link>
+              에서 바로 확인할 수 있습니다.
             </li>
           </ul>
 
@@ -2833,7 +2848,7 @@ export default function Home() {
                 href="/rooms"
                 className="text-gold-bright underline underline-offset-2 hover:text-gold"
               >
-                방 찾기
+                열려 있는 방 목록
               </Link>
               에서 이미 열려 있는 방에 참가합니다.
             </li>
