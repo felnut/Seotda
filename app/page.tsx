@@ -38,6 +38,10 @@ const jsonLd = buildJsonLd({
   url: "https://seotda.felnut.com/",
   name: "섯다 - 친구와 온라인으로 즐기는 전통 카드 게임",
   description: "친구와 온라인으로 즐기는 전통 섯다 카드 게임",
+  // git 히스토리 기준: 첫 커밋(2026-08-27) / 최신 커밋(2026-09-12).
+  datePublished: "2026-08-27",
+  dateModified: "2026-09-12",
+  image: "https://seotda.felnut.com/opengraph-image",
 });
 
 // 설정 패널의 개별 항목들 — 서버와 무관한 개인 설정이라 이 브라우저에만
