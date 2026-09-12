@@ -36,6 +36,10 @@ export function buildJsonLd({
         description:
           "프론트엔드, 임베디드 시스템, 데이터베이스를 공부하며 다양한 프로젝트를 개발하는 1인 개발자입니다.",
         logo: `${PORTFOLIO_URL}imgs/small_logo.png`,
+        // 실제 사업장 주소가 없는 1인 개발 프로젝트라, schema.org가
+        // address에 Text도 허용하는 점을 이용해 포트폴리오 사이트
+        // URL을 대신 넣는다.
+        address: PORTFOLIO_URL,
         founder: { "@id": PERSON_ID },
         sameAs: ["https://github.com/felnut"],
         contactPoint: {
