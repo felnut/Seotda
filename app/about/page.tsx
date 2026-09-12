@@ -19,7 +19,15 @@ export const metadata: Metadata = {
   },
 };
 
-const jsonLd = buildJsonLd({ url: PAGE_URL, name: TITLE, description: DESCRIPTION });
+const jsonLd = buildJsonLd({
+  url: PAGE_URL,
+  name: TITLE,
+  description: DESCRIPTION,
+  // git 히스토리 기준: 이 파일의 첫 커밋일이 곧 최신 커밋일(같은 날 작성).
+  datePublished: "2026-09-12",
+  dateModified: "2026-09-12",
+  image: "https://seotda.felnut.com/opengraph-image",
+});
 
 export default function AboutPage() {
   return (

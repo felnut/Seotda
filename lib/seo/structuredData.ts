@@ -13,10 +13,17 @@ export function buildJsonLd({
   url,
   name,
   description,
+  datePublished,
+  dateModified,
+  image,
 }: {
   url: string;
   name: string;
   description: string;
+  // git 히스토리 기준 실제 날짜(그 페이지 파일의 첫 커밋 / 최신 커밋).
+  datePublished: string;
+  dateModified: string;
+  image?: string;
 }) {
   return {
     "@context": "https://schema.org",
@@ -26,9 +33,16 @@ export function buildJsonLd({
         "@id": ORGANIZATION_ID,
         name: "FELNUT",
         url: PORTFOLIO_URL,
+        description:
+          "프론트엔드, 임베디드 시스템, 데이터베이스를 공부하며 다양한 프로젝트를 개발하는 1인 개발자입니다.",
         logo: `${PORTFOLIO_URL}imgs/small_logo.png`,
         founder: { "@id": PERSON_ID },
         sameAs: ["https://github.com/felnut"],
+        contactPoint: {
+          "@type": "ContactPoint",
+          email: "dev@felnut.com",
+          contactType: "customer support",
+        },
       },
       {
         "@type": "WebSite",
@@ -47,6 +61,9 @@ export function buildJsonLd({
         description,
         inLanguage: "ko-KR",
         isPartOf: { "@id": WEBSITE_ID },
+        datePublished,
+        dateModified,
+        ...(image ? { primaryImageOfPage: image } : {}),
       },
     ],
   };
