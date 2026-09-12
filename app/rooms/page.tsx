@@ -152,7 +152,9 @@ export default function RoomsPage() {
               </span>
 
               <span className="shrink-0 font-mono text-[15px] tabular-nums text-zinc-500">
-                {isFull ? "가득 참" : `${room.playerCount}/${room.maxPlayers}명`}
+                {isFull
+                  ? "가득 참"
+                  : `${room.playerCount}/${room.maxPlayers}명`}
               </span>
             </button>
           );

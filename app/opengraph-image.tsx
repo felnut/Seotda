@@ -7,39 +7,37 @@ export const contentType = "image/png";
 
 export default function OpengraphImage() {
   return new ImageResponse(
-    (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "linear-gradient(135deg, #14231a 0%, #0d1712 100%)",
+      }}
+    >
       <div
         style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "linear-gradient(135deg, #14231a 0%, #0d1712 100%)",
+          fontSize: 220,
+          fontWeight: 900,
+          color: "#dba95a",
+          letterSpacing: -4,
         }}
       >
-        <div
-          style={{
-            fontSize: 220,
-            fontWeight: 900,
-            color: "#dba95a",
-            letterSpacing: -4,
-          }}
-        >
-          섯다
-        </div>
-        <div
-          style={{
-            marginTop: 12,
-            fontSize: 40,
-            color: "#63b381",
-          }}
-        >
-          친구와 온라인으로 즐기는 전통 카드 게임
-        </div>
+        섯다
       </div>
-    ),
+      <div
+        style={{
+          marginTop: 12,
+          fontSize: 40,
+          color: "#63b381",
+        }}
+      >
+        친구와 온라인으로 즐기는 전통 카드 게임
+      </div>
+    </div>,
     size,
   );
 }

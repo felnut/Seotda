@@ -418,7 +418,9 @@ async function findNextAiAction(room: Room): Promise<(() => void) | null> {
   if (!game) return null;
 
   const aiIds = new Set(
-    room.joinedPlayers.filter((player) => player.isAI).map((player) => player.id),
+    room.joinedPlayers
+      .filter((player) => player.isAI)
+      .map((player) => player.id),
   );
 
   if (aiIds.size === 0) return null;
@@ -1205,9 +1207,7 @@ io.on("connection", (socket) => {
     } catch (error) {
       socket.emit("error-message", {
         message:
-          error instanceof Error
-            ? error.message
-            : "참가 신청에 실패했습니다.",
+          error instanceof Error ? error.message : "참가 신청에 실패했습니다.",
       });
 
       return;

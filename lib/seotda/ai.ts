@@ -18,8 +18,9 @@ export type BettingAction =
 function estimateStrength(cards: SeotdaCard[]): number {
   const result: HandResult =
     cards.length >= 3
-      ? bestHandFromThree(cards.slice(0, 3) as [SeotdaCard, SeotdaCard, SeotdaCard])
-          .result
+      ? bestHandFromThree(
+          cards.slice(0, 3) as [SeotdaCard, SeotdaCard, SeotdaCard],
+        ).result
       : evaluateHand([cards[0], cards[1]]);
 
   switch (result.special) {

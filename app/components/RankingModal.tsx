@@ -178,9 +178,7 @@ export function RankingModal({
                     {entries.length + index + 1}
                   </span>
 
-                  <p className="flex-1 text-[15px] text-zinc-700">
-                    아직 없음
-                  </p>
+                  <p className="flex-1 text-[15px] text-zinc-700">아직 없음</p>
                 </li>
               ))}
             </ol>
