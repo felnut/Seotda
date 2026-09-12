@@ -2769,114 +2769,18 @@ export default function Home() {
               {error}
             </p>
           )}
+
+          <Link
+            href="/about"
+            className="mt-6 block text-center text-[13.5px] text-zinc-500 underline-offset-2 hover:text-zinc-300 hover:underline"
+          >
+            섯다란? — 게임 소개와 시작하는 방법 보기
+          </Link>
         </div>
 
-        {/* SEO/신규 방문자를 위한 소개 콘텐츠 — 게임 화면(방 만들기/찾기) 자체는
-            텍스트가 거의 없어, 처음 방문한 사람에게 "섯다"가 무엇인지와 이
-            사이트에서 무엇을 할 수 있는지 설명하는 섹션을 별도로 둔다. */}
-        <section className="mt-10 w-full max-w-xl text-left text-zinc-400">
-          <h2 className="mb-2 text-[18px] font-bold text-zinc-200">
-            섯다란?
-          </h2>
-
-          <p className="mb-4 text-[14.5px] leading-relaxed">
-            이 사이트는 친구와 온라인으로 즐기는 전통 카드 게임, 섯다를
-            다룹니다. 섯다는 화투 카드 20장 중 2장(경우에 따라 3장)만으로
-            승부를 겨루는 한국의 전통 카드 게임으로, 두 장의 카드가 이루는
-            월(月) 숫자 조합, 즉 족보의 높낮이를 겨룹니다. 광땡·알리·독사·
-            구사 같은 특수 족보가 나오면 판의 흐름이 순식간에 뒤바뀌는 것이
-            이 게임의 가장 큰 매력입니다.
-          </p>
-
-          <p className="mb-6 text-[14.5px] leading-relaxed">
-            명절에 온 가족이 둘러앉아 즐기던 놀이를 이제는 브라우저만 있으면
-            언제 어디서나, 멀리 있는 친구와도 함께 즐길 수 있습니다. 방을
-            하나 만들어 방 이름만 알려주면 곧바로 접속할 수 있고, 인원이
-            둘뿐이어도 AI를 채워 바로 대전을 시작할 수 있어 별도의 설치나
-            준비 없이 바로 즐기는 전통 카드 게임을 경험할 수 있습니다.
-          </p>
-
-          <h2 className="mb-2 text-[18px] font-bold text-zinc-200">
-            주요 기능
-          </h2>
-
-          <ul className="mb-6 list-disc space-y-1.5 pl-5 text-[14.5px] leading-relaxed">
-            <li>
-              실시간 멀티플레이 — 지연 없는 실시간 통신으로 베팅과 카드 공개가
-              바로바로 반영됩니다.
-            </li>
-            <li>
-              친구와 함께 — 비밀번호를 걸어 나만의 방을 만들고, 방 이름만
-              공유하면 친구를 초대할 수 있습니다.
-            </li>
-            <li>
-              AI 상대 — 인원이 부족해도 AI 플레이어를 채워 곧바로 게임을 시작할
-              수 있습니다.
-            </li>
-            <li>
-              구글 로그인과 랭킹 — 로그인하면 보유 칩이 계정에 저장되고,
-              랭킹에서 다른 플레이어들과 순위를 겨룰 수 있습니다.
-            </li>
-            <li>
-              실시간 채팅과 이모티콘 — 게임 도중에도 대화를 나누며 분위기를
-              즐길 수 있습니다.
-            </li>
-            <li>
-              족보 가이드 — 헷갈리기 쉬운 광땡·알리·독사·구사 같은 족보를
-              게임 화면과{" "}
-              <Link
-                href="/rules"
-                className="text-gold-bright underline underline-offset-2 hover:text-gold"
-              >
-                족보 가이드 페이지
-              </Link>
-              에서 바로 확인할 수 있습니다.
-            </li>
-          </ul>
-
-          <h2 className="mb-2 text-[18px] font-bold text-zinc-200">
-            시작하는 방법
-          </h2>
-
-          <ol className="mb-6 list-decimal space-y-1.5 pl-5 text-[14.5px] leading-relaxed">
-            <li>
-              닉네임을 입력합니다. 선택 사항이며, 입력하지 않으면 자동으로
-              이름이 부여됩니다.
-            </li>
-            <li>
-              위의 방 만들기로 새 게임방을 열거나,{" "}
-              <Link
-                href="/rooms"
-                className="text-gold-bright underline underline-offset-2 hover:text-gold"
-              >
-                열려 있는 방 목록
-              </Link>
-              에서 이미 열려 있는 방에 참가합니다.
-            </li>
-            <li>2명 이상 모이면 방장이 게임을 시작할 수 있습니다.</li>
-          </ol>
-
-          <p className="text-[13.5px] text-zinc-500">
-            섯다의 자세한 규칙과 유래가 궁금하다면{" "}
-            <a
-              href="https://ko.wikipedia.org/wiki/%EC%84%AF%EB%8B%A4"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-gold-bright underline underline-offset-2 hover:text-gold"
-            >
-              위키백과의 섯다 문서
-            </a>
-            를 참고해보세요.
-          </p>
-
-          <div className="mt-6">
-            <p className="mb-2 text-[13px] font-medium text-zinc-500">
-              친구에게 공유하기
-            </p>
-
-            <ShareButtons />
-          </div>
-        </section>
+        <div className="fixed bottom-4 left-4 z-30">
+          <ShareButtons />
+        </div>
 
         <RankingModal
           open={isRankingOpen}
