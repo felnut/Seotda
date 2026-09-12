@@ -48,13 +48,13 @@ export interface SpecialHandGuideEntry {
 export const SPECIAL_HAND_GUIDE: SpecialHandGuideEntry[] = [
   {
     name: "멍텅구리 구사",
-    effect: "무승부, 재경기",
+    effect: "상대가 9땡 이하면 무승부, 재경기",
     months: "4월(열끗) + 9월(열끗)",
     cardIds: ["4-ten", "9-ten"],
   },
   {
     name: "구사",
-    effect: "무승부, 재경기",
+    effect: "상대가 알리 이하면 무승부, 재경기",
     months: "4월 + 9월",
     cardIds: ["4-dan", "9-dan"],
   },
