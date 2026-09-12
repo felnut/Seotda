@@ -46,9 +46,27 @@ const TWITTER_SHARE_URL = `https://twitter.com/intent/tweet?url=${encodeURICompo
   SITE_URL,
 )}&text=${encodeURIComponent(SHARE_TITLE)}`;
 
+function KakaoIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden>
+      <path d="M12 3C6.48 3 2 6.58 2 11c0 2.79 1.86 5.24 4.66 6.65-.15.55-.96 3.44-.99 3.66 0 0-.02.17.09.24.11.07.24.02.24.02.32-.04 3.71-2.43 4.29-2.84.55.08 1.12.13 1.71.13 5.52 0 10-3.58 10-8S17.52 3 12 3z" />
+    </svg>
+  );
+}
+
+function XIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden>
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+  );
+}
+
+// 메인 화면 좌측 하단에 아이콘만 남겨두는 동그란 공유 버튼 — 텍스트 라벨
+// 없이 아이콘 하나로만 카카오톡/X 공유를 제공한다.
 export function ShareButtons() {
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-col gap-2">
       {KAKAO_JS_KEY && (
         <>
           <Script
@@ -61,9 +79,11 @@ export function ShareButtons() {
           <button
             type="button"
             onClick={shareToKakao}
-            className="rounded-lg bg-[#FEE500] px-3 py-1.5 text-[13px] font-semibold text-black/85 transition hover:brightness-95 active:scale-95"
+            aria-label="카카오톡으로 공유"
+            title="카카오톡으로 공유"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-[#FEE500] text-black/80 shadow-lg shadow-black/40 transition hover:brightness-95 active:scale-95"
           >
-            카카오톡 공유
+            <KakaoIcon />
           </button>
         </>
       )}
@@ -72,9 +92,11 @@ export function ShareButtons() {
         href={TWITTER_SHARE_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="rounded-lg border border-white/15 bg-white/3 px-3 py-1.5 text-[13px] font-semibold text-zinc-200 transition hover:bg-white/10"
+        aria-label="X(트위터)로 공유"
+        title="X(트위터)로 공유"
+        className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-zinc-900 text-zinc-100 shadow-lg shadow-black/40 transition hover:bg-zinc-800"
       >
-        X(트위터) 공유
+        <XIcon />
       </a>
     </div>
   );
