@@ -28,6 +28,17 @@ import { loadNickname, saveNickname } from "@/lib/nickname";
 import { RankingModal } from "./components/RankingModal";
 import { GoogleSignInButton } from "./components/GoogleSignInButton";
 import { ShareButtons } from "./components/ShareButtons";
+import { buildJsonLd } from "@/lib/seo/structuredData";
+
+// layout.tsx의 메타데이터와 같은 값을 쓰지만, 서버 컴포넌트인
+// layout.tsx를 클라이언트 컴포넌트인 이 파일에서 직접 import하면
+// next/font 호출까지 클라이언트 번들에 끼어들 위험이 있어 값만 그대로
+// 복사해 둔다.
+const jsonLd = buildJsonLd({
+  url: "https://seotda.felnut.com/",
+  name: "섯다 - 친구와 온라인으로 즐기는 전통 카드 게임",
+  description: "친구와 온라인으로 즐기는 전통 섯다 카드 게임",
+});
 
 // 설정 패널의 개별 항목들 — 서버와 무관한 개인 설정이라 이 브라우저에만
 // 저장한다.
@@ -443,18 +454,72 @@ const EMOJI_CATEGORIES: { label: string; icon: string; emojis: string[] }[] = [
     label: "스마일리",
     icon: "😀",
     emojis: [
-      "😀", "😃", "😄", "😁", "😆", "🤣", "😂", "🙂", "😉", "😊",
-      "😇", "🥰", "😍", "🤩", "😘", "😋", "🤔", "😐", "🙄", "😴",
-      "😮", "😱", "😭", "😢", "😠", "🤯", "🥳", "🥺", "😳", "🤫",
+      "😀",
+      "😃",
+      "😄",
+      "😁",
+      "😆",
+      "🤣",
+      "😂",
+      "🙂",
+      "😉",
+      "😊",
+      "😇",
+      "🥰",
+      "😍",
+      "🤩",
+      "😘",
+      "😋",
+      "🤔",
+      "😐",
+      "🙄",
+      "😴",
+      "😮",
+      "😱",
+      "😭",
+      "😢",
+      "😠",
+      "🤯",
+      "🥳",
+      "🥺",
+      "😳",
+      "🤫",
     ],
   },
   {
     label: "사람",
     icon: "👋",
     emojis: [
-      "👋", "🤚", "✋", "👌", "🤌", "✌️", "🤞", "🤟", "🤙", "👈",
-      "👉", "👆", "👇", "👍", "👎", "✊", "👊", "👏", "🙌", "🙏",
-      "💪", "🦾", "👀", "👄", "💋", "🧠", "👣", "🤝", "🫡", "🧑",
+      "👋",
+      "🤚",
+      "✋",
+      "👌",
+      "🤌",
+      "✌️",
+      "🤞",
+      "🤟",
+      "🤙",
+      "👈",
+      "👉",
+      "👆",
+      "👇",
+      "👍",
+      "👎",
+      "✊",
+      "👊",
+      "👏",
+      "🙌",
+      "🙏",
+      "💪",
+      "🦾",
+      "👀",
+      "👄",
+      "💋",
+      "🧠",
+      "👣",
+      "🤝",
+      "🫡",
+      "🧑",
     ],
   },
   {
@@ -466,62 +531,236 @@ const EMOJI_CATEGORIES: { label: string; icon: string; emojis: string[] }[] = [
     label: "동물·자연",
     icon: "🐶",
     emojis: [
-      "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯",
-      "🦁", "🐮", "🐷", "🐸", "🐵", "🐔", "🐧", "🦉", "🐺", "🦄",
-      "🐝", "🦋", "🐢", "🐍", "🐙", "🌸", "🌻", "🍀", "🌈", "⭐",
+      "🐶",
+      "🐱",
+      "🐭",
+      "🐹",
+      "🐰",
+      "🦊",
+      "🐻",
+      "🐼",
+      "🐨",
+      "🐯",
+      "🦁",
+      "🐮",
+      "🐷",
+      "🐸",
+      "🐵",
+      "🐔",
+      "🐧",
+      "🦉",
+      "🐺",
+      "🦄",
+      "🐝",
+      "🦋",
+      "🐢",
+      "🐍",
+      "🐙",
+      "🌸",
+      "🌻",
+      "🍀",
+      "🌈",
+      "⭐",
     ],
   },
   {
     label: "음식",
     icon: "🍔",
     emojis: [
-      "🍏", "🍎", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🥑", "🌽",
-      "🍞", "🧀", "🍖", "🍗", "🍔", "🍟", "🍕", "🌭", "🌮", "🍣",
-      "🍦", "🍩", "🎂", "🍫", "🍭", "☕", "🍵", "🍺", "🍷", "🥂",
+      "🍏",
+      "🍎",
+      "🍊",
+      "🍋",
+      "🍌",
+      "🍉",
+      "🍇",
+      "🍓",
+      "🥑",
+      "🌽",
+      "🍞",
+      "🧀",
+      "🍖",
+      "🍗",
+      "🍔",
+      "🍟",
+      "🍕",
+      "🌭",
+      "🌮",
+      "🍣",
+      "🍦",
+      "🍩",
+      "🎂",
+      "🍫",
+      "🍭",
+      "☕",
+      "🍵",
+      "🍺",
+      "🍷",
+      "🥂",
     ],
   },
   {
     label: "여행",
     icon: "✈️",
     emojis: [
-      "🚗", "🚕", "🚌", "🚑", "🚒", "🚲", "✈️", "🚀", "🚁", "⛵",
-      "🚢", "🚂", "🗽", "🗼", "🏰", "🎡", "🎢", "🏖️", "🏝️", "🏔️",
-      "🌋", "⛺", "🏠", "🌃", "🌉", "🌍", "🌌", "🎆",
+      "🚗",
+      "🚕",
+      "🚌",
+      "🚑",
+      "🚒",
+      "🚲",
+      "✈️",
+      "🚀",
+      "🚁",
+      "⛵",
+      "🚢",
+      "🚂",
+      "🗽",
+      "🗼",
+      "🏰",
+      "🎡",
+      "🎢",
+      "🏖️",
+      "🏝️",
+      "🏔️",
+      "🌋",
+      "⛺",
+      "🏠",
+      "🌃",
+      "🌉",
+      "🌍",
+      "🌌",
+      "🎆",
     ],
   },
   {
     label: "활동",
     icon: "⚽",
     emojis: [
-      "⚽", "🏀", "🏈", "⚾", "🎾", "🏐", "🎱", "🏓", "🏸", "🥊",
-      "🎯", "🎣", "🎿", "🎮", "🎲", "🎰", "🎳", "🎭", "🎨", "🎬",
-      "🎤", "🎧", "🎹", "🥁", "🎸", "🏆", "🥇", "🥈", "🥉",
+      "⚽",
+      "🏀",
+      "🏈",
+      "⚾",
+      "🎾",
+      "🏐",
+      "🎱",
+      "🏓",
+      "🏸",
+      "🥊",
+      "🎯",
+      "🎣",
+      "🎿",
+      "🎮",
+      "🎲",
+      "🎰",
+      "🎳",
+      "🎭",
+      "🎨",
+      "🎬",
+      "🎤",
+      "🎧",
+      "🎹",
+      "🥁",
+      "🎸",
+      "🏆",
+      "🥇",
+      "🥈",
+      "🥉",
     ],
   },
   {
     label: "사물",
     icon: "💡",
     emojis: [
-      "⌚", "📱", "💻", "🖥️", "📷", "📺", "⏰", "🔋", "💡", "🔦",
-      "📖", "📚", "💰", "💵", "💳", "💎", "🔨", "🔧", "⚙️", "🔑",
-      "🔒", "💊", "🎁", "🧧", "🎈", "📌", "✂️", "🪙",
+      "⌚",
+      "📱",
+      "💻",
+      "🖥️",
+      "📷",
+      "📺",
+      "⏰",
+      "🔋",
+      "💡",
+      "🔦",
+      "📖",
+      "📚",
+      "💰",
+      "💵",
+      "💳",
+      "💎",
+      "🔨",
+      "🔧",
+      "⚙️",
+      "🔑",
+      "🔒",
+      "💊",
+      "🎁",
+      "🧧",
+      "🎈",
+      "📌",
+      "✂️",
+      "🪙",
     ],
   },
   {
     label: "기호",
     icon: "❤️",
     emojis: [
-      "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "💔", "💕",
-      "💯", "✅", "❌", "❗", "❓", "🔥", "✨", "⭐", "💫", "♠️",
-      "♥️", "♦️", "♣️", "🀄", "🎴", "🆗", "🆕", "🔞", "㊙️", "㊗️",
+      "❤️",
+      "🧡",
+      "💛",
+      "💚",
+      "💙",
+      "💜",
+      "🖤",
+      "🤍",
+      "💔",
+      "💕",
+      "💯",
+      "✅",
+      "❌",
+      "❗",
+      "❓",
+      "🔥",
+      "✨",
+      "⭐",
+      "💫",
+      "♠️",
+      "♥️",
+      "♦️",
+      "♣️",
+      "🀄",
+      "🎴",
+      "🆗",
+      "🆕",
+      "🔞",
+      "㊙️",
+      "㊗️",
     ],
   },
   {
     label: "깃발",
     icon: "🏁",
     emojis: [
-      "🏁", "🚩", "🎌", "🏳️", "🏳️‍🌈", "🇰🇷", "🇺🇸", "🇯🇵", "🇨🇳", "🇬🇧",
-      "🇫🇷", "🇩🇪", "🇪🇸", "🇮🇹", "🇨🇦", "🇦🇺", "🇧🇷", "🇮🇳", "🇷🇺",
+      "🏁",
+      "🚩",
+      "🎌",
+      "🏳️",
+      "🏳️‍🌈",
+      "🇰🇷",
+      "🇺🇸",
+      "🇯🇵",
+      "🇨🇳",
+      "🇬🇧",
+      "🇫🇷",
+      "🇩🇪",
+      "🇪🇸",
+      "🇮🇹",
+      "🇨🇦",
+      "🇦🇺",
+      "🇧🇷",
+      "🇮🇳",
+      "🇷🇺",
     ],
   },
 ];
@@ -610,9 +849,7 @@ function ChatPanel({
       // 데스크톱에서는 항상 보이므로 inert를 걸지 않는다.
       inert={!isVisible}
       className={`z-40 flex shrink-0 flex-col overflow-hidden border-white/10 bg-zinc-950/95 transition-[width,transform] duration-300 sm:relative sm:translate-x-0 sm:border-l sm:bg-zinc-950/60 sm:shadow-none ${
-        isDockCollapsed
-          ? "sm:w-12"
-          : "w-56 sm:w-[clamp(14rem,22vw,20rem)]"
+        isDockCollapsed ? "sm:w-12" : "w-56 sm:w-[clamp(14rem,22vw,20rem)]"
       } ${
         open
           ? "fixed inset-y-0 right-0 translate-x-0 border-l shadow-2xl"
@@ -658,142 +895,149 @@ function ChatPanel({
             </div>
           </div>
 
-      <div
-        ref={listRef}
-        className="flex-1 space-y-2 overflow-y-auto px-3 py-3 sm:px-4 sm:py-4"
-      >
-        {messages.length === 0 && (
-          <p className="py-8 text-center text-[13.5px] text-zinc-500">
-            아직 메시지가 없습니다.
-          </p>
-        )}
-
-        {messages.map((message) => {
-          const isMine = message.playerId === myPlayerId;
-
-          return (
-            <div
-              key={message.id}
-              className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
-            >
-              <span className="mb-0.5 max-w-[85%] truncate text-[11px] font-medium text-zinc-500">
-                {isMine ? "나" : message.name}
-              </span>
-
-              <p
-                className={`max-w-[85%] rounded-2xl px-3 py-1.5 text-[13.5px] wrap-break-word sm:px-3.5 sm:py-2 sm:text-[15px] ${
-                  isMine ? "bg-gold text-zinc-900" : "bg-white/8 text-zinc-100"
-                }`}
-              >
-                {message.text}
+          <div
+            ref={listRef}
+            className="flex-1 space-y-2 overflow-y-auto px-3 py-3 sm:px-4 sm:py-4"
+          >
+            {messages.length === 0 && (
+              <p className="py-8 text-center text-[13.5px] text-zinc-500">
+                아직 메시지가 없습니다.
               </p>
-            </div>
-          );
-        })}
-      </div>
+            )}
 
-      <div className="shrink-0 px-3 sm:px-4">
-        <p
-          className={`h-4 truncate text-[11.5px] text-zinc-500 transition-opacity ${
-            typingNames.length > 0 ? "opacity-100" : "opacity-0"
-          }`}
-        >
-          {typingNames.length === 1
-            ? `${typingNames[0]}님이 입력 중...`
-            : typingNames.length > 1
-              ? `${typingNames.slice(0, 2).join(", ")} 외 ${
-                  typingNames.length - 2 > 0 ? typingNames.length - 2 : ""
-                }명이 입력 중...`
-              : " "}
-        </p>
-      </div>
+            {messages.map((message) => {
+              const isMine = message.playerId === myPlayerId;
 
-      <div ref={emojiAnchorRef} className="relative shrink-0">
-        {isEmojiOpen &&
-          emojiPopupPos &&
-          createPortal(
-            <div
-              style={{ bottom: emojiPopupPos.bottom, right: emojiPopupPos.right }}
-              className="fixed z-50 w-72 rounded-xl border border-white/10 bg-zinc-900 shadow-2xl"
-            >
-              <div className="flex gap-0.5 overflow-x-auto border-b border-white/10 p-1.5">
-                {EMOJI_CATEGORIES.map((category, index) => (
-                  <button
-                    key={category.label}
-                    type="button"
-                    title={category.label}
-                    aria-label={category.label}
-                    aria-pressed={emojiCategoryIndex === index}
-                    onClick={() => setEmojiCategoryIndex(index)}
-                    className={`shrink-0 rounded-lg px-2 py-1 text-[16px] transition ${
-                      emojiCategoryIndex === index
-                        ? "bg-gold/15 ring-1 ring-gold/40"
-                        : "hover:bg-white/10"
+              return (
+                <div
+                  key={message.id}
+                  className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
+                >
+                  <span className="mb-0.5 max-w-[85%] truncate text-[11px] font-medium text-zinc-500">
+                    {isMine ? "나" : message.name}
+                  </span>
+
+                  <p
+                    className={`max-w-[85%] rounded-2xl px-3 py-1.5 text-[13.5px] wrap-break-word sm:px-3.5 sm:py-2 sm:text-[15px] ${
+                      isMine
+                        ? "bg-gold text-zinc-900"
+                        : "bg-white/8 text-zinc-100"
                     }`}
                   >
-                    {category.icon}
-                  </button>
-                ))}
-              </div>
+                    {message.text}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
 
-              <div className="grid max-h-40 grid-cols-6 gap-1 overflow-y-auto p-2">
-                {EMOJI_CATEGORIES[emojiCategoryIndex].emojis.map((emoji, index) => (
-                  <button
-                    key={`${emoji}-${index}`}
-                    type="button"
-                    onClick={() => {
-                      onInputChange(`${input}${emoji}`);
-                      setIsEmojiOpen(false);
-                    }}
-                    className="rounded-lg py-1 text-[19px] transition hover:bg-white/10"
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            </div>,
-            document.body,
-          )}
+          <div className="shrink-0 px-3 sm:px-4">
+            <p
+              className={`h-4 truncate text-[11.5px] text-zinc-500 transition-opacity ${
+                typingNames.length > 0 ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              {typingNames.length === 1
+                ? `${typingNames[0]}님이 입력 중...`
+                : typingNames.length > 1
+                  ? `${typingNames.slice(0, 2).join(", ")} 외 ${
+                      typingNames.length - 2 > 0 ? typingNames.length - 2 : ""
+                    }명이 입력 중...`
+                  : " "}
+            </p>
+          </div>
 
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            onSend();
-            setIsEmojiOpen(false);
-          }}
-          className="flex gap-1.5 border-t border-white/10 p-2.5 sm:gap-2 sm:p-3"
-        >
-          <button
-            type="button"
-            onClick={() => setIsEmojiOpen((prev) => !prev)}
-            aria-label="이모티콘"
-            aria-expanded={isEmojiOpen}
-            className={`shrink-0 rounded-xl border px-2.5 text-[17px] transition ${
-              isEmojiOpen
-                ? "border-gold/50 bg-gold/10"
-                : "border-white/10 bg-black/30 hover:border-white/20"
-            }`}
-          >
-            😊
-          </button>
+          <div ref={emojiAnchorRef} className="relative shrink-0">
+            {isEmojiOpen &&
+              emojiPopupPos &&
+              createPortal(
+                <div
+                  style={{
+                    bottom: emojiPopupPos.bottom,
+                    right: emojiPopupPos.right,
+                  }}
+                  className="fixed z-50 w-72 rounded-xl border border-white/10 bg-zinc-900 shadow-2xl"
+                >
+                  <div className="flex gap-0.5 overflow-x-auto border-b border-white/10 p-1.5">
+                    {EMOJI_CATEGORIES.map((category, index) => (
+                      <button
+                        key={category.label}
+                        type="button"
+                        title={category.label}
+                        aria-label={category.label}
+                        aria-pressed={emojiCategoryIndex === index}
+                        onClick={() => setEmojiCategoryIndex(index)}
+                        className={`shrink-0 rounded-lg px-2 py-1 text-[16px] transition ${
+                          emojiCategoryIndex === index
+                            ? "bg-gold/15 ring-1 ring-gold/40"
+                            : "hover:bg-white/10"
+                        }`}
+                      >
+                        {category.icon}
+                      </button>
+                    ))}
+                  </div>
 
-          <input
-            value={input}
-            onChange={(event) => onInputChange(event.target.value)}
-            placeholder="메시지 입력..."
-            maxLength={200}
-            className="min-w-0 flex-1 rounded-xl border border-white/20 bg-black/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] px-3 py-2 text-[13.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20 sm:px-3.5 sm:py-2.5 sm:text-[15px]"
-          />
+                  <div className="grid max-h-40 grid-cols-6 gap-1 overflow-y-auto p-2">
+                    {EMOJI_CATEGORIES[emojiCategoryIndex].emojis.map(
+                      (emoji, index) => (
+                        <button
+                          key={`${emoji}-${index}`}
+                          type="button"
+                          onClick={() => {
+                            onInputChange(`${input}${emoji}`);
+                            setIsEmojiOpen(false);
+                          }}
+                          className="rounded-lg py-1 text-[19px] transition hover:bg-white/10"
+                        >
+                          {emoji}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                </div>,
+                document.body,
+              )}
 
-          <button
-            type="submit"
-            disabled={!input.trim()}
-            className="shrink-0 rounded-xl bg-gold px-3 py-2 text-[13.5px] font-semibold text-zinc-900 transition hover:scale-[1.03] hover:bg-gold-bright active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 sm:px-4 sm:py-2.5 sm:text-[15px]"
-          >
-            전송
-          </button>
-        </form>
-      </div>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                onSend();
+                setIsEmojiOpen(false);
+              }}
+              className="flex gap-1.5 border-t border-white/10 p-2.5 sm:gap-2 sm:p-3"
+            >
+              <button
+                type="button"
+                onClick={() => setIsEmojiOpen((prev) => !prev)}
+                aria-label="이모티콘"
+                aria-expanded={isEmojiOpen}
+                className={`shrink-0 rounded-xl border px-2.5 text-[17px] transition ${
+                  isEmojiOpen
+                    ? "border-gold/50 bg-gold/10"
+                    : "border-white/10 bg-black/30 hover:border-white/20"
+                }`}
+              >
+                😊
+              </button>
+
+              <input
+                value={input}
+                onChange={(event) => onInputChange(event.target.value)}
+                placeholder="메시지 입력..."
+                maxLength={200}
+                className="min-w-0 flex-1 rounded-xl border border-white/20 bg-black/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] px-3 py-2 text-[13.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20 sm:px-3.5 sm:py-2.5 sm:text-[15px]"
+              />
+
+              <button
+                type="submit"
+                disabled={!input.trim()}
+                className="shrink-0 rounded-xl bg-gold px-3 py-2 text-[13.5px] font-semibold text-zinc-900 transition hover:scale-[1.03] hover:bg-gold-bright active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 sm:px-4 sm:py-2.5 sm:text-[15px]"
+              >
+                전송
+              </button>
+            </form>
+          </div>
         </>
       )}
     </aside>
@@ -900,7 +1144,9 @@ function confirmBetAmount(
     computeBettingAmounts(gameState.pot, gameState.currentBet, me),
   );
 
-  return window.confirm(`${actionLabel} ${amount.toLocaleString()}을(를) 베팅할까요?`);
+  return window.confirm(
+    `${actionLabel} ${amount.toLocaleString()}을(를) 베팅할까요?`,
+  );
 }
 
 // 실제 카지노 칩처럼, 금액 구간마다 다른 색의 칩 한 종류를 대응시킨다.
@@ -980,8 +1226,7 @@ function ChipStack({ amount }: { amount: number }) {
 
   if (denominations.length === 0) return null;
 
-  const width =
-    CHIP_PILE_SIZE + (denominations.length - 1) * CHIP_PILE_H_STEP;
+  const width = CHIP_PILE_SIZE + (denominations.length - 1) * CHIP_PILE_H_STEP;
   const height =
     CHIP_PILE_SIZE +
     CHIP_PILE_SHADOW_RESERVE +
@@ -1179,7 +1424,6 @@ function PlayerPanel({
               <span className="text-zinc-300">
                 {player.bet.toLocaleString()}
               </span>
-
               {flyingChips.map(({ id, amount }) => {
                 const denom = chipDenominationFor(amount);
 
@@ -1702,7 +1946,9 @@ function SettingToggleRow({
       >
         <span
           className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-            checked ? "transform-[translateX(20px)]" : "transform-[translateX(0)]"
+            checked
+              ? "transform-[translateX(20px)]"
+              : "transform-[translateX(0)]"
           }`}
         />
       </button>
@@ -2515,7 +2761,15 @@ export default function Home() {
   const raiseByRatio = (ratio: RaiseRatio) => {
     if (!roomId) return;
 
-    if (confirmBets && !confirmBetAmount(RAISE_RATIO_LABEL[ratio], gameState, playerId, (amounts) => amounts.raiseAmounts[ratio])) {
+    if (
+      confirmBets &&
+      !confirmBetAmount(
+        RAISE_RATIO_LABEL[ratio],
+        gameState,
+        playerId,
+        (amounts) => amounts.raiseAmounts[ratio],
+      )
+    ) {
       return;
     }
 
@@ -2527,7 +2781,15 @@ export default function Home() {
   const allIn = () => {
     if (!roomId) return;
 
-    if (confirmBets && !confirmBetAmount("올인", gameState, playerId, (amounts) => amounts.allInAmount)) {
+    if (
+      confirmBets &&
+      !confirmBetAmount(
+        "올인",
+        gameState,
+        playerId,
+        (amounts) => amounts.allInAmount,
+      )
+    ) {
       return;
     }
 
@@ -2625,6 +2887,11 @@ export default function Home() {
   if (!roomId) {
     return (
       <main className="relative flex min-h-screen flex-col items-center justify-center px-4 py-4">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+
         <div className="absolute top-4 right-4 flex items-center gap-2">
           <button
             type="button"
@@ -3013,7 +3280,8 @@ export default function Home() {
     ? computeBettingAmounts(gameState.pot, gameState.currentBet, myPlayer)
     : null;
 
-  const isMyTurn = gameState.players[gameState.currentPlayerIndex]?.id === playerId;
+  const isMyTurn =
+    gameState.players[gameState.currentPlayerIndex]?.id === playerId;
 
   const infoRailPhaseLabel =
     PHASE_LABEL[gameState.phase] ??
@@ -3071,7 +3339,7 @@ export default function Home() {
         </div>
       </aside>
 
-      <div className="mx-auto flex w-full min-w-0 flex-1 flex-col overflow-hidden sm:pr-4 2xl:max-w-[1400px]">
+      <div className="mx-auto flex w-full min-w-0 flex-1 flex-col overflow-hidden sm:pr-4 2xl:max-w-350">
         <header className="mb-2 flex shrink-0 items-center justify-between gap-3 sm:mb-4">
           <h1 className="font-serif text-[25px] font-bold tracking-tight text-gold sm:text-3xl">
             섯다
@@ -3202,8 +3470,7 @@ export default function Home() {
             </p>
           )}
 
-          {(gameState.phase === "betting1" ||
-            gameState.phase === "betting2") &&
+          {(gameState.phase === "betting1" || gameState.phase === "betting2") &&
             !myPlayer?.isSpectator &&
             bettingAmounts && (
               <>
@@ -3238,7 +3505,8 @@ export default function Home() {
                       onClick={call}
                       disabled={
                         !isMyTurn ||
-                        bettingAmounts.callAmount > bettingAmounts.allInAmount ||
+                        bettingAmounts.callAmount >
+                          bettingAmounts.allInAmount ||
                         bettingAmounts.callAmount > bettingAmounts.remainingRoom
                       }
                       className="rounded-xl bg-felt/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
