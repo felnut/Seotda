@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { buildJsonLd } from "@/lib/seo/structuredData";
 
+const PAGE_URL = "https://seotda.felnut.com/about";
 const TITLE = "섯다란? - 친구와 온라인으로 즐기는 전통 카드 게임 소개";
 const DESCRIPTION =
   "섯다가 어떤 게임인지, 이 사이트에서 무엇을 할 수 있는지, 어떻게 시작하는지 한 번에 정리했습니다.";
@@ -8,15 +10,25 @@ const DESCRIPTION =
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
+  alternates: {
+    canonical: PAGE_URL,
+  },
   openGraph: {
     title: TITLE,
     description: DESCRIPTION,
   },
 };
 
+const jsonLd = buildJsonLd({ url: PAGE_URL, name: TITLE, description: DESCRIPTION });
+
 export default function AboutPage() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col px-4 py-10 sm:py-14">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       <Link
         href="/"
         className="mb-6 inline-block w-fit text-[13.5px] text-zinc-500 hover:text-zinc-300"
@@ -35,20 +47,19 @@ export default function AboutPage() {
       </h1>
 
       <p className="mb-4 text-[14.5px] leading-relaxed text-zinc-400">
-        이 사이트는 친구와 온라인으로 즐기는 전통 카드 게임, 섯다를
-        다룹니다. 섯다는 화투 카드 20장 중 2장(경우에 따라 3장)만으로
-        승부를 겨루는 한국의 전통 카드 게임으로, 두 장의 카드가 이루는
-        월(月) 숫자 조합, 즉 족보의 높낮이를 겨룹니다. 광땡·알리·독사·
-        구사 같은 특수 족보가 나오면 판의 흐름이 순식간에 뒤바뀌는 것이
-        이 게임의 가장 큰 매력입니다.
+        이 사이트는 친구와 온라인으로 즐기는 전통 카드 게임, 섯다를 다룹니다.
+        섯다는 화투 카드 20장 중 2장(경우에 따라 3장)만으로 승부를 겨루는 한국의
+        전통 카드 게임으로, 두 장의 카드가 이루는 월(月) 숫자 조합, 즉 족보의
+        높낮이를 겨룹니다. 광땡·알리·독사· 구사 같은 특수 족보가 나오면 판의
+        흐름이 순식간에 뒤바뀌는 것이 이 게임의 가장 큰 매력입니다.
       </p>
 
       <p className="mb-8 text-[14.5px] leading-relaxed text-zinc-400">
-        명절에 온 가족이 둘러앉아 즐기던 놀이를 이제는 브라우저만 있으면
-        언제 어디서나, 멀리 있는 친구와도 함께 즐길 수 있습니다. 방을
-        하나 만들어 방 이름만 알려주면 곧바로 접속할 수 있고, 인원이
-        둘뿐이어도 AI를 채워 바로 대전을 시작할 수 있어 별도의 설치나
-        준비 없이 바로 즐기는 전통 카드 게임을 경험할 수 있습니다.
+        명절에 온 가족이 둘러앉아 즐기던 놀이를 이제는 브라우저만 있으면 언제
+        어디서나, 멀리 있는 친구와도 함께 즐길 수 있습니다. 방을 하나 만들어 방
+        이름만 알려주면 곧바로 접속할 수 있고, 인원이 둘뿐이어도 AI를 채워 바로
+        대전을 시작할 수 있어 별도의 설치나 준비 없이 바로 즐기는 전통 카드
+        게임을 경험할 수 있습니다.
       </p>
 
       <h2 className="mb-2 text-[18px] font-bold text-zinc-200">주요 기능</h2>
@@ -59,24 +70,24 @@ export default function AboutPage() {
           바로바로 반영됩니다.
         </li>
         <li>
-          친구와 함께 — 비밀번호를 걸어 나만의 방을 만들고, 방 이름만
-          공유하면 친구를 초대할 수 있습니다.
+          친구와 함께 — 비밀번호를 걸어 나만의 방을 만들고, 방 이름만 공유하면
+          친구를 초대할 수 있습니다.
         </li>
         <li>
-          AI 상대 — 인원이 부족해도 AI 플레이어를 채워 곧바로 게임을 시작할
-          수 있습니다.
+          AI 상대 — 인원이 부족해도 AI 플레이어를 채워 곧바로 게임을 시작할 수
+          있습니다.
         </li>
         <li>
-          구글 로그인과 랭킹 — 로그인하면 보유 칩이 계정에 저장되고,
-          랭킹에서 다른 플레이어들과 순위를 겨룰 수 있습니다.
+          구글 로그인과 랭킹 — 로그인하면 보유 칩이 계정에 저장되고, 랭킹에서
+          다른 플레이어들과 순위를 겨룰 수 있습니다.
         </li>
         <li>
-          실시간 채팅과 이모티콘 — 게임 도중에도 대화를 나누며 분위기를
-          즐길 수 있습니다.
+          실시간 채팅과 이모티콘 — 게임 도중에도 대화를 나누며 분위기를 즐길 수
+          있습니다.
         </li>
         <li>
-          족보 가이드 — 헷갈리기 쉬운 광땡·알리·독사·구사 같은 족보를
-          게임 화면과{" "}
+          족보 가이드 — 헷갈리기 쉬운 광땡·알리·독사·구사 같은 족보를 게임
+          화면과{" "}
           <Link
             href="/rules"
             className="text-gold-bright underline underline-offset-2 hover:text-gold"
@@ -93,8 +104,8 @@ export default function AboutPage() {
 
       <ol className="mb-8 list-decimal space-y-1.5 pl-5 text-[14.5px] leading-relaxed text-zinc-400">
         <li>
-          닉네임을 입력합니다. 선택 사항이며, 입력하지 않으면 자동으로
-          이름이 부여됩니다.
+          닉네임을 입력합니다. 선택 사항이며, 입력하지 않으면 자동으로 이름이
+          부여됩니다.
         </li>
         <li>
           <Link
