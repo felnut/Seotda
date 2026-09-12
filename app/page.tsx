@@ -2938,7 +2938,7 @@ export default function Home() {
           )}
         </div>
 
-        <h1 className="mb-5 flex flex-col items-center gap-1">
+        <h1 className="mb-3 flex flex-col items-center gap-1">
           <span className="font-serif text-[36px] font-black tracking-tight text-gold">
             섯다
           </span>
@@ -2947,6 +2947,10 @@ export default function Home() {
             친구와 온라인으로 즐기는 전통 카드 게임
           </span>
         </h1>
+
+        <p className="mb-5 max-w-sm text-center text-[13.5px] leading-relaxed text-zinc-500">
+          섯다는 화투패로 즐기는 한국 전통 카드 게임입니다. 친구를 초대해 온라인에서 실시간으로 대결하거나, AI를 상대로 편하게 연습할 수 있습니다.
+        </p>
 
         <div className="mb-4 w-full max-w-sm">
           <label className="mb-1.5 block text-[13px] font-medium text-zinc-500">
@@ -3041,12 +3045,21 @@ export default function Home() {
             </p>
           )}
 
-          <Link
-            href="/about"
-            className="mt-6 block text-center text-[13.5px] text-zinc-500 underline-offset-2 hover:text-zinc-300 hover:underline"
-          >
-            섯다란? — 게임 소개와 시작하는 방법 보기
-          </Link>
+          <div className="mt-6 flex items-center justify-center gap-4 text-[13.5px] text-zinc-500">
+            <Link
+              href="/about"
+              className="underline-offset-2 hover:text-zinc-300 hover:underline"
+            >
+              섯다란? — 게임 소개
+            </Link>
+            <span className="text-zinc-700">·</span>
+            <Link
+              href="/rules"
+              className="underline-offset-2 hover:text-zinc-300 hover:underline"
+            >
+              게임 규칙 보기
+            </Link>
+          </div>
         </div>
 
         <div className="fixed bottom-4 left-4 z-30">

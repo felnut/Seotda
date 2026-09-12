@@ -33,7 +33,7 @@ const SITE_NAME = "섯다";
 // 설명을 덧붙인 전체 타이틀을 별도로 둔다.
 const SITE_TITLE = "섯다 - 친구와 온라인으로 즐기는 전통 카드 게임";
 const SITE_DESCRIPTION =
-  "섯다는 친구와 온라인에서 실시간으로 즐길 수 있는 전통 카드 게임입니다. Socket.IO 기반 실시간 멀티플레이, 구글 로그인과 랭킹 시스템, AI 상대와의 대결까지 한 번에 즐길 수 있는 웹 게임입니다.";
+  "섯다는 친구와 온라인에서 실시간으로 즐길 수 있는 전통 카드 게임입니다. Socket.IO 기반 실시간 대전과 구글 로그인 랭킹을 지원합니다.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
