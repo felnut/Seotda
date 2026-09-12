@@ -48,7 +48,12 @@ const TWITTER_SHARE_URL = `https://twitter.com/intent/tweet?url=${encodeURICompo
 
 function KakaoIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="currentColor"
+      aria-hidden
+    >
       <path d="M12 3C6.48 3 2 6.58 2 11c0 2.79 1.86 5.24 4.66 6.65-.15.55-.96 3.44-.99 3.66 0 0-.02.17.09.24.11.07.24.02.24.02.32-.04 3.71-2.43 4.29-2.84.55.08 1.12.13 1.71.13 5.52 0 10-3.58 10-8S17.52 3 12 3z" />
     </svg>
   );
@@ -56,7 +61,12 @@ function KakaoIcon() {
 
 function XIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      className="h-4 w-4"
+      fill="currentColor"
+      aria-hidden
+    >
       <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
     </svg>
   );

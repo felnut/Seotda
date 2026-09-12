@@ -53,7 +53,8 @@ function getPersona(playerId: string, cards: SeotdaCard[]): string {
   if (!persona) {
     const roll = Math.random();
 
-    persona = roll < 0.2 ? PERSONAS[0] : roll < 0.35 ? PERSONAS[1] : PERSONAS[2];
+    persona =
+      roll < 0.2 ? PERSONAS[0] : roll < 0.35 ? PERSONAS[1] : PERSONAS[2];
     personaCache.set(key, persona);
 
     // 캐시가 끝없이 쌓이지 않도록 가장 오래된 항목부터 정리한다.
@@ -69,8 +70,9 @@ function getPersona(playerId: string, cards: SeotdaCard[]): string {
 function describeHandName(cards: SeotdaCard[]): string {
   const result =
     cards.length >= 3
-      ? bestHandFromThree(cards.slice(0, 3) as [SeotdaCard, SeotdaCard, SeotdaCard])
-          .result
+      ? bestHandFromThree(
+          cards.slice(0, 3) as [SeotdaCard, SeotdaCard, SeotdaCard],
+        ).result
       : evaluateHand([cards[0], cards[1]]);
 
   return getDisplayHandName(result);
@@ -116,7 +118,8 @@ function normalizeAction(
   }
 
   if (parsed.action === "call") {
-    const canCall = toCall > 0 && toCall <= player.chips && toCall <= remainingCap;
+    const canCall =
+      toCall > 0 && toCall <= player.chips && toCall <= remainingCap;
     if (canCall) return { type: "call" };
   }
 

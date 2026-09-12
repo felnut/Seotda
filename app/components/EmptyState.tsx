@@ -48,9 +48,7 @@ export function EmptyState({
       <p className="text-[15.5px] font-semibold text-zinc-300">{title}</p>
 
       {subtitle && (
-        <p className="max-w-[220px] text-[13.5px] text-zinc-500">
-          {subtitle}
-        </p>
+        <p className="max-w-55 text-[13.5px] text-zinc-500">{subtitle}</p>
       )}
     </div>
   );
