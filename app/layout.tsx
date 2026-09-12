@@ -27,7 +27,11 @@ const nanumMyeongjo = Nanum_Myeongjo({
 });
 
 const SITE_URL = "https://seotda.felnut.com";
-const SITE_TITLE = "섯다";
+const SITE_NAME = "섯다";
+// 검색 결과에 노출되는 title/H1은 "섯다" 한 단어만으로는 너무 짧고
+// 무엇에 대한 페이지인지 알 수 없다는 SEO 체크 결과에 따라, 브랜드명 뒤에
+// 설명을 덧붙인 전체 타이틀을 별도로 둔다.
+const SITE_TITLE = "섯다 - 친구와 온라인으로 즐기는 전통 카드 게임";
 const SITE_DESCRIPTION = "친구와 온라인으로 즐기는 전통 섯다 카드 게임";
 
 export const metadata: Metadata = {
@@ -38,7 +42,7 @@ export const metadata: Metadata = {
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
     url: SITE_URL,
-    siteName: SITE_TITLE,
+    siteName: SITE_NAME,
     locale: "ko_KR",
     type: "website",
   },
