@@ -91,7 +91,7 @@ export function ShareButtons() {
             onClick={shareToKakao}
             aria-label="카카오톡으로 공유"
             title="카카오톡으로 공유"
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-[#FEE500] text-black/80 shadow-lg shadow-black/40 transition hover:brightness-95 active:scale-95"
+            className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-[#FEE500] text-black/80 shadow-lg shadow-black/40 transition hover:brightness-95 active:scale-95"
           >
             <KakaoIcon />
           </button>

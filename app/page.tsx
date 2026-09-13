@@ -28,7 +28,13 @@ import { loadNickname, saveNickname } from "@/lib/nickname";
 import { RankingModal } from "./components/RankingModal";
 import { GoogleSignInButton } from "./components/GoogleSignInButton";
 import { ShareButtons } from "./components/ShareButtons";
+import { AdSlot } from "./components/AdSlot";
 import { buildJsonLd } from "@/lib/seo/structuredData";
+
+// 애드센스 콘솔에서 로비 화면 좌우에 걸어둘 세로형(스카이스크래퍼) 광고
+// 단위의 슬롯 ID. 같은 단위를 양쪽에 그대로 재사용한다.
+const ADSENSE_LOBBY_SIDE_SLOT_ID =
+  process.env.NEXT_PUBLIC_ADSENSE_LOBBY_SIDE_SLOT_ID ?? "";
 
 // layout.tsx의 메타데이터와 같은 값을 쓰지만, 서버 컴포넌트인
 // layout.tsx를 클라이언트 컴포넌트인 이 파일에서 직접 import하면
@@ -2890,7 +2896,7 @@ export default function Home() {
    */
   if (!roomId) {
     return (
-      <main className="relative flex min-h-screen flex-col items-center justify-center px-4 py-4">
+      <main className="relative flex min-h-screen flex-col items-center justify-center gap-6 px-4 py-4 xl:flex-row">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -2938,38 +2944,46 @@ export default function Home() {
           )}
         </div>
 
-        <h1 className="mb-3 flex flex-col items-center gap-1">
-          <span className="font-serif text-[36px] font-black tracking-tight text-gold">
-            섯다
-          </span>
-          {" "}
-          <span className="text-[17.5px] font-normal text-zinc-500">
-            친구와 온라인으로 즐기는 전통 카드 게임
-          </span>
-        </h1>
-
-        <p className="mb-5 max-w-sm text-center text-[13.5px] leading-relaxed text-zinc-500">
-          섯다는 화투패로 즐기는 한국 전통 카드 게임입니다. 친구를 초대해 온라인에서 실시간으로 대결하거나, AI를 상대로 편하게 연습할 수 있습니다.
-        </p>
-
-        <div className="mb-4 w-full max-w-sm">
-          <label className="mb-1.5 block text-[13px] font-medium text-zinc-500">
-            닉네임 (선택)
-          </label>
-
-          <input
-            value={displayName}
-            onChange={(event) => {
-              setDisplayName(event.target.value);
-              saveNickname(event.target.value.trim());
-            }}
-            placeholder="입력하지 않으면 기본 이름이 부여됩니다"
-            maxLength={13}
-            className="w-full rounded-xl border border-white/20 bg-black/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] px-4 py-2 text-[17.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
+        {/* 화면이 충분히 넓을 때만 중앙 콘텐츠 양옆에 세로형 배너를 하나씩
+            띄운다 — 좁은 화면에서는 AdSlot이 아예 렌더링되지 않아도
+            gap만 남지 않도록 이 래퍼 자체를 숨긴다. */}
+        <div className="hidden shrink-0 xl:block">
+          <AdSlot
+            slotId={ADSENSE_LOBBY_SIDE_SLOT_ID}
+            width={160}
+            height={600}
           />
         </div>
 
-        <div className="w-full max-w-xl">
+        <div className="flex w-full max-w-xl flex-col items-center">
+          <h1 className="mb-3 flex flex-col items-center gap-1">
+            <span className="font-serif text-[36px] font-black tracking-tight text-gold">
+              섯다
+            </span>
+            {" "}
+            <span className="text-[17.5px] font-normal text-zinc-500">
+              친구와 온라인으로 즐기는 전통 카드 게임
+            </span>
+          </h1>
+
+          <div className="mb-4 w-full max-w-sm">
+            <label className="mb-1.5 block text-[13px] font-medium text-zinc-500">
+              닉네임 (선택)
+            </label>
+
+            <input
+              value={displayName}
+              onChange={(event) => {
+                setDisplayName(event.target.value);
+                saveNickname(event.target.value.trim());
+              }}
+              placeholder="입력하지 않으면 기본 이름이 부여됩니다"
+              maxLength={13}
+              className="w-full rounded-xl border border-white/20 bg-black/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] px-4 py-2 text-[17.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
+            />
+          </div>
+
+          <div className="w-full max-w-xl">
           <div className="flex flex-col">
             {/* 7. 방 만들기 */}
             <section className="animate-fade-up flex w-full flex-col rounded-2xl border border-white/10 bg-white/3 p-5 shadow-xl shadow-black/30 sm:p-6">
@@ -3060,6 +3074,15 @@ export default function Home() {
               게임 규칙 보기
             </Link>
           </div>
+          </div>
+        </div>
+
+        <div className="hidden shrink-0 xl:block">
+          <AdSlot
+            slotId={ADSENSE_LOBBY_SIDE_SLOT_ID}
+            width={160}
+            height={600}
+          />
         </div>
 
         <div className="fixed bottom-4 left-4 z-30">
