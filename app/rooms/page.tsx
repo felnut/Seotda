@@ -9,6 +9,12 @@ import { saveSession } from "@/lib/session";
 import { loadNickname } from "@/lib/nickname";
 import { useAuth } from "@/lib/useAuth";
 import { EmptyState } from "../components/EmptyState";
+import { AdSlot } from "../components/AdSlot";
+
+// 애드센스 콘솔에서 방 찾기 화면용으로 만든 사각형(300x250) 광고 단위의
+// 슬롯 ID.
+const ADSENSE_ROOMS_RECT_SLOT_ID =
+  process.env.NEXT_PUBLIC_ADSENSE_ROOMS_RECT_SLOT_ID ?? "";
 
 export default function RoomsPage() {
   const router = useRouter();
@@ -173,6 +179,14 @@ export default function RoomsPage() {
       >
         새 방 만들기
       </Link>
+
+      <div className="mt-6 flex justify-center">
+        <AdSlot
+          slotId={ADSENSE_ROOMS_RECT_SLOT_ID}
+          width={300}
+          height={250}
+        />
+      </div>
 
       {passwordPromptRoom && (
         <div

@@ -3,6 +3,7 @@ import { IBM_Plex_Mono, Nanum_Myeongjo, Noto_Sans_KR } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 // 심플하고 모던한 톤을 위해 본문·제목 모두 하나의 고딕체(굵기로만 위계를
 // 준다) + 칩/판돈 숫자용 모노스페이스로 타이포그래피를 구성한다.
@@ -25,6 +26,8 @@ const nanumMyeongjo = Nanum_Myeongjo({
   subsets: ["latin"],
   variable: "--font-nanum-myeongjo",
 });
+
+const ADSENSE_CLIENT_ID = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
 
 const SITE_URL = "https://seotda.felnut.com";
 const SITE_NAME = "섯다";
@@ -65,12 +68,23 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <Analytics />
+        <SpeedInsights />
         {/* 로그인/로그아웃으로 버튼이 다시 마운트돼도 다시 로드하지 않도록 앱
             전체에서 한 번만 불러온다. */}
         <Script
           src="https://accounts.google.com/gsi/client"
           strategy="afterInteractive"
         />
+        {/* 클라이언트 ID가 없는 로컬/프리뷰 환경에서는 애드센스 스크립트
+            자체를 건너뛴다 — AdSlot도 같은 값으로 렌더 여부를 판단한다. */}
+        {ADSENSE_CLIENT_ID && (
+          <Script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT_ID}`}
+            crossOrigin="anonymous"
+            strategy="afterInteractive"
+          />
+        )}
         {children}
       </body>
     </html>
