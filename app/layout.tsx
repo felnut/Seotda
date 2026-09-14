@@ -77,15 +77,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         />
         {/* 클라이언트 ID가 없는 로컬/프리뷰 환경에서는 애드센스 스크립트
             자체를 건너뛴다 — AdSlot도 같은 값으로 렌더 여부를 판단한다.
-            beforeInteractive로 둬야 서버가 내려주는 최초 HTML의 head
-            안에 실제 <script> 태그로 박혀서, 애드센스 검토 크롤러가
-            자바스크립트 실행 없이도 코드를 바로 찾아낼 수 있다. */}
+            beforeInteractive는 애드센스 검토 크롤러가 raw HTML에서 바로
+            스크립트를 찾을 수 있게 해주지만, 실제 사용자에게는 하이드레이션을
+            막아 모바일 LCP/TTI를 늦춘다. 애드센스 크롤러는 자바스크립트를
+            실행한다고 알려져 있어 afterInteractive로도 승인엔 지장이
+            없을 것으로 보고, 실사용자 성능을 우선해 되돌린다. */}
         {ADSENSE_CLIENT_ID && (
           <Script
             async
             src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT_ID}`}
             crossOrigin="anonymous"
-            strategy="beforeInteractive"
+            strategy="afterInteractive"
           />
         )}
         {children}
