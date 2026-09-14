@@ -51,9 +51,21 @@ export async function getFirebaseAuth(): Promise<Auth | null> {
 
       if (!app) return null;
 
-      const { getAuth } = await import("firebase/auth");
+      // getAuth()는 signInWithPopup/signInWithRedirect 대비용으로
+      // authDomain에 숨겨진 iframe(auth/iframe.js, ~90KB)을 항상 띄우고
+      // Google API에 설정을 확인하는 요청까지 보낸다 — 모바일 환경에서
+      // 이 체인 하나가 LCP를 몇 초씩 늦추는 게 Lighthouse로 확인됐다.
+      // 이 앱은 Google Identity Services 토큰을 signInWithCredential로
+      // 바꿔 로그인하는 방식만 쓰고 팝업/리다이렉트는 전혀 안 쓰므로,
+      // initializeAuth로 그 리졸버 자체를 빼서 iframe을 만들지 않는다.
+      const { initializeAuth, browserLocalPersistence } = await import(
+        "firebase/auth"
+      );
 
-      return getAuth(app);
+      return initializeAuth(app, {
+        persistence: browserLocalPersistence,
+        popupRedirectResolver: undefined,
+      });
     })();
   }
 
