@@ -2966,6 +2966,11 @@ export default function Home() {
             </span>
           </h1>
 
+          <p className="mb-5 max-w-sm text-center text-[13.5px] leading-relaxed text-zinc-500">
+            화투 카드로 즐기는 전통 카드 게임, 친구와 온라인에서 실시간으로
+            대결해보세요.
+          </p>
+
           <div className="mb-4 w-full max-w-sm">
             <label className="mb-1.5 block text-[13px] font-medium text-zinc-500">
               닉네임 (선택)
