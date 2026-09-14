@@ -4,7 +4,6 @@
 // 수 있게 한다.
 const PORTFOLIO_URL = "https://www.felnut.com/";
 const ORGANIZATION_ID = `${PORTFOLIO_URL}#organization`;
-const PERSON_ID = `${PORTFOLIO_URL}#person`;
 
 const SITE_URL = "https://seotda.felnut.com";
 const WEBSITE_ID = `${SITE_URL}/#website`;
@@ -40,7 +39,6 @@ export function buildJsonLd({
         // address에 Text도 허용하는 점을 이용해 포트폴리오 사이트
         // URL을 대신 넣는다.
         address: PORTFOLIO_URL,
-        founder: { "@id": PERSON_ID },
         sameAs: ["https://github.com/felnut"],
         contactPoint: {
           "@type": "ContactPoint",
