@@ -144,6 +144,64 @@ export default function AboutPage() {
         <li>2명 이상 모이면 방장이 게임을 시작할 수 있습니다.</li>
       </ol>
 
+      <h2 className="mb-2 text-[18px] font-bold text-zinc-200">
+        자주 묻는 질문
+      </h2>
+
+      <div className="mb-10 space-y-4">
+        <div>
+          <p className="mb-1 text-[14.5px] font-semibold text-zinc-200">
+            몇 명이서 즐길 수 있나요?
+          </p>
+          <p className="text-[14.5px] leading-relaxed text-zinc-400">
+            한 방에 최소 2명, 최대 6명까지 참가할 수 있습니다. 인원이 모자라도
+            AI 플레이어가 빈 자리를 채워주므로 혼자서도 바로 시작할 수
+            있습니다.
+          </p>
+        </div>
+
+        <div>
+          <p className="mb-1 text-[14.5px] font-semibold text-zinc-200">
+            실제 돈을 걸어야 하나요?
+          </p>
+          <p className="text-[14.5px] leading-relaxed text-zinc-400">
+            아닙니다. 모든 참가자는 시작 시 10,000칩을 받아 재미로만
+            사용하며, 결제나 환전 기능은 제공하지 않습니다.
+          </p>
+        </div>
+
+        <div>
+          <p className="mb-1 text-[14.5px] font-semibold text-zinc-200">
+            로그인하지 않아도 되나요?
+          </p>
+          <p className="text-[14.5px] leading-relaxed text-zinc-400">
+            네, 닉네임만 입력하면 로그인 없이 바로 참가할 수 있습니다. 다만
+            구글 로그인을 하면 보유 칩이 계정에 저장되고 랭킹에도
+            반영됩니다.
+          </p>
+        </div>
+
+        <div>
+          <p className="mb-1 text-[14.5px] font-semibold text-zinc-200">
+            칩을 다 잃으면 게임이 끝나나요?
+          </p>
+          <p className="text-[14.5px] leading-relaxed text-zinc-400">
+            그 판에서는 관전자로 전환되지만, 참가자 전원이 &ldquo;다시하기&rdquo;에
+            동의하면 모두 시작 칩으로 초기화되어 다시 도전할 수 있습니다.
+          </p>
+        </div>
+
+        <div>
+          <p className="mb-1 text-[14.5px] font-semibold text-zinc-200">
+            모바일에서도 할 수 있나요?
+          </p>
+          <p className="text-[14.5px] leading-relaxed text-zinc-400">
+            네, 별도 앱 설치 없이 모바일 브라우저에서도 PC와 동일하게
+            즐길 수 있습니다.
+          </p>
+        </div>
+      </div>
+
       <p className="mb-10 text-[13.5px] text-zinc-500">
         섯다의 자세한 규칙과 유래가 궁금하다면{" "}
         <a

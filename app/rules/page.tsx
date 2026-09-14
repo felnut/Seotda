@@ -83,6 +83,91 @@ export default function RulesPage() {
       </p>
 
       <section className="mb-8">
+        <h2 className="mb-3 text-[18px] font-bold text-zinc-200">
+          게임은 이렇게 진행됩니다
+        </h2>
+
+        <ol className="space-y-2 text-[14.5px] leading-relaxed text-zinc-400">
+          <li>
+            <span className="font-semibold text-zinc-200">
+              1. 시작금(앤티) 징수
+            </span>{" "}
+            — 참가자 전원이 100칩씩 자동으로 판돈에 냅니다.
+          </li>
+          <li>
+            <span className="font-semibold text-zinc-200">2. 카드 배분</span>{" "}
+            — 화투 카드 2장을 받아 자신만 확인합니다.
+          </li>
+          <li>
+            <span className="font-semibold text-zinc-200">
+              3. 1차 베팅
+            </span>{" "}
+            — 체크·콜·하프/쿼터/더블·올인·다이 중 하나를 골라 판을 키우거나
+            접습니다.
+          </li>
+          <li>
+            <span className="font-semibold text-zinc-200">
+              4. 3번째 카드 & 공개
+            </span>{" "}
+            — 한 장을 더 받아 3장이 되고, 그중 한 장을 상대에게 공개합니다.
+          </li>
+          <li>
+            <span className="font-semibold text-zinc-200">
+              5. 2차 베팅
+            </span>{" "}
+            — 공개된 카드를 참고해 다시 한 번 베팅합니다.
+          </li>
+          <li>
+            <span className="font-semibold text-zinc-200">
+              6. 족보 선택 &amp; 쇼다운
+            </span>{" "}
+            — 3장 중 최종 족보로 쓸 2장을 스스로 고르면, 남은 참가자끼리
+            족보를 비교해 승자가 판돈을 가져갑니다.
+          </li>
+        </ol>
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-3 text-[18px] font-bold text-zinc-200">
+          베팅 액션 알아보기
+        </h2>
+
+        <ul className="space-y-2 text-[14.5px] leading-relaxed text-zinc-400">
+          <li>
+            <span className="font-semibold text-zinc-200">체크</span> — 추가로
+            내는 돈 없이 차례를 넘깁니다. 현재 베팅액과 자신의 베팅액이 같을
+            때만 가능합니다.
+          </li>
+          <li>
+            <span className="font-semibold text-zinc-200">콜</span> — 현재
+            최고 베팅 금액까지 자신의 베팅액을 맞춥니다.
+          </li>
+          <li>
+            <span className="font-semibold text-zinc-200">
+              하프 / 쿼터 / 더블
+            </span>{" "}
+            — 섯다 특유의 배율 베팅입니다. 현재 판돈의 1/2, 1/4, 2배를
+            베팅해 판을 키웁니다.
+          </li>
+          <li>
+            <span className="font-semibold text-zinc-200">올인</span> — 남은
+            칩을 전부 겁니다. 여러 명이 서로 다른 금액으로 올인하면
+            사이드 팟으로 나뉘어 정산됩니다.
+          </li>
+          <li>
+            <span className="font-semibold text-zinc-200">다이</span> —
+            승부를 포기하고 이번 판에서 빠집니다.
+          </li>
+        </ul>
+
+        <p className="mt-4 text-[13.5px] text-zinc-500">
+          모든 참가자는 10,000칩으로 시작하며, 판마다 참가자 평균 보유 칩을
+          기준으로 판당 최대 베팅 한도가 정해져 한 판에 너무 큰 칩이 걸리지
+          않도록 합니다.
+        </p>
+      </section>
+
+      <section className="mb-8">
         <h2 className="mb-3 text-[18px] font-bold text-zinc-200">특수 족보</h2>
 
         <p className="mb-4 text-[14.5px] leading-relaxed text-zinc-400">
