@@ -26,6 +26,17 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        // RFC 9116은 /.well-known/security.txt를 정식 위치로 두지만,
+        // 루트 경로만 확인하는 스캐너/도구도 있어 리다이렉트를 열어둔다.
+        source: "/security.txt",
+        destination: "/.well-known/security.txt",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
