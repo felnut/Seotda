@@ -76,13 +76,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           strategy="afterInteractive"
         />
         {/* 클라이언트 ID가 없는 로컬/프리뷰 환경에서는 애드센스 스크립트
-            자체를 건너뛴다 — AdSlot도 같은 값으로 렌더 여부를 판단한다. */}
+            자체를 건너뛴다 — AdSlot도 같은 값으로 렌더 여부를 판단한다.
+            beforeInteractive로 둬야 서버가 내려주는 최초 HTML의 head
+            안에 실제 <script> 태그로 박혀서, 애드센스 검토 크롤러가
+            자바스크립트 실행 없이도 코드를 바로 찾아낼 수 있다. */}
         {ADSENSE_CLIENT_ID && (
           <Script
             async
             src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT_ID}`}
             crossOrigin="anonymous"
-            strategy="afterInteractive"
+            strategy="beforeInteractive"
           />
         )}
         {children}
