@@ -154,9 +154,9 @@ export default function AboutPage() {
             몇 명이서 즐길 수 있나요?
           </p>
           <p className="text-[14.5px] leading-relaxed text-zinc-400">
-            한 방에 최소 2명, 최대 6명까지 참가할 수 있습니다. 인원이 모자라도
-            AI 플레이어가 빈 자리를 채워주므로 혼자서도 바로 시작할 수
-            있습니다.
+            한 방에 최소 2명, 최대 6명까지 참가할 수 있습니다. 인원이 모자라면
+            방장이 &ldquo;AI 추가&rdquo; 버튼으로 빈 자리를 채워 혼자서도
+            바로 시작할 수 있습니다.
           </p>
         </div>
 
