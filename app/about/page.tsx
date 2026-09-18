@@ -186,8 +186,9 @@ export default function AboutPage() {
             칩을 다 잃으면 게임이 끝나나요?
           </p>
           <p className="text-[14.5px] leading-relaxed text-zinc-400">
-            그 판에서는 관전자로 전환되지만, 참가자 전원이 &ldquo;다시하기&rdquo;에
-            동의하면 모두 시작 칩으로 초기화되어 다시 도전할 수 있습니다.
+            그 판이 끝나면 관전자로 전환되며, 계속 지켜볼지 방을 나갈지
+            선택할 수 있습니다. 방을 나간 뒤 다시 참가하면 시작 칩을 새로
+            받아 도전할 수 있습니다.
           </p>
         </div>
 

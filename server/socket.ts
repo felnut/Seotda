@@ -186,7 +186,12 @@ async function resolveJoiningPlayer(
     return {
       uid,
       name,
-      startingChips: existing?.money ?? STARTING_CHIPS,
+      // existing.money가 0이어도 ??는 null/undefined일 때만 대체값을 쓰므로
+      // 그대로 통과해버린다. 파산(0 이하) 상태로 재참여하는 경우까지
+      // 명시적으로 걸러 항상 시작 칩을 준다 — 로비의 claim-bankruptcy-refill
+      // (비동기)이 아직 반영되기 전에 방을 만들거나 들어가도 안전하다.
+      startingChips:
+        existing && existing.money > 0 ? existing.money : STARTING_CHIPS,
     };
   } catch (err) {
     console.warn("idToken 검증 실패, 게스트로 진행합니다:", err);
