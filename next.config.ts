@@ -24,6 +24,17 @@ const nextConfig: NextConfig = {
         source: "/:path*",
         headers: securityHeaders,
       },
+      {
+        // 카드/사운드는 파일명이 고정이라 배포 후 내용이 절대 바뀌지 않는다
+        // (바뀌면 새 파일명으로 올림) — 장기 캐시로 재방문 시 재다운로드를 없앤다.
+        source: "/:type(card|sounds)/:file*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
     ];
   },
   async redirects() {
