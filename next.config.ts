@@ -35,6 +35,19 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // favicon(icon.png 233KB)·apple-icon은 매 페이지 로드마다 요청되는데도
+        // Next.js 기본값이 max-age=0(매번 재검증)이었다. 파일명이 고정이라
+        // 아이콘을 바꿀 땐 어차피 재배포가 필요하므로, card/sounds보다는
+        // 짧게(30일) 잡아 실수로 안 바뀐 아이콘이 1년씩 눌어붙는 것만 피한다.
+        source: "/:icon(icon.png|apple-icon.png)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=2592000, stale-while-revalidate=86400",
+          },
+        ],
+      },
     ];
   },
   async redirects() {
