@@ -2959,8 +2959,7 @@ export default function Home() {
           <h1 className="mb-3 flex flex-col items-center gap-1">
             <span className="font-serif text-[36px] font-black tracking-tight text-gold">
               섯다
-            </span>
-            {" "}
+            </span>{" "}
             <span className="text-[17.5px] font-normal text-zinc-500">
               친구와 온라인으로 즐기는 전통 카드 게임
             </span>
@@ -2989,96 +2988,96 @@ export default function Home() {
           </div>
 
           <div className="w-full max-w-xl">
-          <div className="flex flex-col">
-            {/* 7. 방 만들기 */}
-            <section className="animate-fade-up flex w-full flex-col rounded-2xl border border-white/10 bg-white/3 p-5 shadow-xl shadow-black/30 sm:p-6">
-              <h2 className="mb-1 text-[20px] font-bold">방 만들기</h2>
+            <div className="flex flex-col">
+              {/* 7. 방 만들기 */}
+              <section className="animate-fade-up flex w-full flex-col rounded-2xl border border-white/10 bg-white/3 p-5 shadow-xl shadow-black/30 sm:p-6">
+                <h2 className="mb-1 text-[20px] font-bold">방 만들기</h2>
 
-              <p className="mb-2 text-[15.5px] text-zinc-400">
-                새로운 게임 방을 생성합니다.
-              </p>
+                <p className="mb-2 text-[15.5px] text-zinc-400">
+                  새로운 게임 방을 생성합니다.
+                </p>
 
-              <input
-                value={createRoomName}
-                onChange={(event) => setCreateRoomName(event.target.value)}
-                placeholder="방 이름"
-                maxLength={20}
-                className="mb-2 w-full rounded-xl border border-white/20 bg-black/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] px-4 py-2 text-[15.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
-              />
+                <input
+                  value={createRoomName}
+                  onChange={(event) => setCreateRoomName(event.target.value)}
+                  placeholder="방 이름"
+                  maxLength={20}
+                  className="mb-2 w-full rounded-xl border border-white/20 bg-black/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] px-4 py-2 text-[15.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
+                />
 
-              <input
-                value={createPassword}
-                onChange={(event) => setCreatePassword(event.target.value)}
-                placeholder="비밀번호"
-                maxLength={20}
-                className="mb-3 w-full rounded-xl border border-white/20 bg-black/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] px-4 py-2 text-[15.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
-              />
+                <input
+                  value={createPassword}
+                  onChange={(event) => setCreatePassword(event.target.value)}
+                  placeholder="비밀번호"
+                  maxLength={20}
+                  className="mb-3 w-full rounded-xl border border-white/20 bg-black/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] px-4 py-2 text-[15.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
+                />
 
-              <p className="mb-1.5 text-[14px] font-medium text-zinc-500">
-                인원 수
-              </p>
+                <p className="mb-1.5 text-[14px] font-medium text-zinc-500">
+                  인원 수
+                </p>
 
-              <div className="mb-4 flex gap-2">
-                {Array.from(
-                  { length: MAX_ROOM_PLAYERS - MIN_ROOM_PLAYERS + 1 },
-                  (_, index) => MIN_ROOM_PLAYERS + index,
-                ).map((count) => (
-                  <button
-                    key={count}
-                    type="button"
-                    onClick={() => setCreateMaxPlayers(count)}
-                    className={`flex-1 rounded-lg border py-1.5 text-[16px] font-semibold transition ${
-                      createMaxPlayers === count
-                        ? "border-gold/70 bg-gold/15 text-gold-bright shadow-[0_0_0_1px_rgba(219,169,90,0.25)]"
-                        : "border-white/20 bg-black/20 text-zinc-400 hover:border-white/35 hover:bg-white/8 hover:text-zinc-200"
-                    }`}
-                  >
-                    {count}
-                  </button>
-                ))}
-              </div>
+                <div className="mb-4 flex gap-2">
+                  {Array.from(
+                    { length: MAX_ROOM_PLAYERS - MIN_ROOM_PLAYERS + 1 },
+                    (_, index) => MIN_ROOM_PLAYERS + index,
+                  ).map((count) => (
+                    <button
+                      key={count}
+                      type="button"
+                      onClick={() => setCreateMaxPlayers(count)}
+                      className={`flex-1 rounded-lg border py-1.5 text-[16px] font-semibold transition ${
+                        createMaxPlayers === count
+                          ? "border-gold/70 bg-gold/15 text-gold-bright shadow-[0_0_0_1px_rgba(219,169,90,0.25)]"
+                          : "border-white/20 bg-black/20 text-zinc-400 hover:border-white/35 hover:bg-white/8 hover:text-zinc-200"
+                      }`}
+                    >
+                      {count}
+                    </button>
+                  ))}
+                </div>
 
-              <button
-                type="button"
-                onClick={createRoom}
-                disabled={isSubmittingRoom}
-                className="mt-auto w-full rounded-xl bg-gold px-6 py-3 text-[16px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-gold-bright active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+                <button
+                  type="button"
+                  onClick={createRoom}
+                  disabled={isSubmittingRoom}
+                  className="mt-auto w-full rounded-xl bg-gold px-6 py-3 text-[16px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-gold-bright active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+                >
+                  {isSubmittingRoom ? "만드는 중..." : "방 만들기"}
+                </button>
+              </section>
+
+              {/* 8. 방 찾기 */}
+              <Link
+                href="/rooms"
+                style={{ animationDelay: "80ms" }}
+                className="animate-fade-up mt-2 block w-full rounded-xl border border-white/15 bg-white/3 px-6 py-3 text-center text-[16px] font-semibold text-zinc-200 transition hover:scale-[1.02] hover:border-felt/40 hover:bg-felt/10 hover:text-felt-bright active:scale-[0.98]"
               >
-                {isSubmittingRoom ? "만드는 중..." : "방 만들기"}
-              </button>
-            </section>
+                방 찾기
+              </Link>
+            </div>
 
-            {/* 8. 방 찾기 */}
-            <Link
-              href="/rooms"
-              style={{ animationDelay: "80ms" }}
-              className="animate-fade-up mt-2 block w-full rounded-xl border border-white/15 bg-white/3 px-6 py-3 text-center text-[16px] font-semibold text-zinc-200 transition hover:scale-[1.02] hover:border-felt/40 hover:bg-felt/10 hover:text-felt-bright active:scale-[0.98]"
-            >
-              방 찾기
-            </Link>
-          </div>
+            {error && (
+              <p className="animate-fade-up mt-6 rounded-xl border border-crimson/30 bg-crimson/10 p-4 text-center text-[17.5px] font-medium text-crimson-bright">
+                {error}
+              </p>
+            )}
 
-          {error && (
-            <p className="animate-fade-up mt-6 rounded-xl border border-crimson/30 bg-crimson/10 p-4 text-center text-[17.5px] font-medium text-crimson-bright">
-              {error}
-            </p>
-          )}
-
-          <div className="mt-6 flex items-center justify-center gap-4 text-[13.5px] text-zinc-500">
-            <Link
-              href="/about"
-              className="underline-offset-2 hover:text-zinc-300 hover:underline"
-            >
-              섯다란? — 게임 소개
-            </Link>
-            <span className="text-zinc-700">·</span>
-            <Link
-              href="/rules"
-              className="underline-offset-2 hover:text-zinc-300 hover:underline"
-            >
-              게임 규칙 보기
-            </Link>
-          </div>
+            <div className="mt-6 flex items-center justify-center gap-4 text-[13.5px] text-zinc-500">
+              <Link
+                href="/about"
+                className="underline-offset-2 hover:text-zinc-300 hover:underline"
+              >
+                섯다란? — 게임 소개
+              </Link>
+              <span className="text-zinc-700">·</span>
+              <Link
+                href="/rules"
+                className="underline-offset-2 hover:text-zinc-300 hover:underline"
+              >
+                게임 규칙 보기
+              </Link>
+            </div>
           </div>
         </div>
 
