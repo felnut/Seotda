@@ -1320,34 +1320,40 @@ export default function Home() {
               </p>
             )}
 
-            <div className="mt-6 flex items-center justify-center gap-4 text-[13.5px] text-zinc-500">
-              <Link
-                href="/about"
-                className="underline-offset-2 hover:text-zinc-300 hover:underline"
-              >
-                섯다란? — 게임 소개
-              </Link>
-              <span className="text-zinc-700">·</span>
-              <Link
-                href="/rules"
-                className="underline-offset-2 hover:text-zinc-300 hover:underline"
-              >
-                게임 규칙 보기
-              </Link>
-              <span className="text-zinc-700">·</span>
-              <Link
-                href="/privacy"
-                className="underline-offset-2 hover:text-zinc-300 hover:underline"
-              >
-                개인정보처리방침
-              </Link>
-              <span className="text-zinc-700">·</span>
-              <Link
-                href="/terms"
-                className="underline-offset-2 hover:text-zinc-300 hover:underline"
-              >
-                이용약관
-              </Link>
+            <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-4">
+              <div className="flex flex-wrap items-center justify-center gap-4 text-[14.5px] text-zinc-400">
+                <Link
+                  href="/about"
+                  className="underline-offset-2 hover:text-zinc-200 hover:underline"
+                >
+                  섯다란?
+                </Link>
+                <span className="text-[18px] text-zinc-700">·</span>
+                <Link
+                  href="/rules"
+                  className="underline-offset-2 hover:text-zinc-200 hover:underline"
+                >
+                  게임 규칙
+                </Link>
+                <span className="text-[18px] text-zinc-700">·</span>
+                <Link
+                  href="/privacy"
+                  className="underline-offset-2 hover:text-zinc-200 hover:underline"
+                >
+                  개인정보처리방침
+                </Link>
+                <span className="text-[18px] text-zinc-700">·</span>
+                <Link
+                  href="/terms"
+                  className="underline-offset-2 hover:text-zinc-200 hover:underline"
+                >
+                  이용약관
+                </Link>
+              </div>
+
+              <p className="mt-3 text-center text-[13px] text-zinc-600">
+                © {new Date().getFullYear()} 섯다
+              </p>
             </div>
           </div>
         </div>
