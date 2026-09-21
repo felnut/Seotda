@@ -1,5 +1,8 @@
 export const STARTING_CHIPS = 10_000;
 
+export const MIN_ROOM_PLAYERS = 2;
+export const MAX_ROOM_PLAYERS = 6;
+
 // 매 판 시작 시 자동으로 내는 시작금(앤티)
 export const ANTE = 100;
 

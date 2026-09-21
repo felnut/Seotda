@@ -62,6 +62,9 @@ export const metadata: Metadata = {
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
   },
+  other: {
+    "google-adsense-account": "ca-pub-7832449160876742",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
