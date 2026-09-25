@@ -16,7 +16,11 @@ import { HAND_GUIDE, SPECIAL_HAND_GUIDE } from "@/lib/seotda/handGuide";
 import { evaluateHand, getDisplayHandName } from "@/lib/seotda/ranking";
 import { RaiseRatio } from "@/lib/seotda/bettingRound";
 import { computeBettingAmounts } from "@/lib/seotda/bettingDisplay";
-import { MIN_ROOM_PLAYERS } from "@/lib/seotda/constants";
+import { MIN_ROOM_PLAYERS, MAX_ROOM_PLAYERS } from "@/lib/seotda/constants";
+import {
+  canSpectateAfterBankruptcy,
+  SPECTATE_UNAVAILABLE_MESSAGE,
+} from "@/lib/seotda/spectate";
 import { playBetActionSound } from "@/lib/sound";
 import { useIsDesktop } from "@/lib/useIsDesktop";
 
@@ -1554,6 +1558,53 @@ function LeaveNoticeToast({ message }: { message: string | null }) {
   );
 }
 
+// 파산 후 "관전하기" 버튼. 관전해도 게임을 이어갈 인원이 없으면 비활성화하고,
+// 마우스를 올리거나(터치는 탭) 키보드로 포커스하면 이유를 말풍선으로 보여준다.
+// 비활성 button은 hover/click 이벤트를 삼키므로 pointer-events를 꺼서 감싼
+// div가 받도록 했다.
+function SpectateButton({
+  disabled,
+  onClick,
+}: {
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  const [showHint, setShowHint] = useState(false);
+
+  return (
+    <div
+      className={`relative ${disabled ? "cursor-not-allowed" : ""}`}
+      onMouseEnter={() => setShowHint(true)}
+      onMouseLeave={() => setShowHint(false)}
+      onFocus={() => setShowHint(true)}
+      onBlur={() => setShowHint(false)}
+      onClick={() => {
+        if (disabled) setShowHint((prev) => !prev);
+      }}
+    >
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        aria-describedby={disabled ? "spectate-unavailable-hint" : undefined}
+        className="rounded-xl border border-white/15 bg-white/5 px-5 py-2 text-[15px] font-semibold text-zinc-200 transition hover:scale-[1.03] hover:bg-white/10 active:scale-95 disabled:pointer-events-none disabled:opacity-40 disabled:hover:scale-100"
+      >
+        관전하기
+      </button>
+
+      {disabled && showHint && (
+        <p
+          id="spectate-unavailable-hint"
+          role="tooltip"
+          className="animate-fade-up pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-60 max-w-[80vw] -translate-x-1/2 rounded-lg border border-white/10 bg-zinc-900/95 px-3 py-2 text-center text-[13.5px] leading-snug font-medium text-zinc-200 shadow-lg shadow-black/40"
+        >
+          {SPECTATE_UNAVAILABLE_MESSAGE}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export interface GameRoomViewProps {
   roomName: string;
   roomHasPassword: boolean;
@@ -1579,6 +1630,7 @@ export interface GameRoomViewProps {
   hasDecidedBankruptcy: boolean;
   onAddAiPlayer: () => void;
   onRemoveAiPlayer: (playerId: string) => void;
+  onChangeMaxPlayers: (maxPlayers: number) => void;
   onStartGame: () => void;
   onToggleReady: () => void;
   onLeaveRoom: () => void;
@@ -1626,6 +1678,7 @@ export default function GameRoomView({
   hasDecidedBankruptcy,
   onAddAiPlayer,
   onRemoveAiPlayer,
+  onChangeMaxPlayers,
   onStartGame,
   onToggleReady,
   onLeaveRoom,
@@ -1740,6 +1793,38 @@ export default function GameRoomView({
             <p className="text-center text-[15px] font-medium text-zinc-500 sm:text-[17.5px]">
               {playerCount} / {maxPlayers}명 참가 중
             </p>
+
+            {/* 정원은 방을 만든 뒤 방장이 여기서 조정한다. 이미 들어와 있는
+                인원보다 적게는 줄일 수 없다. */}
+            {isHost && (
+              <div className="mx-auto flex w-full max-w-sm items-center gap-2">
+                <span className="shrink-0 text-[14px] font-medium text-zinc-500">
+                  인원 수
+                </span>
+
+                <div className="flex flex-1 gap-1.5">
+                  {Array.from(
+                    { length: MAX_ROOM_PLAYERS - MIN_ROOM_PLAYERS + 1 },
+                    (_, index) => MIN_ROOM_PLAYERS + index,
+                  ).map((count) => (
+                    <button
+                      key={count}
+                      type="button"
+                      onClick={() => onChangeMaxPlayers(count)}
+                      disabled={count < playerCount}
+                      aria-pressed={maxPlayers === count}
+                      className={`flex-1 rounded-lg border py-1 text-[15px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-30 ${
+                        maxPlayers === count
+                          ? "border-gold/70 bg-gold/15 text-gold-bright shadow-[0_0_0_1px_rgba(219,169,90,0.25)]"
+                          : "border-white/20 bg-black/20 text-zinc-400 hover:border-white/35 hover:bg-white/8 hover:text-zinc-200 disabled:hover:border-white/20 disabled:hover:bg-black/20 disabled:hover:text-zinc-400"
+                      }`}
+                    >
+                      {count}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
               {seats.map((seat) => (
@@ -1980,13 +2065,16 @@ export default function GameRoomView({
                   </p>
                 ) : (
                   <div className="flex gap-2">
-                    <button
-                      type="button"
+                    <SpectateButton
+                      disabled={
+                        !canSpectateAfterBankruptcy(
+                          gameState.players,
+                          bankruptcyNotice.playerIds,
+                          playerId,
+                        )
+                      }
                       onClick={() => onDecideBankruptcy("spectate")}
-                      className="rounded-xl border border-white/15 bg-white/5 px-5 py-2 text-[15px] font-semibold text-zinc-200 transition hover:scale-[1.03] hover:bg-white/10 active:scale-95"
-                    >
-                      관전하기
-                    </button>
+                    />
 
                     <button
                       type="button"

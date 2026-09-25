@@ -6,6 +6,10 @@ import { RaiseRatio } from "@/lib/seotda/bettingRound";
 import { getDisplayHandName } from "@/lib/seotda/ranking";
 import { decideRevealIndex, decideSelectIndices } from "@/lib/seotda/ai";
 import { decideBettingActionWithLlm } from "@/lib/seotda/llmAi";
+import {
+  canSpectateAfterBankruptcy,
+  SPECTATE_UNAVAILABLE_MESSAGE,
+} from "@/lib/seotda/spectate";
 import { ChatMessage, ClientGameState, RoomListEntry } from "@/types/seotda";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
 import { RANKINGS_COLLECTION, RankingEntry } from "@/lib/ranking";
@@ -972,7 +976,9 @@ io.on("connection", (socket) => {
       password,
       idToken,
     }: {
-      maxPlayers: number;
+      // 메인 화면에서는 더 이상 정하지 않는다 — 없으면 최소 인원으로 만들고,
+      // 방장이 대기실에서 조정한다("set-max-players").
+      maxPlayers?: number;
       name?: string;
       roomName?: string;
       password?: string;
@@ -1005,7 +1011,7 @@ io.on("connection", (socket) => {
       const roomId = createRoomId();
 
       const safeMaxPlayers = Number.isInteger(maxPlayers)
-        ? Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, maxPlayers))
+        ? Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, maxPlayers as number))
         : MIN_PLAYERS;
 
       // 로그인 계정의 실제 닉네임/보유 칩을 조회하려면 idToken 검증 +
@@ -1387,6 +1393,44 @@ io.on("connection", (socket) => {
     },
   );
 
+  // 방장이 대기실에서 정원(최대 인원)을 조정한다. 게임이 시작되기 전에만,
+  // 그리고 이미 들어와 있는 인원보다 적게는 줄일 수 없다.
+  socket.on(
+    "set-max-players",
+    ({ roomId, maxPlayers }: { roomId: string; maxPlayers: number }) => {
+      const room = rooms.get(roomId);
+
+      if (!room || room.game) return;
+
+      const host = room.joinedPlayers[0];
+      const requesterId = findPlayerIdBySocket(room, socket.id);
+
+      if (!host || requesterId !== host.id) {
+        socket.emit("error-message", {
+          message: "방장만 인원 수를 바꿀 수 있습니다.",
+        });
+
+        return;
+      }
+
+      if (!Number.isInteger(maxPlayers)) return;
+
+      const next = Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, maxPlayers));
+
+      if (next < room.joinedPlayers.length) {
+        socket.emit("error-message", {
+          message: "현재 참가 중인 인원보다 적게 설정할 수 없습니다.",
+        });
+
+        return;
+      }
+
+      room.maxPlayers = next;
+
+      broadcastPlayersUpdated(roomId, room);
+    },
+  );
+
   socket.on("start-game", (roomId: string) => {
     const room = rooms.get(roomId);
 
@@ -1528,6 +1572,35 @@ io.on("connection", (socket) => {
       const playerId = findPlayerIdBySocket(room, socket.id);
 
       if (!playerId || !room.pendingBankruptcy.has(playerId)) return;
+
+      // 클라이언트가 버튼을 막아두지만, 그 사이 다른 참가자가 나가는 등
+      // 상황이 바뀌었거나 직접 이벤트를 보낸 경우를 대비해 서버도 막는다.
+      if (choice === "spectate") {
+        const spectatorIds = new Set(
+          room.game
+            .getState()
+            .players.filter((player) => player.isSpectator)
+            .map((player) => player.id),
+        );
+
+        const canSpectate = canSpectateAfterBankruptcy(
+          room.joinedPlayers.map((player) => ({
+            id: player.id,
+            isAI: player.isAI,
+            isSpectator: spectatorIds.has(player.id),
+          })),
+          Array.from(room.pendingBankruptcy),
+          playerId,
+        );
+
+        if (!canSpectate) {
+          socket.emit("error-message", { message: SPECTATE_UNAVAILABLE_MESSAGE });
+          // 클라이언트가 "처리하는 중"에서 멈추지 않도록 선택창을 다시 띄운다.
+          socket.emit("bankruptcy-notice", bankruptcyNoticePayload(room));
+
+          return;
+        }
+      }
 
       if (choice === "leave") {
         socket.leave(roomId);
