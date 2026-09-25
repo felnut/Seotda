@@ -12,7 +12,7 @@ import {
 } from "@/types/seotda";
 import { RaiseRatio } from "@/lib/seotda/bettingRound";
 import { confirmBetAmount, RAISE_RATIO_LABEL } from "@/lib/seotda/bettingDisplay";
-import { MIN_ROOM_PLAYERS, MAX_ROOM_PLAYERS } from "@/lib/seotda/constants";
+import { MIN_ROOM_PLAYERS } from "@/lib/seotda/constants";
 import { getFirebaseAuth, getFirebaseDb } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/useAuth";
 import { useIsDesktop } from "@/lib/useIsDesktop";
@@ -311,9 +311,6 @@ export default function Home() {
   const [playerCount, setPlayerCount] = useState(0);
   const [maxPlayers, setMaxPlayers] = useState(MIN_ROOM_PLAYERS);
   const [roomPlayers, setRoomPlayers] = useState<RoomPlayerInfo[]>([]);
-
-  // 방 만들기 화면에서 고르는 정원 (아직 만들어진 방의 값이 아님)
-  const [createMaxPlayers, setCreateMaxPlayers] = useState(MIN_ROOM_PLAYERS);
 
   // 방 만들기 화면에서 입력하는 방 이름/비밀번호 (아직 만들어진 방의 값이 아님)
   const [createRoomName, setCreateRoomName] = useState("");
@@ -891,8 +888,8 @@ export default function Home() {
 
     const idToken = user ? await user.getIdToken() : undefined;
 
+    // 정원은 정하지 않고 보낸다 — 방을 만든 뒤 대기실에서 방장이 조정한다.
     socket.emit("create-room", {
-      maxPlayers: createMaxPlayers,
       name: displayName.trim() || undefined,
       roomName: createRoomName.trim() || undefined,
       password: createPassword.trim() || undefined,
@@ -924,6 +921,13 @@ export default function Home() {
     if (!roomId) return;
 
     socket.emit("add-ai-player", roomId);
+  };
+
+  // 대기실에서 방장이 정원(최대 인원)을 바꾼다.
+  const changeMaxPlayers = (nextMaxPlayers: number) => {
+    if (!roomId) return;
+
+    socket.emit("set-max-players", { roomId, maxPlayers: nextMaxPlayers });
   };
 
   const removeAiPlayer = (aiPlayerId: string) => {
@@ -1276,30 +1280,6 @@ export default function Home() {
                   className="mb-3 w-full rounded-xl border border-white/20 bg-black/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] px-4 py-2 text-[15.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
                 />
 
-                <p className="mb-1.5 text-[14px] font-medium text-zinc-500">
-                  인원 수
-                </p>
-
-                <div className="mb-4 flex gap-2">
-                  {Array.from(
-                    { length: MAX_ROOM_PLAYERS - MIN_ROOM_PLAYERS + 1 },
-                    (_, index) => MIN_ROOM_PLAYERS + index,
-                  ).map((count) => (
-                    <button
-                      key={count}
-                      type="button"
-                      onClick={() => setCreateMaxPlayers(count)}
-                      className={`flex-1 rounded-lg border py-1.5 text-[16px] font-semibold transition ${
-                        createMaxPlayers === count
-                          ? "border-gold/70 bg-gold/15 text-gold-bright shadow-[0_0_0_1px_rgba(219,169,90,0.25)]"
-                          : "border-white/20 bg-black/20 text-zinc-400 hover:border-white/35 hover:bg-white/8 hover:text-zinc-200"
-                      }`}
-                    >
-                      {count}
-                    </button>
-                  ))}
-                </div>
-
                 <button
                   type="button"
                   onClick={createRoom}
@@ -1439,6 +1419,7 @@ export default function Home() {
       hasDecidedBankruptcy={hasDecidedBankruptcy}
       onAddAiPlayer={addAiPlayer}
       onRemoveAiPlayer={removeAiPlayer}
+      onChangeMaxPlayers={changeMaxPlayers}
       onStartGame={startGame}
       onToggleReady={toggleReady}
       onLeaveRoom={leaveRoom}
