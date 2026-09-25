@@ -369,6 +369,9 @@ export default function Home() {
   const [reduceMotion, setReduceMotion] = useState(false);
   const [confirmBets, setConfirmBets] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect --
+     localStorage는 서버에서 읽을 수 없어, 하이드레이션 불일치를 피하려면
+     마운트 이후에 한 번 동기화해야 한다(위 주석 참고). */
   useEffect(() => {
     if (window.localStorage.getItem(SOUND_EFFECTS_STORAGE_KEY) === "0") {
       setSoundEffects(false);
@@ -393,6 +396,7 @@ export default function Home() {
       setConfirmBets(true);
     }
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // reduceMotion은 이 컴포넌트 밖의 CSS 애니메이션(카드 등장, 칩 던지기
   // 등)에도 적용돼야 하므로, 클래스 하나를 <html>에 붙여 CSS 쪽에서
@@ -482,6 +486,8 @@ export default function Home() {
     const saved = loadNickname();
 
     if (saved) {
+      // localStorage는 서버에서 읽을 수 없어 마운트 이후에 동기화해야 한다.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDisplayName((prev) => prev || saved);
     }
   }, []);
