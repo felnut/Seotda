@@ -386,6 +386,13 @@ function broadcastGameState(room: Room) {
     io.to(player.socketId).emit("game-state", state);
   }
 
+  // 클라이언트는 game-state를 받으면 파산 선택창을 지운다. 파산 결정을 기다리는
+  // 사람이 남아 있는 채로 상태가 다시 뿌려지면(예: 함께 파산한 AI가 자동으로
+  // 나가는 경우) 선택창이 사라져 판이 멈추므로, 상태 직후 다시 알려준다.
+  if (room.pendingBankruptcy.size > 0) {
+    broadcastBankruptcyNotice(room);
+  }
+
   if (room.game.getState().phase === "finished") {
     // AI는 다시하기에 항상 동의한 것으로 취급한다 — 사람 참가자가 한 번만
     // 눌러도(다른 사람이 더 없다면) 곧바로 다음 판이 시작된다.
