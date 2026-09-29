@@ -24,7 +24,6 @@ import { clearSession, loadSession, saveSession } from "@/lib/session";
 import { loadNickname, saveNickname } from "@/lib/nickname";
 import { playChatSound, playTurnSound, playSoundFile, CHIP_SOUND_PATHS } from "@/lib/sound";
 import { RankingModal } from "./components/RankingModal";
-import { GoogleSignInButton } from "./components/GoogleSignInButton";
 import { ShareButtons } from "./components/ShareButtons";
 import { AdSlot } from "./components/AdSlot";
 import { buildJsonLd } from "@/lib/seo/structuredData";
@@ -105,7 +104,7 @@ function ProfilePanel({
 
       <aside
         inert={!open}
-        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col border-l border-white/10 bg-zinc-950/95 shadow-2xl transition-transform duration-300 ${
+        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col border-l border-white/10 bg-zinc-950 shadow-2xl transition-transform duration-300 ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -255,7 +254,7 @@ function SettingsPanel({
 
       <aside
         inert={!open}
-        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col border-l border-white/10 bg-zinc-950/95 shadow-2xl transition-transform duration-300 ${
+        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col border-l border-white/10 bg-zinc-950 shadow-2xl transition-transform duration-300 ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -1163,17 +1162,23 @@ export default function Home() {
    */
   if (!roomId) {
     return (
-      <main className="relative flex min-h-screen flex-col items-center justify-center gap-6 px-4 py-4 xl:flex-row">
+      <main className="relative flex min-h-screen flex-col">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
 
-        <div className="absolute top-4 right-4 flex items-center gap-2">
+        <header className="flex items-center justify-end gap-2 px-4 pt-4 sm:px-6">
+          {user && chips !== null && (
+            <span className="flex h-10 items-center rounded-xl border border-gold/30 bg-gold/10 px-4 font-mono text-[15px] font-semibold tabular-nums text-gold-bright">
+              칩 {chips.toLocaleString()}
+            </span>
+          )}
+
           <button
             type="button"
             onClick={() => setIsRankingOpen(true)}
-            className="rounded-lg border border-white/10 bg-white/3 px-3 py-1.5 text-[13.5px] font-medium text-zinc-300 transition hover:bg-white/10"
+            className="flex h-10 items-center justify-center rounded-xl border border-white/15 bg-white/5 px-4 text-[15px] font-semibold text-zinc-100 transition hover:bg-white/10"
           >
             랭킹
           </button>
@@ -1181,35 +1186,31 @@ export default function Home() {
           <button
             type="button"
             onClick={() => setIsSettingsOpen(true)}
-            className="rounded-lg border border-white/10 bg-white/3 px-3 py-1.5 text-[13.5px] font-medium text-zinc-300 transition hover:bg-white/10"
+            className="flex h-10 items-center justify-center rounded-xl border border-white/15 bg-white/5 px-4 text-[15px] font-semibold text-zinc-100 transition hover:bg-white/10"
           >
             설정
           </button>
 
           {user ? (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setProfileError("");
-                  setProfileSaved(false);
-                  setIsProfileOpen(true);
-                }}
-                className="text-[13.5px] text-zinc-400 underline-offset-2 hover:text-zinc-200 hover:underline"
-              >
-                {profileName ?? user.displayName ?? "플레이어"}님
-              </button>
-
-              {user && chips !== null && (
-                <span className="rounded-lg border border-gold/20 bg-gold/5 px-2.5 py-1 font-mono text-[13.5px] font-semibold tabular-nums text-gold-bright">
-                  칩 {chips.toLocaleString()}
-                </span>
-              )}
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setProfileError("");
+                setProfileSaved(false);
+                setIsProfileOpen(true);
+              }}
+              className="flex h-10 items-center justify-center rounded-xl border border-white/15 bg-white/5 px-4 text-[15px] font-semibold text-zinc-100 transition hover:bg-white/10"
+            >
+              {profileName ?? user.displayName ?? "플레이어"}님
+            </button>
           ) : (
-            <GoogleSignInButton onError={setError} />
+            <Link href="/login" className="flex h-10 items-center justify-center rounded-xl border border-white/15 bg-white/5 px-4 text-[15px] font-semibold text-zinc-100 transition hover:bg-white/10">
+              로그인
+            </Link>
           )}
-        </div>
+        </header>
+
+        <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 pt-4 pb-8 xl:flex-row">
 
         {/* 화면이 충분히 넓을 때만 중앙 콘텐츠 양옆에 세로형 배너를 하나씩
             띄운다 — 좁은 화면에서는 AdSlot이 아예 렌더링되지 않아도
@@ -1222,126 +1223,101 @@ export default function Home() {
           />
         </div>
 
-        <div className="flex w-full max-w-xl flex-col items-center">
-          <h1 className="mb-3 flex flex-col items-center gap-1">
-            <span className="font-serif text-[36px] font-black tracking-tight text-gold">
+        <div className="flex w-full max-w-md flex-col items-center">
+          <h1 className="mb-6 text-center">
+            <span className="block font-serif text-[52px] leading-none font-black tracking-tight text-gold">
               섯다
-            </span>{" "}
-            <span className="text-[17.5px] font-normal text-zinc-500">
+            </span>
+            <span className="mt-3 block text-[19px] font-semibold text-zinc-100">
               친구와 온라인으로 즐기는 전통 카드 게임
+            </span>
+            <span className="mt-1 block text-[14px] text-zinc-400">
+              무료 · 2~6명 실시간 대결
             </span>
           </h1>
 
-          <p className="mb-5 max-w-sm text-center text-[13.5px] leading-relaxed text-zinc-500">
-            화투 카드로 즐기는 전통 카드 게임, 친구와 온라인에서 실시간으로
-            대결해보세요.
-          </p>
-
-          <div className="mb-4 w-full max-w-sm">
-            <label className="mb-1.5 block text-[13px] font-medium text-zinc-500">
-              닉네임 (선택)
+          {/* 닉네임 → 방 정보 → 시작 버튼 순서로 한 카드 안에 이어 붙여,
+              "무엇을 어떤 순서로 하면 되는지"가 한눈에 보이게 한다. */}
+          <section className="animate-fade-up w-full rounded-2xl border border-white/15 bg-zinc-900/70 p-5 shadow-xl shadow-black/30 sm:p-6">
+            <label
+              htmlFor="lobby-nickname"
+              className="mb-1.5 block text-[14px] font-semibold text-zinc-200"
+            >
+              닉네임
             </label>
 
             <input
+              id="lobby-nickname"
               value={displayName}
               onChange={(event) => {
                 setDisplayName(event.target.value);
                 saveNickname(event.target.value.trim());
               }}
-              placeholder="입력하지 않으면 기본 이름이 부여됩니다"
+              placeholder="비워두면 기본 이름이 부여돼요"
               maxLength={13}
-              className="w-full rounded-xl border border-white/20 bg-black/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] px-4 py-2 text-[17.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
+              className="mb-4 h-12 w-full rounded-xl border border-white/20 bg-black/30 px-4 text-[16px] text-white outline-none transition placeholder:text-zinc-500 focus:border-gold/60 focus:ring-2 focus:ring-gold/20"
             />
-          </div>
 
-          <div className="w-full max-w-xl">
-            <div className="flex flex-col">
-              {/* 7. 방 만들기 */}
-              <section className="animate-fade-up flex w-full flex-col rounded-2xl border border-white/10 bg-white/3 p-5 shadow-xl shadow-black/30 sm:p-6">
-                <h2 className="mb-1 text-[20px] font-bold">방 만들기</h2>
+            <div className="mb-4 grid grid-cols-2 gap-2">
+              <input
+                value={createRoomName}
+                onChange={(event) => setCreateRoomName(event.target.value)}
+                placeholder="방 이름 (선택)"
+                aria-label="방 이름"
+                maxLength={20}
+                className="h-12 w-full rounded-xl border border-white/20 bg-black/30 px-4 text-[15px] text-white outline-none transition placeholder:text-zinc-500 focus:border-gold/60 focus:ring-2 focus:ring-gold/20"
+              />
 
-                <p className="mb-2 text-[15.5px] text-zinc-400">
-                  새로운 게임 방을 생성합니다.
-                </p>
-
-                <input
-                  value={createRoomName}
-                  onChange={(event) => setCreateRoomName(event.target.value)}
-                  placeholder="방 이름"
-                  maxLength={20}
-                  className="mb-2 w-full rounded-xl border border-white/20 bg-black/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] px-4 py-2 text-[15.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
-                />
-
-                <input
-                  value={createPassword}
-                  onChange={(event) => setCreatePassword(event.target.value)}
-                  placeholder="비밀번호"
-                  maxLength={20}
-                  className="mb-3 w-full rounded-xl border border-white/20 bg-black/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] px-4 py-2 text-[15.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
-                />
-
-                <button
-                  type="button"
-                  onClick={createRoom}
-                  disabled={isSubmittingRoom}
-                  className="mt-auto w-full rounded-xl bg-gold px-6 py-3 text-[16px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-gold-bright active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
-                >
-                  {isSubmittingRoom ? "만드는 중..." : "방 만들기"}
-                </button>
-              </section>
-
-              {/* 8. 방 찾기 */}
-              <Link
-                href="/rooms"
-                style={{ animationDelay: "80ms" }}
-                className="animate-fade-up mt-2 block w-full rounded-xl border border-white/15 bg-white/3 px-6 py-3 text-center text-[16px] font-semibold text-zinc-200 transition hover:scale-[1.02] hover:border-felt/40 hover:bg-felt/10 hover:text-felt-bright active:scale-[0.98]"
-              >
-                방 찾기
-              </Link>
+              <input
+                value={createPassword}
+                onChange={(event) => setCreatePassword(event.target.value)}
+                placeholder="비밀번호 (선택)"
+                aria-label="비밀번호"
+                maxLength={20}
+                className="h-12 w-full rounded-xl border border-white/20 bg-black/30 px-4 text-[15px] text-white outline-none transition placeholder:text-zinc-500 focus:border-gold/60 focus:ring-2 focus:ring-gold/20"
+              />
             </div>
 
-            {error && (
-              <p className="animate-fade-up mt-6 rounded-xl border border-crimson/30 bg-crimson/10 p-4 text-center text-[17.5px] font-medium text-crimson-bright">
-                {error}
-              </p>
-            )}
+            {/* 7. 방 만들기 */}
+            <button
+              type="button"
+              onClick={createRoom}
+              disabled={isSubmittingRoom}
+              className="h-14 w-full rounded-xl bg-gold text-[18px] font-bold text-zinc-900 shadow-lg shadow-black/30 transition hover:bg-gold-bright active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSubmittingRoom ? "만드는 중..." : "▶ 방 만들고 시작하기"}
+            </button>
 
-            <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-4">
-              <div className="flex flex-wrap items-center justify-center gap-4 text-[14.5px] text-zinc-400">
-                <Link
-                  href="/about"
-                  className="underline-offset-2 hover:text-zinc-200 hover:underline"
-                >
-                  섯다란?
-                </Link>
-                <span className="text-[18px] text-zinc-700">·</span>
-                <Link
-                  href="/rules"
-                  className="underline-offset-2 hover:text-zinc-200 hover:underline"
-                >
-                  게임 규칙
-                </Link>
-                <span className="text-[18px] text-zinc-700">·</span>
-                <Link
-                  href="/privacy"
-                  className="underline-offset-2 hover:text-zinc-200 hover:underline"
-                >
-                  개인정보처리방침
-                </Link>
-                <span className="text-[18px] text-zinc-700">·</span>
-                <Link
-                  href="/terms"
-                  className="underline-offset-2 hover:text-zinc-200 hover:underline"
-                >
-                  이용약관
-                </Link>
-              </div>
+            {/* 8. 방 찾기 */}
+            <Link
+              href="/rooms"
+              className="mt-2 flex h-12 w-full items-center justify-center rounded-xl border border-white/20 text-[16px] font-semibold text-zinc-100 transition hover:border-felt-bright/50 hover:bg-felt/20 active:scale-[0.98]"
+            >
+              열린 방에 참가하기
+            </Link>
+          </section>
 
-              <p className="mt-3 text-center text-[13px] text-zinc-600">
-                © {new Date().getFullYear()} 섯다
-              </p>
-            </div>
-          </div>
+          {error && (
+            <p className="animate-fade-up mt-4 w-full rounded-xl border border-crimson/30 bg-crimson/10 p-3 text-center text-[16px] font-medium text-crimson-bright">
+              {error}
+            </p>
+          )}
+
+          <nav className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[13.5px] text-zinc-400">
+            <Link href="/about" className="hover:text-zinc-100">
+              섯다란?
+            </Link>
+            <Link href="/rules" className="hover:text-zinc-100">
+              게임 규칙
+            </Link>
+            <Link href="/privacy" className="hover:text-zinc-100">
+              개인정보처리방침
+            </Link>
+            <Link href="/terms" className="hover:text-zinc-100">
+              이용약관
+            </Link>
+            <span className="text-zinc-500">© {new Date().getFullYear()} 섯다</span>
+          </nav>
         </div>
 
         <div className="hidden shrink-0 xl:block">
@@ -1350,6 +1326,7 @@ export default function Home() {
             width={160}
             height={600}
           />
+        </div>
         </div>
 
         <div className="fixed bottom-4 left-4 z-30">
