@@ -13,8 +13,10 @@ import { getFirebaseAuth } from "@/lib/firebase/client";
 // 로드 콜백에 기대지 않고 window.google이 준비될 때까지 짧게 폴링한다.
 export function GoogleSignInButton({
   onError,
+  width,
 }: {
   onError?: (message: string) => void;
+  width?: number;
 }) {
   const buttonRef = useRef<HTMLDivElement | null>(null);
 
@@ -54,8 +56,9 @@ export function GoogleSignInButton({
 
         window.google.accounts.id.renderButton(buttonRef.current, {
           theme: "filled_black",
-          size: "medium",
+          size: "large",
           text: "signin",
+          width,
         });
       };
 
@@ -76,7 +79,7 @@ export function GoogleSignInButton({
 
       if (interval) clearInterval(interval);
     };
-  }, [onError]);
+  }, [onError, width]);
 
   return <div ref={buttonRef} />;
 }

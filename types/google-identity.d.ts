@@ -6,6 +6,7 @@ interface GoogleIdentityButtonOptions {
   theme?: "outline" | "filled_blue" | "filled_black";
   size?: "large" | "medium" | "small";
   text?: "signin" | "signup" | "continue_with" | "signin_with";
+  width?: number;
 }
 
 interface Window {
