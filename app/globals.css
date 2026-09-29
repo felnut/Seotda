@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #161d19;
-  --foreground: #f5f3ee;
+  --background: #283618;
+  --foreground: #ebe6c8;
 }
 
 @theme inline {
@@ -14,27 +14,27 @@
      톤을 그대로 물려받으므로, 마크업을 건드리지 않고도 화면 전체의
      "칩 색"이 깔끔하고 현대적인 인상으로 바뀐다. 전체적으로 어둡다는
      피드백이 있어 기존 대비 한 단계씩 밝혔다. */
-  --color-white: #f5f3ee;
-  --color-black: #0c0f0e;
+  --color-white: #ebe6c8;
+  --color-black: #10160a;
 
-  --color-zinc-100: #f2f3f4;
-  --color-zinc-200: #dbdde1;
-  --color-zinc-300: #b6bac1;
-  --color-zinc-400: #979ca4;
-  --color-zinc-500: #7c8189;
-  --color-zinc-600: #5c616a;
-  --color-zinc-800: #33373d;
-  --color-zinc-900: #23262b;
-  --color-zinc-950: #191b1e;
+  --color-zinc-100: #e3dfc2;
+  --color-zinc-200: #d0cca9;
+  --color-zinc-300: #b7b995;
+  --color-zinc-400: #aab08a;
+  --color-zinc-500: #8b926d;
+  --color-zinc-600: #69704d;
+  --color-zinc-800: #3e4b26;
+  --color-zinc-900: #2f3c1c;
+  --color-zinc-950: #202b13;
 
-  /* 놋쇠(주요 액션·강조) */
-  --color-gold: #dba95a;
-  --color-gold-bright: #f0cb85;
-  --color-gold-deep: #a67d3a;
+  /* 크림(주요 액션·강조) — 삼색 팔레트: #283618 / #606c38 / #fefae0 */
+  --color-gold: #dcd7b0;
+  --color-gold-bright: #ebe6c8;
+  --color-gold-deep: #a9a67c;
 
-  /* 옥색 펠트(테이블·차분한/진행형 액션, "나" 표시) */
-  --color-felt: #3b8557;
-  --color-felt-bright: #63b381;
+  /* 올리브 펠트(테이블·차분한/진행형 액션, "나" 표시) */
+  --color-felt: #606c38;
+  --color-felt-bright: #a9b57a;
 
   /* 인주(위험·이탈) */
   --color-crimson: #c14e3b;
@@ -58,10 +58,10 @@ body {
   background:
     radial-gradient(
       ellipse 90% 60% at 50% 0%,
-      rgba(59, 133, 87, 0.1),
+      rgba(96, 108, 56, 0.28),
       transparent 60%
     ),
-    radial-gradient(ellipse 140% 100% at 50% 50%, #1b231e 0%, #10140f 75%);
+    radial-gradient(ellipse 140% 100% at 50% 50%, #2c3b1a 0%, #1c2610 75%);
   background-attachment: fixed;
   background-color: var(--background);
   color: var(--foreground);
@@ -83,10 +83,10 @@ body {
     ),
     radial-gradient(
       ellipse 100% 80% at 50% 35%,
-      rgba(99, 179, 129, 0.16),
+      rgba(254, 250, 224, 0.1),
       transparent 70%
     ),
-    radial-gradient(ellipse 120% 100% at 50% 50%, #2f6b46 0%, #17321f 100%);
+    radial-gradient(ellipse 120% 100% at 50% 50%, #606c38 0%, #2d3c1a 100%);
   box-shadow:
     inset 0 2px 4px rgba(0, 0, 0, 0.4),
     inset 0 0 60px rgba(0, 0, 0, 0.45),
@@ -99,7 +99,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(236, 234, 228, 0.15);
+  background: rgba(254, 250, 224, 0.15);
   border-radius: 9999px;
 }
 
@@ -151,11 +151,11 @@ body {
 @keyframes turn-glow {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(201, 151, 74, 0.45);
+    box-shadow: 0 0 0 0 rgba(254, 250, 224, 0.45);
   }
 
   50% {
-    box-shadow: 0 0 0 10px rgba(201, 151, 74, 0);
+    box-shadow: 0 0 0 10px rgba(254, 250, 224, 0);
   }
 }
 
