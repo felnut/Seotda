@@ -24,8 +24,8 @@ export function EmptyState({
           height="46"
           rx="6"
           transform="rotate(-10 6 10)"
-          fill="#191b1e"
-          stroke="#dba95a"
+          fill="#202b13"
+          stroke="#dcd7b0"
           strokeOpacity="0.35"
           strokeWidth="1.5"
         />
@@ -36,13 +36,13 @@ export function EmptyState({
           height="46"
           rx="6"
           transform="rotate(8 32 6)"
-          fill="#23262b"
-          stroke="#dba95a"
+          fill="#2f3c1c"
+          stroke="#dcd7b0"
           strokeOpacity="0.55"
           strokeWidth="1.5"
         />
-        <circle cx="49" cy="27" r="7" fill="#dba95a" fillOpacity="0.18" />
-        <circle cx="49" cy="27" r="2.5" fill="#f0cb85" fillOpacity="0.7" />
+        <circle cx="49" cy="27" r="7" fill="#dcd7b0" fillOpacity="0.18" />
+        <circle cx="49" cy="27" r="2.5" fill="#ebe6c8" fillOpacity="0.7" />
       </svg>
 
       <p className="text-[15.5px] font-semibold text-zinc-300">{title}</p>

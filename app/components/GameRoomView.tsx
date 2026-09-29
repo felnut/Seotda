@@ -1024,7 +1024,7 @@ function PotBadge({ pot, turnLabel }: { pot: number; turnLabel: string }) {
         className="flex flex-col items-center rounded-2xl border border-gold/40 bg-zinc-950/80 px-5 py-1.5 sm:px-6 sm:py-2"
         style={{
           boxShadow:
-            "0 0 24px -4px rgba(219, 169, 90, 0.35), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -2px 6px rgba(0,0,0,0.5)",
+            "0 0 24px -4px rgba(254, 250, 224, 0.3), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -2px 6px rgba(0,0,0,0.5)",
         }}
       >
         <p className="text-[10px] font-bold tracking-widest text-gold-bright sm:text-[11px]">
@@ -1815,7 +1815,7 @@ export default function GameRoomView({
                       aria-pressed={maxPlayers === count}
                       className={`flex-1 rounded-lg border py-1 text-[15px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-30 ${
                         maxPlayers === count
-                          ? "border-gold/70 bg-gold/15 text-gold-bright shadow-[0_0_0_1px_rgba(219,169,90,0.25)]"
+                          ? "border-gold/70 bg-gold/15 text-gold-bright shadow-[0_0_0_1px_rgba(254,250,224,0.25)]"
                           : "border-white/20 bg-black/20 text-zinc-400 hover:border-white/35 hover:bg-white/8 hover:text-zinc-200 disabled:hover:border-white/20 disabled:hover:bg-black/20 disabled:hover:text-zinc-400"
                       }`}
                     >
