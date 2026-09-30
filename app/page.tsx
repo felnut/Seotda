@@ -1351,11 +1351,14 @@ export default function Home() {
             <Link href="/terms" className="py-2.5 hover:text-zinc-100">
               이용약관
             </Link>
-            <span className="text-zinc-500">© {new Date().getFullYear()} 섯다</span>
           </nav>
         </div>
 
         </div>
+
+        <p className="pb-6 text-center text-[13.5px] text-zinc-500">
+          © {new Date().getFullYear()} 섯다
+        </p>
 
         <RankingModal
           open={isRankingOpen}
