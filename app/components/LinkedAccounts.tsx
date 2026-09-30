@@ -132,9 +132,17 @@ export function LinkedAccounts({
                     )}
                   </span>
                 ) : provider === "google" ? (
-                  <span className="text-[13px] text-zinc-500">
-                    아래 버튼으로 연결
-                  </span>
+                  <GoogleSignInButton
+                    mode="link"
+                    onLinked={() => {
+                      setMessage({ text: "Google을 연결했어요.", error: false });
+                      refresh();
+                    }}
+                    onError={(text) => setMessage({ text, error: true })}
+                    className="rounded-lg bg-gold px-3 py-1 text-[13px] font-semibold text-zinc-900 transition hover:bg-gold-bright disabled:opacity-50"
+                  >
+                    연결하기
+                  </GoogleSignInButton>
                 ) : (
                   <button
                     type="button"
@@ -147,19 +155,6 @@ export function LinkedAccounts({
                 )}
               </div>
 
-              {provider === "google" && linked && !isLinked && (
-                <div className="mt-2">
-                  <GoogleSignInButton
-                    mode="link"
-                    width={280}
-                    onLinked={() => {
-                      setMessage({ text: "Google을 연결했어요.", error: false });
-                      refresh();
-                    }}
-                    onError={(text) => setMessage({ text, error: true })}
-                  />
-                </div>
-              )}
             </li>
           );
         })}
