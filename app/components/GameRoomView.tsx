@@ -1628,7 +1628,7 @@ export interface GameRoomViewProps {
   restartVotesTotal: number;
   bankruptcyNotice: BankruptcyNotice | null;
   hasDecidedBankruptcy: boolean;
-  onAddAiPlayer: () => void;
+  onAddAiPlayer: (level: "easy" | "normal" | "hard") => void;
   onRemoveAiPlayer: (playerId: string) => void;
   onChangeMaxPlayers: (maxPlayers: number) => void;
   onStartGame: () => void;
@@ -1857,13 +1857,30 @@ export default function GameRoomView({
           <div className="shrink-0 pt-2">
             {/* 방장은 빈자리를 AI로 채울 수 있다 */}
             {isHost && !roomFull && (
-              <button
-                type="button"
-                onClick={onAddAiPlayer}
-                className="mb-2 w-full rounded-xl border border-felt/30 bg-felt/10 px-6 py-2.5 text-[15.5px] font-semibold text-felt-bright transition hover:scale-[1.02] hover:border-felt/50 hover:bg-felt/20 active:scale-[0.98]"
-              >
-                AI 추가
-              </button>
+              <div className="mb-2">
+                <p className="mb-1 text-center text-[13px] text-zinc-500">
+                  AI 추가 (실력을 골라주세요)
+                </p>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {(
+                    [
+                      ["easy", "쉬움"],
+                      ["normal", "보통"],
+                      ["hard", "어려움"],
+                    ] as const
+                  ).map(([level, label]) => (
+                    <button
+                      key={level}
+                      type="button"
+                      onClick={() => onAddAiPlayer(level)}
+                      className="rounded-xl border border-felt/30 bg-felt/10 px-2 py-2.5 text-[15px] font-semibold text-felt-bright transition hover:border-felt/50 hover:bg-felt/20 active:scale-[0.98]"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
 
             {/* 9. 게임 시작 / 준비 */}
