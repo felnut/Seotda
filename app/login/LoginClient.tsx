@@ -3,16 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getFirebaseAuth } from "@/lib/firebase/client";
+import { authErrorMessage } from "@/lib/auth/messages";
 import { useAuth } from "@/lib/useAuth";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
-
-const ERROR_MESSAGES: Record<string, string> = {
-  not_configured: "아직 설정되지 않은 로그인 방식이에요.",
-  denied: "로그인이 취소되었어요.",
-  state: "로그인 요청이 만료되었어요. 다시 시도해주세요.",
-  failed: "로그인에 실패했어요. 잠시 후 다시 시도해주세요.",
-};
 
 const BUTTON_CLASS =
   "relative flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-white/20 bg-white/5 text-[16px] font-semibold text-zinc-100 transition hover:bg-white/10 active:scale-[0.98]";
@@ -73,9 +66,7 @@ export function LoginClient({ initialError }: { initialError?: string }) {
   const router = useRouter();
   const user = useAuth();
   const [error, setError] = useState(
-    initialError
-      ? (ERROR_MESSAGES[initialError] ?? ERROR_MESSAGES.failed)
-      : "",
+    initialError ? authErrorMessage(initialError) : "",
   );
 
   // 어떤 방식으로든 로그인이 끝나면(이미 로그인된 상태로 들어온 경우 포함)
@@ -83,53 +74,6 @@ export function LoginClient({ initialError }: { initialError?: string }) {
   useEffect(() => {
     if (user) router.replace("/");
   }, [user, router]);
-
-  const signInWithGithub = async () => {
-    setError("");
-
-    const auth = await getFirebaseAuth();
-
-    if (!auth) {
-      setError(ERROR_MESSAGES.not_configured);
-      return;
-    }
-
-    try {
-      // 이 앱은 성능을 위해 팝업용 리졸버를 기본에서 빼두었으므로, 팝업
-      // 로그인이 필요한 이 페이지에서만 직접 넘겨준다.
-      const {
-        GithubAuthProvider,
-        signInWithPopup,
-        browserPopupRedirectResolver,
-      } = await import("firebase/auth");
-
-      await signInWithPopup(
-        auth,
-        new GithubAuthProvider(),
-        browserPopupRedirectResolver,
-      );
-    } catch (err) {
-      const code = (err as { code?: string }).code;
-
-      if (
-        code === "auth/popup-closed-by-user" ||
-        code === "auth/cancelled-popup-request"
-      ) {
-        return;
-      }
-
-      if (code === "auth/account-exists-with-different-credential") {
-        setError(
-          "같은 이메일로 다른 방식으로 가입한 계정이 있어요. 그 방식으로 로그인해주세요.",
-        );
-      } else if (code === "auth/operation-not-allowed") {
-        setError(ERROR_MESSAGES.not_configured);
-      } else {
-        console.error("GitHub 로그인 실패:", err);
-        setError(ERROR_MESSAGES.failed);
-      }
-    }
-  };
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-4 py-10">
@@ -165,14 +109,10 @@ export function LoginClient({ initialError }: { initialError?: string }) {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={signInWithGithub}
-            className={BUTTON_CLASS}
-          >
+          <a href="/api/auth/github/start" className={BUTTON_CLASS}>
             <GithubIcon />
             GitHub로 계속하기
-          </button>
+          </a>
 
           <a href="/api/auth/naver/start" className={BUTTON_CLASS}>
             <NaverIcon />
