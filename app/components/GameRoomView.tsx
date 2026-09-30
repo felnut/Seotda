@@ -32,7 +32,7 @@ type CardSize = "compact" | "cozy";
 // 계단식이 아니라 부드럽게 늘어난다.
 const CARD_SIZE_CLASS: Record<CardSize, string> = {
   compact: "w-[clamp(2.25rem,3vw,3rem)]",
-  cozy: "w-[clamp(3.5rem,6vw,6rem)]",
+  cozy: "w-[clamp(4.5rem,6vw,6rem)]",
 };
 
 interface CardProps {

@@ -1347,17 +1347,17 @@ export default function Home() {
             </p>
           )}
 
-          <nav className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[13.5px] text-zinc-400">
-            <Link href="/about" className="hover:text-zinc-100">
+          <nav className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-0 text-[13.5px] text-zinc-400">
+            <Link href="/about" className="py-2.5 hover:text-zinc-100">
               섯다란?
             </Link>
-            <Link href="/rules" className="hover:text-zinc-100">
+            <Link href="/rules" className="py-2.5 hover:text-zinc-100">
               게임 규칙
             </Link>
-            <Link href="/privacy" className="hover:text-zinc-100">
+            <Link href="/privacy" className="py-2.5 hover:text-zinc-100">
               개인정보처리방침
             </Link>
-            <Link href="/terms" className="hover:text-zinc-100">
+            <Link href="/terms" className="py-2.5 hover:text-zinc-100">
               이용약관
             </Link>
             <span className="text-zinc-500">© {new Date().getFullYear()} 섯다</span>
