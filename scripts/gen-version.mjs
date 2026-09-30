@@ -4,6 +4,7 @@
 //   major — 호환을 깨는 커밋 (feat!: 처럼 타입 뒤에 !, 또는 본문에 BREAKING CHANGE)
 //   minor — feat 커밋 수
 //   patch — 그 밖의 커밋 수 (fix / style / chore / refactor ...)
+// 커밋 메시지에 [skip version]이 있으면 그 커밋은 버전에 반영하지 않는다.
 // 태그를 못 찾거나 git을 쓸 수 없으면(shallow clone 등) 저장된 값을 그대로 쓴다.
 import { execSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -37,6 +38,8 @@ try {
     next = { major, minor, patch };
 
     for (const message of messages) {
+      if (message.includes("[skip version]")) continue;
+
       const subject = message.split("\n")[0];
 
       if (/^\w+(\([^)]*\))?!:/.test(subject) || /^BREAKING[ -]CHANGE/m.test(message)) {
