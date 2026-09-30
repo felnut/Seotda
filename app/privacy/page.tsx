@@ -1,11 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { buildJsonLd } from "@/lib/seo/structuredData";
-import { AdSlot } from "../components/AdSlot";
-
-// 로비 화면 좌우에 쓰는 것과 같은 세로형 광고 단위를 그대로 재사용한다.
-const ADSENSE_LOBBY_SIDE_SLOT_ID =
-  process.env.NEXT_PUBLIC_ADSENSE_LOBBY_SIDE_SLOT_ID ?? "";
 
 const PAGE_URL = "https://seotda.felnut.com/privacy";
 const TITLE = "개인정보처리방침 - 섯다";
@@ -41,16 +36,12 @@ export default function PrivacyPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <div className="hidden shrink-0 xl:block">
-        <AdSlot slotId={ADSENSE_LOBBY_SIDE_SLOT_ID} width={160} height={600} />
-      </div>
-
       <div className="mx-auto flex w-full max-w-2xl flex-col">
         <Link
           href="/"
           className="mb-6 inline-block w-fit text-[13.5px] text-zinc-500 hover:text-zinc-300"
         >
-          ← 돌아가기
+          ← 메인으로
         </Link>
 
         <h1 className="mb-2 font-serif text-[28px] font-black tracking-tight text-gold sm:text-[32px]">
@@ -168,9 +159,6 @@ export default function PrivacyPage() {
         </p>
       </div>
 
-      <div className="hidden shrink-0 xl:block">
-        <AdSlot slotId={ADSENSE_LOBBY_SIDE_SLOT_ID} width={160} height={600} />
-      </div>
     </main>
   );
 }

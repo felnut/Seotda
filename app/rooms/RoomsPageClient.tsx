@@ -9,12 +9,6 @@ import { saveSession } from "@/lib/session";
 import { loadNickname } from "@/lib/nickname";
 import { useAuth } from "@/lib/useAuth";
 import { EmptyState } from "../components/EmptyState";
-import { AdSlot } from "../components/AdSlot";
-
-// 애드센스 콘솔에서 방 찾기 화면용으로 만든 사각형(300x250) 광고 단위의
-// 슬롯 ID.
-const ADSENSE_ROOMS_RECT_SLOT_ID =
-  process.env.NEXT_PUBLIC_ADSENSE_ROOMS_RECT_SLOT_ID ?? "";
 
 export function RoomsPageClient() {
   const router = useRouter();
@@ -118,7 +112,7 @@ export function RoomsPageClient() {
         href="/"
         className="mb-6 inline-block w-fit text-[13.5px] text-zinc-500 hover:text-zinc-300"
       >
-        ← 돌아가기
+        ← 메인으로
       </Link>
 
       <h1 className="font-serif mb-1 text-[32px] font-black tracking-tight text-gold">
@@ -179,12 +173,6 @@ export function RoomsPageClient() {
       >
         새 방 만들기
       </Link>
-
-      {/* 방 리스트 박스와 같은 폭에 맞춰 늘어나도록 고정 크기 대신
-          반응형으로 렌더링한다. */}
-      <div className="mt-6 w-full">
-        <AdSlot slotId={ADSENSE_ROOMS_RECT_SLOT_ID} />
-      </div>
 
       {passwordPromptRoom && (
         <div
