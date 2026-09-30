@@ -18,6 +18,7 @@ import { useAuth } from "@/lib/useAuth";
 import { useIsDesktop } from "@/lib/useIsDesktop";
 import { PROFILES_COLLECTION, UserProfile } from "@/lib/profile";
 import { authErrorMessage } from "@/lib/auth/messages";
+import { DeleteAccount } from "./components/DeleteAccount";
 import { LinkedAccounts, type LinkNotice } from "./components/LinkedAccounts";
 import { RANKINGS_COLLECTION, RankingEntry } from "@/lib/ranking";
 import { STARTING_CHIPS } from "@/lib/seotda/game";
@@ -183,6 +184,10 @@ function ProfilePanel({
           >
             로그아웃
           </button>
+
+          <div className="mt-2">
+            <DeleteAccount onDeleted={onSignOut} />
+          </div>
         </div>
       </aside>
     </>

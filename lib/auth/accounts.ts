@@ -10,6 +10,8 @@
 import { randomUUID } from "node:crypto";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
+import { PROFILES_COLLECTION } from "@/lib/profile";
+import { RANKINGS_COLLECTION } from "@/lib/ranking";
 
 export const LOGIN_PROVIDERS = ["google", "github", "naver", "kakao"] as const;
 
@@ -253,4 +255,48 @@ export async function createLoginToken(
   const { auth } = db();
 
   return auth.createCustomToken(uid, { provider });
+}
+
+// 회원 탈퇴 — 이 계정에 딸린 모든 정보를 지운다(되돌릴 수 없다).
+//  - 연결된 로그인(identities), 내부 계정(users)
+//  - 닉네임(profiles), 칩·랭킹 기록(rankings)
+//  - 파이어베이스 로그인 계정
+// 같은 제공자로 다시 로그인하면 완전히 새 계정(칩 초기화)으로 시작한다.
+export async function deleteAccount(uid: string): Promise<void> {
+  const { db: firestore, auth } = db();
+
+  // 연결 정보가 users 문서에만 있거나 identities에만 있어도 남지 않도록 둘 다 훑는다.
+  const owned = await firestore
+    .collection(IDENTITIES)
+    .where("userId", "==", uid)
+    .get();
+  const batch = firestore.batch();
+
+  owned.forEach((doc) => batch.delete(doc.ref));
+
+  const identities =
+    (await firestore.collection(USERS).doc(uid).get()).data()?.identities ??
+    {};
+
+  for (const provider of LOGIN_PROVIDERS) {
+    const entry = identities[provider] as { id: string } | undefined;
+
+    if (entry) {
+      batch.delete(
+        firestore.collection(IDENTITIES).doc(identityKey(provider, entry.id)),
+      );
+    }
+  }
+
+  batch.delete(firestore.collection(USERS).doc(uid));
+  batch.delete(firestore.collection(PROFILES_COLLECTION).doc(uid));
+  batch.delete(firestore.collection(RANKINGS_COLLECTION).doc(uid));
+
+  await batch.commit();
+
+  try {
+    await auth.deleteUser(uid);
+  } catch {
+    // 이미 없는 계정이면 그대로 끝낸다.
+  }
 }

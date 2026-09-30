@@ -52,3 +52,12 @@ export async function startLoginLink(provider: "naver" | "kakao" | "github") {
   // eslint-disable-next-line @next/next/no-location-assign-relative-destination
   window.location.assign(`/api/auth/${provider}/start?link=1`);
 }
+
+// 회원 탈퇴 — 서버가 계정과 모든 기록을 지운다. 성공하면 호출한 쪽에서 로그아웃한다.
+export async function deleteMyAccount(): Promise<void> {
+  const response = await authedFetch("/api/auth/account", {
+    method: "DELETE",
+  });
+
+  if (!response.ok) throw new Error(authErrorMessage("failed"));
+}
