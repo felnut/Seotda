@@ -1212,9 +1212,9 @@ export default function Home() {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
 
-        <header className="flex items-center justify-end gap-2 px-4 pt-4 sm:px-6">
+        <header className="flex items-center justify-end gap-1.5 px-4 pt-4 sm:gap-2 sm:px-6">
           {user && chips !== null && (
-            <span className="flex h-10 items-center rounded-xl border border-gold/30 bg-gold/10 px-4 font-mono text-[15px] font-semibold tabular-nums text-gold-bright">
+            <span className="flex h-10 shrink-0 items-center whitespace-nowrap rounded-xl border border-gold/30 bg-gold/10 px-3 font-mono sm:px-4 text-[15px] font-semibold tabular-nums text-gold-bright">
               칩 {chips.toLocaleString()}
             </span>
           )}
@@ -1222,7 +1222,7 @@ export default function Home() {
           <button
             type="button"
             onClick={() => setIsRankingOpen(true)}
-            className="flex h-10 items-center justify-center rounded-xl border border-white/15 bg-white/5 px-4 text-[15px] font-semibold text-zinc-100 transition hover:bg-white/10"
+            className="flex h-10 shrink-0 items-center whitespace-nowrap justify-center rounded-xl border border-white/15 bg-white/5 px-3 text-[15px] sm:px-4 font-semibold text-zinc-100 transition hover:bg-white/10"
           >
             랭킹
           </button>
@@ -1230,7 +1230,7 @@ export default function Home() {
           <button
             type="button"
             onClick={() => setIsSettingsOpen(true)}
-            className="flex h-10 items-center justify-center rounded-xl border border-white/15 bg-white/5 px-4 text-[15px] font-semibold text-zinc-100 transition hover:bg-white/10"
+            className="flex h-10 shrink-0 items-center whitespace-nowrap justify-center rounded-xl border border-white/15 bg-white/5 px-3 text-[15px] sm:px-4 font-semibold text-zinc-100 transition hover:bg-white/10"
           >
             설정
           </button>
@@ -1243,12 +1243,15 @@ export default function Home() {
                 setProfileSaved(false);
                 setIsProfileOpen(true);
               }}
-              className="flex h-10 items-center justify-center rounded-xl border border-white/15 bg-white/5 px-4 text-[15px] font-semibold text-zinc-100 transition hover:bg-white/10"
+              className="flex h-10 min-w-0 items-center justify-center rounded-xl border border-white/15 bg-white/5 px-3 text-[15px] font-semibold whitespace-nowrap text-zinc-100 transition hover:bg-white/10 sm:px-4"
             >
-              {profileName ?? user.displayName ?? "플레이어"}님
+              <span className="max-w-[6.5rem] truncate">
+                {profileName ?? user.displayName ?? "플레이어"}
+              </span>
+              님
             </button>
           ) : (
-            <Link href="/login" className="flex h-10 items-center justify-center rounded-xl border border-white/15 bg-white/5 px-4 text-[15px] font-semibold text-zinc-100 transition hover:bg-white/10">
+            <Link href="/login" className="flex h-10 shrink-0 items-center whitespace-nowrap justify-center rounded-xl border border-white/15 bg-white/5 px-3 text-[15px] sm:px-4 font-semibold text-zinc-100 transition hover:bg-white/10">
               로그인
             </Link>
           )}
