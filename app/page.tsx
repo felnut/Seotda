@@ -125,7 +125,7 @@ function ProfilePanel({
             <p className="mb-4 text-[14px] text-zinc-400">{email}로 로그인됨</p>
           )}
 
-          <label className="mb-1.5 block text-[13px] font-medium text-zinc-500">
+          <label className="mb-1.5 block pl-[17px] text-[13px] font-medium text-zinc-500">
             닉네임
           </label>
 
@@ -1268,7 +1268,7 @@ export default function Home() {
           <section className="animate-fade-up w-full rounded-2xl border border-white/15 bg-zinc-900/70 p-5 shadow-xl shadow-black/30 sm:p-6">
             <label
               htmlFor="lobby-nickname"
-              className="mb-1.5 block text-[14px] font-semibold text-zinc-200"
+              className="mb-1.5 block pl-[17px] text-[14px] font-semibold text-zinc-200"
             >
               닉네임
             </label>
