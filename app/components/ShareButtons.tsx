@@ -72,8 +72,11 @@ function XIcon() {
   );
 }
 
-// 메인 화면 좌측 하단에 아이콘만 남겨두는 동그란 공유 버튼 — 텍스트 라벨
-// 없이 아이콘 하나로만 카카오톡/X 공유를 제공한다.
+const SHARE_BUTTON_CLASS =
+  "flex h-11 w-full cursor-pointer items-center justify-center gap-2.5 rounded-xl border border-white/15 bg-white/5 px-4 text-[14.5px] font-semibold text-zinc-100 transition hover:bg-white/10 active:scale-[0.98]";
+
+// 설정 패널 안의 공유 버튼 — 다른 설정 항목과 같은 모양으로 카카오톡/X 공유를
+// 제공한다. (예전에는 화면 구석에 동그란 아이콘으로 떠 있었다.)
 export function ShareButtons() {
   return (
     <div className="flex flex-col gap-2">
@@ -89,11 +92,10 @@ export function ShareButtons() {
           <button
             type="button"
             onClick={shareToKakao}
-            aria-label="카카오톡으로 공유"
-            title="카카오톡으로 공유"
-            className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-[#FEE500] text-black/80 shadow-lg shadow-black/40 transition hover:bg-[#E6CE00] active:scale-95"
+            className={SHARE_BUTTON_CLASS}
           >
             <KakaoIcon />
+            카카오톡으로 공유
           </button>
         </>
       )}
@@ -102,11 +104,10 @@ export function ShareButtons() {
         href={TWITTER_SHARE_URL}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label="X(트위터)로 공유"
-        title="X(트위터)로 공유"
-        className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-zinc-900 text-zinc-100 shadow-lg shadow-black/40 transition hover:bg-zinc-800"
+        className={SHARE_BUTTON_CLASS}
       >
         <XIcon />
+        X로 공유
       </a>
     </div>
   );

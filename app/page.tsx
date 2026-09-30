@@ -305,6 +305,14 @@ function SettingsPanel({
             checked={confirmBets}
             onToggle={onToggleConfirmBets}
           />
+
+          <div className="mt-2 border-t border-white/10 pt-4">
+            <h4 className="mb-3 text-[15px] font-semibold text-zinc-200">
+              친구에게 알리기
+            </h4>
+
+            <ShareButtons />
+          </div>
         </div>
       </aside>
     </>
@@ -1360,10 +1368,6 @@ export default function Home() {
             height={600}
           />
         </div>
-        </div>
-
-        <div className="fixed bottom-4 left-4 z-30">
-          <ShareButtons />
         </div>
 
         <RankingModal
