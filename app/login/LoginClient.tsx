@@ -82,7 +82,7 @@ export function LoginClient({ initialError }: { initialError?: string }) {
           href="/"
           className="mb-6 inline-block text-[13.5px] text-zinc-400 hover:text-zinc-100"
         >
-          ← 돌아가기
+          ← 메인으로
         </Link>
 
         <h1 className="mb-2 font-serif text-[32px] font-black tracking-tight text-gold">

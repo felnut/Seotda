@@ -28,7 +28,6 @@ import { loadNickname, saveNickname } from "@/lib/nickname";
 import { playChatSound, playTurnSound, playSoundFile, CHIP_SOUND_PATHS } from "@/lib/sound";
 import { RankingModal } from "./components/RankingModal";
 import { ShareButtons } from "./components/ShareButtons";
-import { AdSlot } from "./components/AdSlot";
 import { buildJsonLd } from "@/lib/seo/structuredData";
 
 // 인게임 UI(로비 다음 화면)는 방에 실제로 들어가야만 필요하다. 그 안의
@@ -43,11 +42,6 @@ const GameRoomView = dynamic(() => import("./components/GameRoomView"), {
     </main>
   ),
 });
-
-// 애드센스 콘솔에서 로비 화면 좌우에 걸어둘 세로형(스카이스크래퍼) 광고
-// 단위의 슬롯 ID. 같은 단위를 양쪽에 그대로 재사용한다.
-const ADSENSE_LOBBY_SIDE_SLOT_ID =
-  process.env.NEXT_PUBLIC_ADSENSE_LOBBY_SIDE_SLOT_ID ?? "";
 
 // layout.tsx의 메타데이터와 같은 값을 쓰지만, 서버 컴포넌트인
 // layout.tsx를 클라이언트 컴포넌트인 이 파일에서 직접 import하면
@@ -1259,17 +1253,6 @@ export default function Home() {
 
         <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 pt-4 pb-8 xl:flex-row">
 
-        {/* 화면이 충분히 넓을 때만 중앙 콘텐츠 양옆에 세로형 배너를 하나씩
-            띄운다 — 좁은 화면에서는 AdSlot이 아예 렌더링되지 않아도
-            gap만 남지 않도록 이 래퍼 자체를 숨긴다. */}
-        <div className="hidden shrink-0 xl:block">
-          <AdSlot
-            slotId={ADSENSE_LOBBY_SIDE_SLOT_ID}
-            width={160}
-            height={600}
-          />
-        </div>
-
         <div className="flex w-full max-w-md flex-col items-center">
           <h1 className="mb-6 text-center">
             <span className="block font-serif text-[52px] leading-none font-black tracking-tight text-gold">
@@ -1364,13 +1347,6 @@ export default function Home() {
           </nav>
         </div>
 
-        <div className="hidden shrink-0 xl:block">
-          <AdSlot
-            slotId={ADSENSE_LOBBY_SIDE_SLOT_ID}
-            width={160}
-            height={600}
-          />
-        </div>
         </div>
 
         <RankingModal

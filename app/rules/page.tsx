@@ -3,11 +3,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { HAND_GUIDE, SPECIAL_HAND_GUIDE } from "@/lib/seotda/handGuide";
 import { buildJsonLd } from "@/lib/seo/structuredData";
-import { AdSlot } from "../components/AdSlot";
-
-// 로비 화면 좌우에 쓰는 것과 같은 세로형 광고 단위를 그대로 재사용한다.
-const ADSENSE_LOBBY_SIDE_SLOT_ID =
-  process.env.NEXT_PUBLIC_ADSENSE_LOBBY_SIDE_SLOT_ID ?? "";
 
 const PAGE_URL = "https://seotda.felnut.com/rules";
 const TITLE = "섯다 족보 가이드 - 광땡부터 망통까지 순위 총정리";
@@ -58,16 +53,12 @@ export default function RulesPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <div className="hidden shrink-0 xl:block">
-        <AdSlot slotId={ADSENSE_LOBBY_SIDE_SLOT_ID} width={160} height={600} />
-      </div>
-
       <div className="mx-auto flex w-full max-w-2xl flex-col">
         <Link
           href="/"
           className="mb-6 inline-block w-fit text-[13.5px] text-zinc-500 hover:text-zinc-300"
         >
-          ← 돌아가기
+          ← 메인으로
         </Link>
 
         <h1 className="font-serif mb-2 text-[28px] font-black tracking-tight text-gold sm:text-[32px]">
@@ -244,9 +235,6 @@ export default function RulesPage() {
         </Link>
       </div>
 
-      <div className="hidden shrink-0 xl:block">
-        <AdSlot slotId={ADSENSE_LOBBY_SIDE_SLOT_ID} width={160} height={600} />
-      </div>
     </main>
   );
 }
