@@ -99,11 +99,16 @@ export function GoogleSignInButton({
           },
         });
 
+        // width를 안 주면 부모 폭에 맞춘다(구글 버튼은 200~400px만 허용).
+        const parentWidth = buttonRef.current.parentElement?.clientWidth ?? 0;
+        const buttonWidth =
+          width ?? Math.min(400, Math.max(200, Math.floor(parentWidth)));
+
         window.google.accounts.id.renderButton(buttonRef.current, {
           theme: "filled_black",
           size: "large",
-          text: mode === "link" ? "continue_with" : "signin",
-          width,
+          text: "continue_with",
+          width: buttonWidth,
         });
       };
 
@@ -126,5 +131,5 @@ export function GoogleSignInButton({
     };
   }, [mode, width]);
 
-  return <div ref={buttonRef} />;
+  return <div ref={buttonRef} className="flex justify-center" />;
 }
