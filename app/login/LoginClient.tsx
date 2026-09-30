@@ -10,6 +10,29 @@ import { GoogleSignInButton } from "../components/GoogleSignInButton";
 const BUTTON_CLASS =
   "relative flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-white/20 bg-white/5 text-[16px] font-semibold text-zinc-100 transition hover:bg-white/10 active:scale-[0.98]";
 
+function GoogleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden>
+      <path
+        fill="#4285F4"
+        d="M22.5 12.23c0-.78-.07-1.53-.2-2.25H12v4.26h5.9a5.04 5.04 0 0 1-2.19 3.31v2.75h3.55c2.08-1.91 3.24-4.73 3.24-8.07z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.55-2.75c-.98.66-2.24 1.05-3.73 1.05-2.87 0-5.3-1.94-6.17-4.55H2.16v2.84A11 11 0 0 0 12 23z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.83 14.09a6.6 6.6 0 0 1 0-4.18V7.07H2.16a11 11 0 0 0 0 9.86l3.67-2.84z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.16 7.07l3.67 2.84C6.7 7.32 9.13 5.38 12 5.38z"
+      />
+    </svg>
+  );
+}
+
 function GithubIcon() {
   return (
     <svg
@@ -72,11 +95,10 @@ export function LoginClient({ initialError }: { initialError?: string }) {
         </p>
 
         <section className="flex flex-col gap-2 rounded-2xl border border-white/15 bg-zinc-900/70 p-5 shadow-xl shadow-black/30">
-          {/* 구글 버튼은 구글이 직접 그리는 공식 버튼을 그대로 보여준다. 투명하게
-              덮어쓰면 구글이 클릭 도용 방지를 위해 클릭을 무시한다. */}
-          <div className="min-h-11 w-full">
-            <GoogleSignInButton onError={setError} />
-          </div>
+          <GoogleSignInButton onError={setError} className={`${BUTTON_CLASS} disabled:opacity-60`}>
+            <GoogleIcon />
+            Google로 계속하기
+          </GoogleSignInButton>
 
           <a href="/api/auth/github/start" className={BUTTON_CLASS}>
             <GithubIcon />

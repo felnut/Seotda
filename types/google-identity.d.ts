@@ -1,26 +1,22 @@
-interface GoogleIdentityCredentialResponse {
-  credential: string;
+interface GoogleTokenResponse {
+  access_token?: string;
+  error?: string;
 }
 
-interface GoogleIdentityButtonOptions {
-  theme?: "outline" | "filled_blue" | "filled_black";
-  size?: "large" | "medium" | "small";
-  text?: "signin" | "signup" | "continue_with" | "signin_with";
-  width?: number;
+interface GoogleTokenClient {
+  requestAccessToken: (overrides?: { prompt?: string }) => void;
 }
 
 interface Window {
   google?: {
     accounts: {
-      id: {
-        initialize: (config: {
+      oauth2: {
+        initTokenClient: (config: {
           client_id: string;
-          callback: (response: GoogleIdentityCredentialResponse) => void;
-        }) => void;
-        renderButton: (
-          parent: HTMLElement,
-          options: GoogleIdentityButtonOptions,
-        ) => void;
+          scope: string;
+          callback: (response: GoogleTokenResponse) => void;
+          error_callback?: (error: { type: string }) => void;
+        }) => GoogleTokenClient;
       };
     };
   };
