@@ -954,10 +954,10 @@ export default function Home() {
   };
 
   // 대기실에서 방장이 빈자리를 AI로 채우거나 뺀다.
-  const addAiPlayer = () => {
+  const addAiPlayer = (level: "easy" | "normal" | "hard") => {
     if (!roomId) return;
 
-    socket.emit("add-ai-player", roomId);
+    socket.emit("add-ai-player", { roomId, level });
   };
 
   // 대기실에서 방장이 정원(최대 인원)을 바꾼다.

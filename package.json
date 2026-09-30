@@ -13,7 +13,6 @@
     "socket": "tsx --env-file-if-exists=.env.local server/socket.ts"
   },
   "dependencies": {
-    "@google/genai": "^2.22.0",
     "@opentelemetry/api": "^1.9.1",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",

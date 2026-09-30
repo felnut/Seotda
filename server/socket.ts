@@ -4,8 +4,14 @@ import { Server } from "socket.io";
 import { SeotdaGame, STARTING_CHIPS } from "@/lib/seotda/game";
 import { RaiseRatio } from "@/lib/seotda/bettingRound";
 import { getDisplayHandName } from "@/lib/seotda/ranking";
-import { decideRevealIndex, decideSelectIndices } from "@/lib/seotda/ai";
-import { decideBettingActionWithLlm } from "@/lib/seotda/llmAi";
+import {
+  AI_LEVEL_LABELS,
+  AI_LEVELS,
+  AiLevel,
+  decideBettingAction,
+  decideRevealIndex,
+  decideSelectIndices,
+} from "@/lib/seotda/ai";
 import {
   canSpectateAfterBankruptcy,
   SPECTATE_UNAVAILABLE_MESSAGE,
@@ -123,6 +129,8 @@ interface JoinedPlayer {
   // (socketId는 항상 null), 항상 준비 완료 상태이며, 자기 차례가 되면
   // scheduleAiActions()가 대신 행동한다.
   isAI: boolean;
+  // AI의 실력(isAI일 때만 의미 있음).
+  aiLevel?: AiLevel;
 }
 
 // playerId(player-1, player-2...)는 순차적이라 쉽게 추측할 수 있으므로,
@@ -480,10 +488,12 @@ async function findNextAiAction(room: Room): Promise<(() => void) | null> {
 
     if (!aiIds.has(current.id)) return null;
 
-    const action = await decideBettingActionWithLlm({
+    const action = decideBettingAction({
       player: current,
+      players: state.players,
       pot: state.pot,
       currentBet: state.currentBet,
+      level: room.joinedPlayers.find((p) => p.id === current.id)?.aiLevel,
     });
 
     return () => {
@@ -959,16 +969,16 @@ function nextPlayerId(room: Room): string {
 }
 
 // 이미 있는 이름과 겹치지 않는 AI 이름을 찾는다.
-function createAiName(room: Room): string {
+function createAiName(room: Room, level: AiLevel): string {
   let index = 1;
-  let name = `AI ${index}`;
 
-  while (room.joinedPlayers.some((player) => player.name === name)) {
+  while (
+    room.joinedPlayers.some((player) => player.name.startsWith(`AI ${index}·`))
+  ) {
     index++;
-    name = `AI ${index}`;
   }
 
-  return name;
+  return `AI ${index}·${AI_LEVEL_LABELS[level]}`;
 }
 
 io.on("connection", (socket) => {
@@ -1338,7 +1348,13 @@ io.on("connection", (socket) => {
 
   // 방장이 대기실의 빈자리를 AI로 채운다. 게임이 이미 시작된 뒤에는 쓸 수
   // 없다 — 진행 중인 판 도중에 AI를 끼워 넣는 경우는 다루지 않는다.
-  socket.on("add-ai-player", (roomId: string) => {
+  socket.on("add-ai-player", (payload: string | { roomId: string; level?: string }) => {
+    const roomId = typeof payload === "string" ? payload : payload?.roomId;
+    const requestedLevel =
+      typeof payload === "string" ? undefined : payload?.level;
+    const level: AiLevel = AI_LEVELS.includes(requestedLevel as AiLevel)
+      ? (requestedLevel as AiLevel)
+      : "normal";
     const room = rooms.get(roomId);
 
     if (!room || room.game) return;
@@ -1364,7 +1380,7 @@ io.on("connection", (socket) => {
 
     room.joinedPlayers.push({
       id: nextPlayerId(room),
-      name: createAiName(room),
+      name: createAiName(room, level),
       socketId: null,
       uid: null,
       startingChips: STARTING_CHIPS,
@@ -1372,6 +1388,7 @@ io.on("connection", (socket) => {
       // AI는 항상 준비된 상태로 취급해 방장의 시작을 막지 않는다.
       isReady: true,
       isAI: true,
+      aiLevel: level,
     });
 
     broadcastPlayersUpdated(roomId, room);
