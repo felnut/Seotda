@@ -17,6 +17,8 @@ import { getFirebaseAuth, getFirebaseDb } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/useAuth";
 import { useIsDesktop } from "@/lib/useIsDesktop";
 import { PROFILES_COLLECTION, UserProfile } from "@/lib/profile";
+import { authErrorMessage } from "@/lib/auth/messages";
+import { LinkedAccounts, type LinkNotice } from "./components/LinkedAccounts";
 import { RANKINGS_COLLECTION, RankingEntry } from "@/lib/ranking";
 import { STARTING_CHIPS } from "@/lib/seotda/game";
 import { socket } from "@/lib/socket";
@@ -81,6 +83,7 @@ function ProfilePanel({
   saved,
   error,
   onSignOut,
+  linkNotice,
 }: {
   open: boolean;
   onClose: () => void;
@@ -92,6 +95,7 @@ function ProfilePanel({
   saved: boolean;
   error: string;
   onSignOut: () => void;
+  linkNotice: LinkNotice | null;
 }) {
   return (
     <>
@@ -165,6 +169,10 @@ function ProfilePanel({
               {error}
             </p>
           )}
+
+          <div className="my-5 border-t border-white/10" />
+
+          <LinkedAccounts active={open} notice={linkNotice} />
 
           <div className="my-5 border-t border-white/10" />
 
@@ -464,6 +472,9 @@ export default function Home() {
   const [profileSaved, setProfileSaved] = useState(false);
   const [profileError, setProfileError] = useState("");
 
+  // 계정 연결(네이버/카카오/깃허브) 후 돌아왔을 때 설정 패널에 띄울 결과 안내
+  const [linkNotice, setLinkNotice] = useState<LinkNotice | null>(null);
+
   // 로그인한 계정 — null이면 게스트. 랭킹은 로그인했을 때만 집계된다.
   const user = useAuth();
 
@@ -475,6 +486,26 @@ export default function Home() {
 
   // 족보 선택 단계에서 아직 서버에 확정 제출하지 않은 임시 선택
   const [pendingSelection, setPendingSelection] = useState<number[]>([]);
+
+  // 계정 연결을 마치고 돌아오면(?linked= / ?link_error=) 프로필 패널을 열어
+  // 결과를 보여주고, 주소창의 표시는 지운다.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const linkedProvider = params.get("linked");
+    const linkError = params.get("link_error");
+
+    if (!linkedProvider && !linkError) return;
+
+    // 주소창(URL)은 마운트 이후에만 읽을 수 있어 effect에서 동기화한다.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLinkNotice(
+      linkError
+        ? { text: authErrorMessage(linkError), error: true }
+        : { text: "로그인 방식을 연결했어요.", error: false },
+    );
+    setIsProfileOpen(true);
+    window.history.replaceState(null, "", window.location.pathname);
+  }, []);
 
   // 게스트가 예전에 입력해둔 닉네임이 있으면 불러온다(로그인 계정의
   // 프로필 이름이 아래 effect에서 먼저 채워졌다면 덮어쓰지 않는다).
@@ -1231,9 +1262,6 @@ export default function Home() {
             <span className="mt-3 block text-[19px] font-semibold text-zinc-100">
               친구와 온라인으로 즐기는 전통 카드 게임
             </span>
-            <span className="mt-1 block text-[14px] text-zinc-400">
-              무료 · 2~6명 실시간 대결
-            </span>
           </h1>
 
           {/* 닉네임 → 방 정보 → 시작 버튼 순서로 한 카드 안에 이어 붙여,
@@ -1353,6 +1381,7 @@ export default function Home() {
             saved={profileSaved}
             error={profileError}
             onSignOut={signOutOfGoogle}
+            linkNotice={linkNotice}
           />
         )}
 

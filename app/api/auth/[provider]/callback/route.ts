@@ -4,23 +4,41 @@ import {
   callbackUrl,
   getProviderConfig,
   OAUTH_STATE_COOKIE,
+  type OAuthProvider,
 } from "@/lib/auth/oauth";
+import {
+  AccountError,
+  createLoginToken,
+  resolveAccount,
+} from "@/lib/auth/accounts";
+import { LINK_COOKIE, verifyIdToken } from "@/lib/auth/session";
 
-// 제공자가 돌려준 코드를 액세스 토큰으로 바꾸고, 그 계정에 대응하는
-// 파이어베이스 커스텀 토큰을 만들어 로그인 완료 페이지로 보낸다.
+// 제공자가 돌려준 코드를 액세스 토큰으로 바꿔 사용자를 확인한 뒤,
+//  - 로그인이면: 그 사용자가 속한 내부 계정의 커스텀 토큰을 만들어 로그인 완료 페이지로,
+//  - 계정 연결이면(설정에서 시작): 현재 계정에 이 로그인을 연결하고 로비로 보낸다.
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ provider: string }> },
 ) {
   const { provider } = await params;
   const origin = request.nextUrl.origin;
-  const fail = (error: string) => {
-    const response = NextResponse.redirect(`${origin}/login?error=${error}`);
+  const linkToken = request.cookies.get(LINK_COOKIE)?.value;
+  const isLinking = !!linkToken;
+
+  const redirect = (url: string) => {
+    const response = NextResponse.redirect(url);
 
     response.cookies.delete({ name: OAUTH_STATE_COOKIE, path: "/api/auth" });
+    response.cookies.delete({ name: LINK_COOKIE, path: "/api/auth" });
 
     return response;
   };
+  const fail = (error: string) =>
+    redirect(
+      isLinking
+        ? `${origin}/?link_error=${error}`
+        : `${origin}/login?error=${error}`,
+    );
 
   const config = getProviderConfig(provider);
 
@@ -34,6 +52,11 @@ export async function GET(
   if (!code || !state || state !== expectedState) return fail("state");
 
   try {
+    const linkTo = isLinking ? await verifyIdToken(linkToken) : undefined;
+
+    // 연결하려던 사용자의 로그인이 만료됐다면 로그인으로 취급하지 않고 멈춘다.
+    if (isLinking && !linkTo) return fail("state");
+
     const body = new URLSearchParams({
       grant_type: "authorization_code",
       client_id: config.clientId,
@@ -46,7 +69,10 @@ export async function GET(
 
     const tokenResponse = await fetch(config.tokenUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Accept: "application/json",
+      },
       body,
     });
     const tokenData = await tokenResponse.json();
@@ -57,29 +83,22 @@ export async function GET(
 
     if (!profile.id) return fail("failed");
 
-    const uid = `${provider}:${profile.id}`;
-
-    // 처음 로그인하는 계정만 만들고, 표시 이름은 그때 한 번만 채운다.
-    // (이후에는 사용자가 프로필에서 바꾼 닉네임이 우선한다.)
-    try {
-      await adminAuth.getUser(uid);
-    } catch {
-      await adminAuth.createUser({
-        uid,
-        displayName: profile.name.slice(0, 13),
-      });
-    }
-
-    const customToken = await adminAuth.createCustomToken(uid, { provider });
-    // 토큰은 서버 로그·리퍼러에 남지 않도록 해시(#)로 넘긴다.
-    const response = NextResponse.redirect(
-      `${origin}/login/complete#token=${customToken}`,
+    const uid = await resolveAccount(
+      provider as OAuthProvider,
+      profile.id,
+      profile.name,
+      linkTo ?? undefined,
     );
 
-    response.cookies.delete({ name: OAUTH_STATE_COOKIE, path: "/api/auth" });
+    if (isLinking) return redirect(`${origin}/?linked=${provider}`);
 
-    return response;
+    const customToken = await createLoginToken(uid, provider as OAuthProvider);
+
+    // 토큰은 서버 로그·리퍼러에 남지 않도록 해시(#)로 넘긴다.
+    return redirect(`${origin}/login/complete#token=${customToken}`);
   } catch (err) {
+    if (err instanceof AccountError) return fail(err.code);
+
     console.error(`${provider} 로그인 실패:`, err);
 
     return fail("failed");
