@@ -29,6 +29,7 @@ import { playChatSound, playTurnSound, playSoundFile, CHIP_SOUND_PATHS } from "@
 import { RankingModal } from "./components/RankingModal";
 import { ShareButtons } from "./components/ShareButtons";
 import { buildJsonLd } from "@/lib/seo/structuredData";
+import APP_VERSION from "@/lib/version.json";
 
 // 인게임 UI(로비 다음 화면)는 방에 실제로 들어가야만 필요하다. 그 안의
 // PlayerPanel·ChatPanel·ChipStack 등은 전부 이 파일과 별도 청크로
@@ -307,6 +308,10 @@ function SettingsPanel({
 
             <ShareButtons />
           </div>
+
+          <p className="mt-6 text-center text-[12.5px] text-zinc-600">
+            v{APP_VERSION.major}.{APP_VERSION.minor}.{APP_VERSION.patch}
+          </p>
         </div>
       </aside>
     </>

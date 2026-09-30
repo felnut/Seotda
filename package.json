@@ -6,7 +6,9 @@
     "node": "24.x"
   },
   "scripts": {
+    "predev": "node scripts/gen-version.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/gen-version.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
