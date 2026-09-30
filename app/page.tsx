@@ -1334,6 +1334,9 @@ export default function Home() {
             <Link href="/about" className="py-2.5 hover:text-zinc-100">
               섯다란?
             </Link>
+            <Link href="/guide" className="py-2.5 hover:text-zinc-100">
+              가이드
+            </Link>
             <Link href="/rules" className="py-2.5 hover:text-zinc-100">
               게임 규칙
             </Link>
