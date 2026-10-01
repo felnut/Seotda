@@ -222,6 +222,8 @@ export interface BettingContext {
   currentBet: number;
   level?: AiLevel;
   rng?: () => number;
+  // true면 내장 블러핑(허세)을 끈다 — 블러핑 여부를 외부(LLM)가 정할 때 쓴다.
+  disableBluff?: boolean;
 }
 
 // 같은 판(내 처음 두 장)이면 항상 같은 값이 나오는 0~1 난수. 블러핑·슬로우
@@ -244,12 +246,16 @@ function handSeed(player: Player): number {
 // 베팅 크기(팟 대비 콜 금액)에 비례해 필요한 승률을 올린다.
 const RESPECT_WEIGHT = 0.14;
 
-export function decideBettingAction(ctx: BettingContext): BettingAction {
-  const { player, players, pot, currentBet } = ctx;
+// 지금 상황의 상대 목록, 내 승률, 그리고 이번 판이 "블러핑 후보"인지(판 단위로
+// 굴린 확률에 당첨 + 상대가 적고 + 실제 승률이 낮음)를 계산한다.
+export function analyzeBettingSpot(ctx: BettingContext) {
+  const { player, players } = ctx;
   const profile = PROFILES[ctx.level ?? "normal"];
   const rng = ctx.rng ?? Math.random;
 
-  if (!player.cards) return { type: "fold" };
+  if (!player.cards) {
+    return { opponents: [] as Player[], equityRaw: 0, bluffCandidate: false };
+  }
 
   const opponents = players.filter(
     (p) => p.id !== player.id && p.status === "playing" && !p.isSpectator,
@@ -277,9 +283,25 @@ export function decideBettingAction(ctx: BettingContext): BettingAction {
     rng,
   );
 
+  const bluffCandidate =
+    handSeed(player) < profile.bluff &&
+    opponents.length <= 2 &&
+    equityRaw < 0.45;
+
+  return { opponents, equityRaw, bluffCandidate };
+}
+
+export function decideBettingAction(ctx: BettingContext): BettingAction {
+  const { player, pot, currentBet } = ctx;
+  const profile = PROFILES[ctx.level ?? "normal"];
+  const rng = ctx.rng ?? Math.random;
+
+  if (!player.cards) return { type: "fold" };
+
+  const { opponents, equityRaw, bluffCandidate } = analyzeBettingSpot(ctx);
+
   const seed = handSeed(player);
-  const isBluffing =
-    seed < profile.bluff && opponents.length <= 2 && equityRaw < 0.45;
+  const isBluffing = bluffCandidate && !ctx.disableBluff;
   const isSlowPlaying =
     seed > 1 - profile.slowplay && equityRaw > 0.8 && opponents.length >= 1;
 
