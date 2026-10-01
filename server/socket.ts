@@ -8,10 +8,10 @@ import {
   AI_LEVEL_LABELS,
   AI_LEVELS,
   AiLevel,
-  decideBettingAction,
   decideRevealIndex,
   decideSelectIndices,
 } from "@/lib/seotda/ai";
+import { decideBettingActionWithLlm } from "@/lib/seotda/llmAi";
 import {
   canSpectateAfterBankruptcy,
   SPECTATE_UNAVAILABLE_MESSAGE,
@@ -488,7 +488,7 @@ async function findNextAiAction(room: Room): Promise<(() => void) | null> {
 
     if (!aiIds.has(current.id)) return null;
 
-    const action = decideBettingAction({
+    const action = await decideBettingActionWithLlm({
       player: current,
       players: state.players,
       pot: state.pot,
