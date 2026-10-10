@@ -1,25 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { getFirebaseDb } from "@/lib/firebase/client";
 import {
   RANKING_METRICS,
   RANKINGS_COLLECTION,
   RankingEntry,
 } from "@/lib/ranking";
-import { EmptyState } from "./EmptyState";
+import { EmptyState } from "../components/EmptyState";
 
 // 기록이 1~4개뿐이어도 목록이 휑해 보이지 않도록, 상위 자리를 이 개수까지
 // 빈 슬롯(placeholder)으로 채워 보여준다.
 const MIN_DISPLAY_SLOTS = 5;
 
-export function RankingModal({
-  open,
-  onClose,
-}: {
-  open: boolean;
-  onClose: () => void;
-}) {
+export function RankingPageClient() {
   const [metricIndex, setMetricIndex] = useState(0);
   const [entries, setEntries] = useState<RankingEntry[]>([]);
   const [loading, setLoading] = useState(false);
@@ -28,8 +23,6 @@ export function RankingModal({
   const metric = RANKING_METRICS[metricIndex];
 
   useEffect(() => {
-    if (!open) return;
-
     let cancelled = false;
 
     Promise.resolve()
@@ -78,45 +71,36 @@ export function RankingModal({
     return () => {
       cancelled = true;
     };
-  }, [open, metric.field]);
+  }, [metric.field]);
 
   return (
-    <>
-      <div
-        className={`fixed inset-0 z-40 bg-black/60 transition-opacity duration-300 ${
-          open ? "opacity-100" : "pointer-events-none opacity-0"
-        }`}
-        onClick={onClose}
-      />
-
-      <aside
-        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-xl flex-col border-l border-white/10 bg-zinc-950 shadow-2xl transition-transform duration-300 ${
-          open ? "translate-x-0" : "translate-x-full"
-        }`}
+    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col px-4 py-10 sm:py-14">
+      <Link
+        href="/"
+        className="mb-6 inline-block w-fit py-1 text-[13.5px] text-zinc-500 hover:text-zinc-300"
       >
-        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-          <h3 className="text-[22.5px] font-bold">랭킹</h3>
+        ← 메인으로
+      </Link>
 
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="닫기"
-            className="rounded-full p-2 text-zinc-400 transition hover:bg-white/10 hover:text-white"
-          >
-            ✕
-          </button>
-        </div>
+      <h1 className="mb-2 font-serif text-[28px] font-black tracking-tight text-black sm:text-[32px]">
+        랭킹
+      </h1>
 
-        <div className="grid grid-cols-5 gap-1.5 border-b border-white/10 px-5 py-3">
+      <p className="mb-6 text-[14.5px] leading-relaxed text-zinc-400">
+        로그인한 플레이어끼리의 기록입니다. AI가 함께한 방의 결과는
+        반영되지 않습니다.
+      </p>
+
+        <div className="mb-4 grid grid-cols-5 gap-1.5">
           {RANKING_METRICS.map((m, index) => (
             <button
               key={m.field}
               type="button"
               onClick={() => setMetricIndex(index)}
-              className={`rounded-lg px-1.5 py-2 text-center text-[11.5px] leading-tight font-medium transition ${
+              className={`rounded-full px-1.5 py-2 text-center text-[11.5px] leading-tight font-medium transition ${
                 index === metricIndex
-                  ? "bg-gold/15 text-gold-bright"
-                  : "text-zinc-400 hover:bg-white/5"
+                  ? "bg-gold/15 text-black"
+                  : "text-zinc-400 hover:bg-zinc-800"
               }`}
             >
               {m.label}
@@ -124,7 +108,7 @@ export function RankingModal({
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div className="flex-1">
           {loading && (
             <p className="py-8 text-center text-[15px] text-zinc-500">
               불러오는 중...
@@ -149,9 +133,9 @@ export function RankingModal({
               {entries.map((entry, index) => (
                 <li
                   key={`${entry.name}-${index}`}
-                  className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/3 p-3"
+                  className="flex items-center gap-3 rounded-lg border border-hairline bg-zinc-950 p-3"
                 >
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/5 text-[15px] font-bold text-zinc-400">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-950 text-[15px] font-bold text-zinc-400">
                     {index + 1}
                   </span>
 
@@ -159,7 +143,7 @@ export function RankingModal({
                     {entry.name}
                   </p>
 
-                  <p className="font-mono text-[15px] font-medium tabular-nums text-gold-bright">
+                  <p className="font-mono text-[15px] font-medium tabular-nums text-black">
                     {metric.format(entry)}
                   </p>
                 </li>
@@ -172,7 +156,7 @@ export function RankingModal({
               }).map((_, index) => (
                 <li
                   key={`placeholder-${index}`}
-                  className="flex items-center gap-3 rounded-lg border border-dashed border-white/5 p-3"
+                  className="flex items-center gap-3 rounded-lg border border-dashed border-hairline p-3"
                 >
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[15px] font-bold text-zinc-700">
                     {entries.length + index + 1}
@@ -184,7 +168,6 @@ export function RankingModal({
             </ol>
           )}
         </div>
-      </aside>
-    </>
+    </main>
   );
 }

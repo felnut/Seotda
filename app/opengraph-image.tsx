@@ -15,14 +15,14 @@ export default function OpengraphImage() {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(135deg, #283618 0%, #1c2610 100%)",
+        background: "#ffffff",
       }}
     >
       <div
         style={{
           fontSize: 220,
           fontWeight: 900,
-          color: "#fefae0",
+          color: "#141414",
           letterSpacing: -4,
         }}
       >
@@ -32,7 +32,7 @@ export default function OpengraphImage() {
         style={{
           marginTop: 12,
           fontSize: 40,
-          color: "#a9b57a",
+          color: "#0066ff",
         }}
       >
         친구와 온라인으로 즐기는 전통 카드 게임

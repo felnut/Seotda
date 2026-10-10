@@ -44,7 +44,7 @@ export default function PrivacyPage() {
           ← 메인으로
         </Link>
 
-        <h1 className="mb-2 font-serif text-[28px] font-black tracking-tight text-gold sm:text-[32px]">
+        <h1 className="mb-2 font-serif text-[28px] font-black tracking-tight text-black sm:text-[32px]">
           개인정보처리방침
         </h1>
 
@@ -117,7 +117,7 @@ export default function PrivacyPage() {
               href="https://adssettings.google.com/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gold-bright underline underline-offset-2 hover:text-gold"
+              className="text-black underline underline-offset-2 hover:text-black"
             >
               Google 광고 설정
             </a>
@@ -146,7 +146,7 @@ export default function PrivacyPage() {
           개인정보 관련 문의는{" "}
           <a
             href="mailto:dev@felnut.com"
-            className="text-gold-bright underline underline-offset-2 hover:text-gold"
+            className="text-black underline underline-offset-2 hover:text-black"
           >
             dev@felnut.com
           </a>

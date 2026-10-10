@@ -115,11 +115,11 @@ export function RoomsPageClient() {
         ← 메인으로
       </Link>
 
-      <h1 className="font-serif mb-1 text-[32px] font-black tracking-tight text-gold">
+      <h1 className="font-serif mb-1 text-[32px] font-black tracking-tight text-black">
         방 찾기
       </h1>
 
-      <div className="flex min-h-64 flex-col gap-2 rounded-2xl border border-white/10 bg-white/3 p-3 shadow-xl shadow-black/30">
+      <div className="flex min-h-64 flex-col gap-2 rounded-2xl border border-hairline bg-zinc-950 p-3">
         {roomList.length === 0 && (
           <EmptyState
             title="참가할 수 있는 방이 없습니다"
@@ -136,7 +136,7 @@ export function RoomsPageClient() {
               type="button"
               onClick={() => handleRoomClick(room)}
               disabled={isJoining || isFull}
-              className="animate-fade-up flex w-full items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/3 px-4 py-3.5 text-left transition hover:scale-[1.01] hover:border-gold/40 hover:bg-gold/8 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+              className="animate-fade-up flex w-full items-center justify-between gap-3 rounded-xl border border-hairline bg-zinc-950 px-4 py-3.5 text-left transition hover:border-hairline hover:bg-gold/8 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <span className="flex min-w-0 items-center gap-2">
                 <span className="truncate text-[17px] font-semibold text-zinc-100">
@@ -145,7 +145,7 @@ export function RoomsPageClient() {
                 </span>
 
                 {room.inProgress && (
-                  <span className="shrink-0 rounded-full bg-gold/15 px-2 py-0.5 text-[12.5px] font-bold text-gold">
+                  <span className="shrink-0 rounded-full bg-gold/15 px-2 py-0.5 text-[12.5px] font-bold text-black">
                     진행중 · 관전 참가
                   </span>
                 )}
@@ -162,14 +162,14 @@ export function RoomsPageClient() {
       </div>
 
       {error && (
-        <p className="animate-fade-up mt-6 rounded-xl border border-crimson/30 bg-crimson/10 p-4 text-center text-[17.5px] font-medium text-crimson-bright">
+        <p className="animate-fade-up mt-6 rounded-xl border border-crimson/40 bg-crimson/10 p-4 text-center text-[17.5px] font-medium text-crimson-bright">
           {error}
         </p>
       )}
 
       <Link
         href="/"
-        className="mt-8 w-full rounded-xl bg-gold px-6 py-3.5 text-center text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-gold-bright active:scale-[0.98]"
+        className="mt-8 w-full rounded-full bg-gold px-6 py-3.5 text-center text-[17.5px] font-semibold text-white transition hover:bg-gold-deep active:scale-[0.98]"
       >
         새 방 만들기
       </Link>
@@ -185,7 +185,7 @@ export function RoomsPageClient() {
               event.preventDefault();
               joinRoom(passwordPromptRoom.roomId, passwordInput);
             }}
-            className="animate-pop-in w-full max-w-xs rounded-2xl border border-white/10 bg-zinc-950 p-6 shadow-2xl"
+            className="animate-pop-in w-full max-w-xs rounded-2xl border border-hairline bg-zinc-950 p-6"
           >
             <h2 className="mb-1 text-[19px] font-bold">
               🔒 {passwordPromptRoom.name}
@@ -202,7 +202,7 @@ export function RoomsPageClient() {
               onChange={(event) => setPasswordInput(event.target.value)}
               placeholder="비밀번호"
               maxLength={20}
-              className="mb-2 w-full rounded-xl border border-white/20 bg-black/40 px-4 py-2.5 text-[17.5px] text-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
+              className="mb-2 w-full rounded-lg border border-hairline bg-white px-4 py-2.5 text-[17.5px] text-black outline-none transition focus:border-black focus:ring-2 focus:ring-black/10"
             />
 
             {passwordError && (
@@ -215,7 +215,7 @@ export function RoomsPageClient() {
               <button
                 type="button"
                 onClick={() => setPasswordPromptRoom(null)}
-                className="flex-1 rounded-xl border border-white/15 bg-white/5 px-5 py-2.5 text-[15px] font-semibold text-zinc-200 transition hover:bg-white/10"
+                className="flex-1 rounded-full border border-hairline bg-white px-5 py-2.5 text-[15px] font-semibold text-zinc-200 transition hover:bg-zinc-800"
               >
                 취소
               </button>
@@ -223,7 +223,7 @@ export function RoomsPageClient() {
               <button
                 type="submit"
                 disabled={isJoining}
-                className="flex-1 rounded-xl bg-gold px-5 py-2.5 text-[15px] font-semibold text-zinc-900 transition hover:bg-gold-bright disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex-1 rounded-full bg-gold px-5 py-2.5 text-[15px] font-semibold text-white transition hover:bg-gold-deep disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isJoining ? "입장 중..." : "입장"}
               </button>

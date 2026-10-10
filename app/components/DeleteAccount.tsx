@@ -39,7 +39,7 @@ export function DeleteAccount({ onDeleted }: { onDeleted: () => void }) {
   }
 
   return (
-    <div className="rounded-xl border border-crimson/30 bg-crimson/10 p-4">
+    <div className="rounded-xl border border-crimson/40 bg-crimson/10 p-4">
       <h4 className="mb-2 text-[15px] font-semibold text-crimson-bright">
         회원 탈퇴
       </h4>
@@ -59,7 +59,7 @@ export function DeleteAccount({ onDeleted }: { onDeleted: () => void }) {
         value={typed}
         onChange={(event) => setTyped(event.target.value)}
         disabled={deleting}
-        className="mb-3 w-full rounded-xl border border-white/20 bg-black/40 px-4 py-2 text-[15px] text-white outline-none focus:border-crimson/60"
+        className="mb-3 w-full rounded-lg border border-hairline bg-white px-4 py-2 text-[15px] text-black outline-none focus:border-crimson/40"
       />
 
       <div className="flex gap-2">
@@ -71,7 +71,7 @@ export function DeleteAccount({ onDeleted }: { onDeleted: () => void }) {
             setError("");
           }}
           disabled={deleting}
-          className="flex-1 rounded-xl border border-white/15 px-4 py-2 text-[14px] font-semibold text-zinc-300 transition hover:bg-white/10 disabled:opacity-50"
+          className="flex-1 rounded-full border border-hairline px-4 py-2 text-[14px] font-semibold text-zinc-300 transition hover:bg-zinc-800 disabled:opacity-50"
         >
           취소
         </button>
@@ -80,7 +80,7 @@ export function DeleteAccount({ onDeleted }: { onDeleted: () => void }) {
           type="button"
           onClick={confirmDelete}
           disabled={typed.trim() !== CONFIRM_WORD || deleting}
-          className="flex-1 rounded-xl bg-crimson px-4 py-2 text-[14px] font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex-1 rounded-full bg-crimson px-4 py-2 text-[14px] font-semibold text-[#ffffff] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {deleting ? "삭제 중..." : "탈퇴하기"}
         </button>

@@ -1,31 +1,71 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Nanum_Myeongjo, Noto_Sans_KR } from "next/font/google";
+import {
+  DM_Sans,
+  Hanken_Grotesk,
+  IBM_Plex_Mono,
+  IBM_Plex_Sans,
+  Inter,
+  Nanum_Myeongjo,
+  Saira_Condensed,
+} from "next/font/google";
 import Script from "next/script";
+import ThemeToggle from "./components/ThemeToggle";
+import { DEFAULT_THEME, MODE_STORAGE_KEY, THEME_STORAGE_KEY, THEMES } from "@/lib/themes";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
-// 심플하고 모던한 톤을 위해 본문·제목 모두 하나의 고딕체(굵기로만 위계를
-// 준다) + 칩/판돈 숫자용 모노스페이스로 타이포그래피를 구성한다.
-const notoSansKr = Noto_Sans_KR({
-  weight: ["400", "500", "700", "900"],
-  subsets: ["latin"],
-  variable: "--font-noto-sans-kr",
-});
-
-const plexMono = IBM_Plex_Mono({
+// 테마마다 쓰는 서체가 달라 한꺼번에 등록해 둔다. 기본 테마가 쓰는 서체만
+// 미리 불러오고(preload), 나머지는 해당 테마를 고를 때 비로소 내려받는다.
+// 서체 이름은 app/themes.css 의 --tf-* 변수가 고른다.
+const iBMPlexMono = IBM_Plex_Mono({
   weight: ["500", "600"],
   subsets: ["latin"],
   variable: "--font-plex-mono",
 });
 
-// "섯다" 로고·브랜드 타이틀 전용 포인트 서체 — 본문은 계속 고딕으로 두고,
-// 이 서체 하나만 골라 써서 전통 화투/도박판 느낌을 살짝 얹는다.
+const inter = Inter({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
+
+const sairaCondensed = Saira_Condensed({
+  weight: ["400"],
+  subsets: ["latin"],
+  variable: "--font-saira",
+  preload: false,
+});
+
 const nanumMyeongjo = Nanum_Myeongjo({
   weight: ["700", "800"],
   subsets: ["latin"],
   variable: "--font-nanum-myeongjo",
+  preload: false,
 });
+
+const hankenGrotesk = Hanken_Grotesk({
+  weight: ["700", "800"],
+  subsets: ["latin"],
+  variable: "--font-hanken",
+  preload: false,
+});
+
+const iBMPlexSans = IBM_Plex_Sans({
+  weight: ["600", "700"],
+  subsets: ["latin"],
+  variable: "--font-plex-sans",
+  preload: false,
+});
+
+const dMSans = DM_Sans({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-dm-sans",
+  preload: false,
+});
+
+const THEME_INIT_SCRIPT = `(function(){try{var d=document.documentElement,ids=${JSON.stringify(THEMES.map((t) => t.id))},t=localStorage.getItem("${THEME_STORAGE_KEY}");d.dataset.theme=ids.indexOf(t)>=0?t:"${DEFAULT_THEME}";if(localStorage.getItem("${MODE_STORAGE_KEY}")==="alt")d.dataset.mode="alt"}catch(e){document.documentElement.dataset.theme="${DEFAULT_THEME}"}})();`;
 
 const ADSENSE_CLIENT_ID = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
 
@@ -71,9 +111,26 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ko"
-      className={`${notoSansKr.variable} ${plexMono.variable} ${nanumMyeongjo.variable} h-full antialiased`}
+      suppressHydrationWarning
+      className={`${[iBMPlexMono.variable, inter.variable, sairaCondensed.variable, nanumMyeongjo.variable, hankenGrotesk.variable, iBMPlexSans.variable, dMSans.variable].join(" ")} h-full antialiased`}
     >
+      <head>
+        {/* 한국어를 지원하지 않는 서체(Inter 등)의 한글 글자는 Pretendard로 대신 보여 준다.
+            글자 조각(unicode-range)별로 쪼개져 있어 화면에 쓰인 글자만 내려받는다. */}
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+        />
+        {/* 저장된 테마·모드를 첫 페인트 전에 적용해 기본 테마가 번쩍이지 않게 한다. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: THEME_INIT_SCRIPT,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">
+        <ThemeToggle />
         <Analytics />
         <SpeedInsights />
         {/* 로그인/로그아웃으로 버튼이 다시 마운트돼도 다시 로드하지 않도록 앱

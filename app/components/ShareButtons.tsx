@@ -73,7 +73,7 @@ function XIcon() {
 }
 
 const SHARE_BUTTON_CLASS =
-  "flex h-11 w-full cursor-pointer items-center justify-center gap-2.5 rounded-xl border border-white/15 bg-white/5 px-4 text-[14.5px] font-semibold text-zinc-100 transition hover:bg-white/10 active:scale-[0.98]";
+  "flex h-11 w-full cursor-pointer items-center justify-center gap-2.5 rounded-full border border-hairline bg-white px-4 text-[14.5px] font-semibold text-zinc-100 transition hover:bg-zinc-800";
 
 // 설정 패널 안의 공유 버튼 — 다른 설정 항목과 같은 모양으로 카카오톡/X 공유를
 // 제공한다. (예전에는 화면 구석에 동그란 아이콘으로 떠 있었다.)

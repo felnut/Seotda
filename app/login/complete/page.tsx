@@ -43,7 +43,7 @@ export default function LoginCompletePage() {
           <p>로그인에 실패했어요.</p>
           <Link
             href="/login"
-            className="text-gold-bright underline underline-offset-2"
+            className="text-black underline underline-offset-2"
           >
             다시 시도하기
           </Link>

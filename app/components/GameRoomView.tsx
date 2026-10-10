@@ -44,7 +44,7 @@ interface CardProps {
 function Card({ card, index = 0, size = "cozy" }: CardProps) {
   return (
     <div
-      className={`animate-card-in relative aspect-2/3 shrink-0 overflow-hidden rounded-lg border border-gold/25 shadow-lg shadow-black/50 ${CARD_SIZE_CLASS[size]}`}
+      className={`animate-card-in relative aspect-2/3 shrink-0 overflow-hidden rounded-lg border border-hairline ${CARD_SIZE_CLASS[size]}`}
       style={{ animationDelay: `${index * 80}ms` }}
     >
       <Image
@@ -55,7 +55,7 @@ function Card({ card, index = 0, size = "cozy" }: CardProps) {
         className="object-cover"
       />
 
-      <span className="absolute top-0.5 left-0.5 flex h-6 min-w-6 items-center justify-center rounded bg-black/70 px-1 font-mono text-[17.5px] font-bold text-gold-bright sm:h-7 sm:min-w-7 sm:text-xl">
+      <span className="absolute top-0.5 left-0.5 flex h-6 min-w-6 items-center justify-center rounded bg-white px-1 font-mono text-[17.5px] font-bold text-black sm:h-7 sm:min-w-7 sm:text-xl">
         {card.month}
       </span>
     </div>
@@ -71,10 +71,10 @@ function CardBack({
 }) {
   return (
     <div
-      className={`animate-fade-up flex aspect-2/3 shrink-0 items-center justify-center rounded-lg border border-white/15 bg-linear-to-br from-zinc-800 to-zinc-900 shadow-lg shadow-black/40 ${CARD_SIZE_CLASS[size]}`}
+      className={`animate-fade-up flex aspect-2/3 shrink-0 items-center justify-center rounded-lg border border-hairline bg-linear-to-br from-zinc-800 to-zinc-900 ${CARD_SIZE_CLASS[size]}`}
       style={{ animationDelay: `${index * 80}ms` }}
     >
-      <span className="text-[22.5px] font-bold text-white/30 sm:text-3xl">
+      <span className="text-[22.5px] font-bold text-black/30 sm:text-3xl">
         ?
       </span>
     </div>
@@ -83,7 +83,7 @@ function CardBack({
 
 function MiniCard({ cardId, alt }: { cardId: string; alt: string }) {
   return (
-    <div className="relative h-12.5 w-8 shrink-0 overflow-hidden rounded-md border border-white/10 shadow-sm">
+    <div className="relative h-12.5 w-8 shrink-0 overflow-hidden rounded-md border border-hairline">
       <Image
         src={`/card/${cardId}.png`}
         alt={alt}
@@ -161,25 +161,25 @@ function HandGuidePanel({
       />
 
       <aside
-        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col border-l border-white/10 bg-zinc-950/95 shadow-2xl transition-transform duration-300 ${
+        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col border-l border-hairline bg-zinc-950/95 transition-transform duration-300 ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
           <h3 className="text-[22.5px] font-bold">족보 가이드</h3>
 
           <button
             type="button"
             onClick={onClose}
             aria-label="닫기"
-            className="rounded-full p-2 text-zinc-400 transition hover:bg-white/10 hover:text-white"
+            className="rounded-full p-2 text-zinc-400 transition hover:bg-zinc-800 hover:text-black"
           >
             ✕
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
-          <p className="mb-2 text-[15px] font-semibold tracking-wide text-gold">
+          <p className="mb-2 text-[15px] font-semibold tracking-wide text-black">
             특수 족보
           </p>
 
@@ -192,8 +192,8 @@ function HandGuidePanel({
                   key={entry.name}
                   className={`flex items-center gap-3 rounded-lg border p-3 transition ${
                     isMine
-                      ? "border-gold/60 bg-gold/10 ring-1 ring-gold/40"
-                      : "border-white/5 bg-white/3"
+                      ? "border-hairline bg-gold/10 ring-1 ring-gold/40"
+                      : "border-hairline bg-zinc-950"
                   }`}
                 >
                   <div className="flex gap-1">
@@ -205,7 +205,7 @@ function HandGuidePanel({
                     <p className="flex items-center gap-1.5 text-[17.5px] font-semibold">
                       {entry.name}
                       {isMine && (
-                        <span className="rounded-full bg-gold/20 px-1.5 py-0.5 text-[11px] font-semibold text-gold-bright">
+                        <span className="rounded-full bg-gold/20 px-1.5 py-0.5 text-[11px] font-semibold text-black">
                           내 패
                         </span>
                       )}
@@ -220,7 +220,7 @@ function HandGuidePanel({
             })}
           </ul>
 
-          <p className="mb-2 text-[15px] font-semibold tracking-wide text-gold">
+          <p className="mb-2 text-[15px] font-semibold tracking-wide text-black">
             일반 족보 (높은 순)
           </p>
 
@@ -233,11 +233,11 @@ function HandGuidePanel({
                   key={entry.name}
                   className={`flex items-center gap-3 rounded-lg border p-3 transition ${
                     isMine
-                      ? "border-gold/60 bg-gold/10 ring-1 ring-gold/40"
-                      : "border-white/5 bg-white/3"
+                      ? "border-hairline bg-gold/10 ring-1 ring-gold/40"
+                      : "border-hairline bg-zinc-950"
                   }`}
                 >
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/5 text-[15px] font-bold text-zinc-400">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-950 text-[15px] font-bold text-zinc-400">
                     {index + 1}
                   </span>
 
@@ -250,7 +250,7 @@ function HandGuidePanel({
                     <p className="flex items-center gap-1.5 text-[17.5px] font-semibold">
                       {entry.name}
                       {isMine && (
-                        <span className="rounded-full bg-gold/20 px-1.5 py-0.5 text-[11px] font-semibold text-gold-bright">
+                        <span className="rounded-full bg-gold/20 px-1.5 py-0.5 text-[11px] font-semibold text-black">
                           내 패
                         </span>
                       )}
@@ -672,12 +672,12 @@ function ChatPanel({
       // 입력창/버튼이 키보드 탭 이동으로 포커스되지 않도록 inert 처리한다.
       // 데스크톱에서는 항상 보이므로 inert를 걸지 않는다.
       inert={!isVisible}
-      className={`z-40 flex shrink-0 flex-col overflow-hidden border-white/10 bg-zinc-950/95 transition-[width,transform] duration-300 sm:relative sm:translate-x-0 sm:border-l sm:bg-zinc-950/60 sm:shadow-none ${
+      className={`z-40 flex shrink-0 flex-col overflow-hidden border-hairline bg-zinc-950/95 transition-[width,transform] duration-300 sm:relative sm:translate-x-0 sm:border-l sm:bg-zinc-950/60 sm:shadow-none ${
         isDockCollapsed ? "sm:w-12" : "w-56 sm:w-[clamp(14rem,22vw,20rem)]"
       } ${
         open
-          ? "fixed inset-y-0 right-0 translate-x-0 border-l shadow-2xl"
-          : "fixed inset-y-0 right-0 translate-x-full border-l shadow-2xl"
+          ? "fixed inset-y-0 right-0 translate-x-0 border-l"
+          : "fixed inset-y-0 right-0 translate-x-full border-l"
       }`}
     >
       {isDockCollapsed ? (
@@ -685,7 +685,7 @@ function ChatPanel({
           type="button"
           onClick={() => setIsCollapsed(false)}
           aria-label="채팅 펼치기"
-          className="flex h-full w-full flex-col items-center justify-center gap-3 py-6 text-zinc-500 transition hover:text-gold-bright"
+          className="flex h-full w-full flex-col items-center justify-center gap-3 py-6 text-zinc-500 transition hover:text-black"
         >
           <span className="text-[18px]">💬</span>
           <span className="text-[12.5px] font-semibold tracking-widest [writing-mode:vertical-rl]">
@@ -694,7 +694,7 @@ function ChatPanel({
         </button>
       ) : (
         <>
-          <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3 sm:py-4">
+          <div className="flex shrink-0 items-center justify-between border-b border-hairline px-4 py-3 sm:py-4">
             <h3 className="text-[17.5px] font-bold sm:text-[22.5px]">채팅</h3>
 
             <div className="flex items-center gap-1">
@@ -703,7 +703,7 @@ function ChatPanel({
                 onClick={() => setIsCollapsed(true)}
                 aria-label="채팅 접기"
                 title="채팅 접기"
-                className="hidden rounded-full p-2 text-zinc-400 transition hover:bg-white/10 hover:text-white sm:inline-flex"
+                className="hidden rounded-full p-2 text-zinc-400 transition hover:bg-zinc-800 hover:text-black sm:inline-flex"
               >
                 »
               </button>
@@ -712,7 +712,7 @@ function ChatPanel({
                 type="button"
                 onClick={onClose}
                 aria-label="닫기"
-                className="rounded-full p-2 text-zinc-400 transition hover:bg-white/10 hover:text-white sm:hidden"
+                className="rounded-full p-2 text-zinc-400 transition hover:bg-zinc-800 hover:text-black sm:hidden"
               >
                 ✕
               </button>
@@ -744,8 +744,8 @@ function ChatPanel({
                   <p
                     className={`max-w-[85%] rounded-2xl px-3 py-1.5 text-[13.5px] wrap-break-word sm:px-3.5 sm:py-2 sm:text-[15px] ${
                       isMine
-                        ? "bg-gold text-zinc-900"
-                        : "bg-white/8 text-zinc-100"
+                        ? "bg-gold text-white"
+                        : "bg-zinc-950 text-zinc-100"
                     }`}
                   >
                     {message.text}
@@ -780,9 +780,9 @@ function ChatPanel({
                     bottom: emojiPopupPos.bottom,
                     right: emojiPopupPos.right,
                   }}
-                  className="fixed z-50 w-72 rounded-xl border border-white/10 bg-zinc-900 shadow-2xl"
+                  className="fixed z-50 w-72 rounded-xl border border-hairline bg-zinc-900"
                 >
-                  <div className="flex gap-0.5 overflow-x-auto border-b border-white/10 p-1.5">
+                  <div className="flex gap-0.5 overflow-x-auto border-b border-hairline p-1.5">
                     {EMOJI_CATEGORIES.map((category, index) => (
                       <button
                         key={category.label}
@@ -794,7 +794,7 @@ function ChatPanel({
                         className={`shrink-0 rounded-lg px-2 py-1 text-[16px] transition ${
                           emojiCategoryIndex === index
                             ? "bg-gold/15 ring-1 ring-gold/40"
-                            : "hover:bg-white/10"
+                            : "hover:bg-zinc-800"
                         }`}
                       >
                         {category.icon}
@@ -812,7 +812,7 @@ function ChatPanel({
                             onInputChange(`${input}${emoji}`);
                             setIsEmojiOpen(false);
                           }}
-                          className="rounded-lg py-1 text-[19px] transition hover:bg-white/10"
+                          className="rounded-lg py-1 text-[19px] transition hover:bg-zinc-800"
                         >
                           {emoji}
                         </button>
@@ -829,7 +829,7 @@ function ChatPanel({
                 onSend();
                 setIsEmojiOpen(false);
               }}
-              className="flex gap-1.5 border-t border-white/10 p-2.5 sm:gap-2 sm:p-3"
+              className="flex gap-1.5 border-t border-hairline p-2.5 sm:gap-2 sm:p-3"
             >
               <button
                 type="button"
@@ -838,8 +838,8 @@ function ChatPanel({
                 aria-expanded={isEmojiOpen}
                 className={`shrink-0 rounded-xl border px-2.5 text-[17px] transition ${
                   isEmojiOpen
-                    ? "border-gold/50 bg-gold/10"
-                    : "border-white/10 bg-black/30 hover:border-white/20"
+                    ? "border-hairline bg-gold/10"
+                    : "border-hairline bg-white hover:border-hairline"
                 }`}
               >
                 😊
@@ -850,13 +850,13 @@ function ChatPanel({
                 onChange={(event) => onInputChange(event.target.value)}
                 placeholder="메시지 입력..."
                 maxLength={200}
-                className="min-w-0 flex-1 rounded-xl border border-white/20 bg-black/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] px-3 py-2 text-[13.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20 sm:px-3.5 sm:py-2.5 sm:text-[15px]"
+                className="min-w-0 flex-1 rounded-lg border border-hairline bg-white px-3 py-2 text-[13.5px] text-black outline-none transition focus:border-black focus:ring-2 focus:ring-black/10 sm:px-3.5 sm:py-2.5 sm:text-[15px]"
               />
 
               <button
                 type="submit"
                 disabled={!input.trim()}
-                className="shrink-0 rounded-xl bg-gold px-3 py-2 text-[13.5px] font-semibold text-zinc-900 transition hover:scale-[1.03] hover:bg-gold-bright active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 sm:px-4 sm:py-2.5 sm:text-[15px]"
+                className="shrink-0 rounded-full bg-gold px-3 py-2 text-[13.5px] font-semibold text-white transition hover:bg-gold-deep active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 sm:px-4 sm:py-2.5 sm:text-[15px]"
               >
                 전송
               </button>
@@ -991,7 +991,7 @@ function ChipStack({ amount }: { amount: number }) {
       {denominations.map((d, index) => (
         <span
           key={d.value}
-          className={`absolute flex items-center justify-center rounded-full border-2 font-mono text-[11px] leading-none font-bold text-zinc-900 ${d.bg} ${d.border}`}
+          className={`absolute flex items-center justify-center rounded-full border-2 font-mono text-[11px] leading-none font-bold text-white ${d.bg} ${d.border}`}
           style={{
             width: CHIP_PILE_SIZE,
             height: CHIP_PILE_SIZE,
@@ -1021,19 +1021,19 @@ function PotBadge({ pot, turnLabel }: { pot: number; turnLabel: string }) {
       <ChipStack amount={pot} />
 
       <div
-        className="flex flex-col items-center rounded-2xl border border-gold/40 bg-zinc-950/80 px-5 py-1.5 sm:px-6 sm:py-2"
+        className="flex flex-col items-center rounded-2xl border border-hairline bg-zinc-950/80 px-5 py-1.5 sm:px-6 sm:py-2"
         style={{
           boxShadow:
-            "0 0 24px -4px rgba(254, 250, 224, 0.3), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -2px 6px rgba(0,0,0,0.5)",
+            "0 0 24px -4px rgba(0,102,255,0.1), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -2px 6px rgba(0,0,0,0.5)",
         }}
       >
-        <p className="text-[10px] font-bold tracking-widest text-gold-bright sm:text-[11px]">
+        <p className="text-[10px] font-bold tracking-widest text-black sm:text-[11px]">
           POT
         </p>
 
         <p
           key={pot}
-          className="animate-pop-in font-mono text-[17.5px] font-bold tabular-nums text-gold sm:text-[22px]"
+          className="animate-pop-in font-mono text-[17.5px] font-bold tabular-nums text-black sm:text-[22px]"
         >
           {pot.toLocaleString()}
         </p>
@@ -1124,9 +1124,9 @@ function PlayerPanel({
 
   return (
     <div
-      className={`rounded-2xl border px-4 py-2.5 backdrop-blur-sm transition sm:px-5 ${
+      className={`rounded-2xl border px-4 py-2.5 transition sm:px-5 ${
         compact ? "sm:py-3" : "sm:py-3.5"
-      } ${isMe ? "border-gold/25 bg-gold/4" : "border-white/10 bg-white/3"} ${
+      } ${isMe ? "border-hairline bg-gold/4" : "border-hairline bg-zinc-950"} ${
         isCurrent
           ? "animate-turn-glow ring-2 ring-gold/70 ring-offset-2 ring-offset-zinc-950"
           : ""
@@ -1135,7 +1135,7 @@ function PlayerPanel({
       <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <div
-            className={`flex shrink-0 items-center justify-center rounded-full bg-linear-to-br from-gold/80 to-gold-deep/80 font-bold text-zinc-900 ${
+            className={`flex shrink-0 items-center justify-center rounded-full bg-gold font-bold text-white ${
               compact
                 ? "h-6 w-6 text-[15px]"
                 : "h-8 w-8 text-[17.5px] sm:h-9 sm:w-9"
@@ -1206,19 +1206,19 @@ function PlayerPanel({
           )}
 
           {isCurrent && (
-            <span className="rounded-full bg-gold px-2.5 py-0.5 text-[14px] font-bold text-zinc-900">
+            <span className="rounded-full bg-gold px-2.5 py-0.5 text-[14px] font-bold text-white">
               차례
             </span>
           )}
 
           {player.isSpectator && (
-            <span className="rounded-full bg-white/5 px-2.5 py-0.5 text-[14px] font-bold text-zinc-400">
+            <span className="rounded-full bg-zinc-950 px-2.5 py-0.5 text-[14px] font-bold text-zinc-400">
               관전 중
             </span>
           )}
 
           {!player.isSpectator && player.status === "folded" && (
-            <span className="rounded-full bg-white/5 px-2.5 py-0.5 text-[14px] font-bold text-zinc-400">
+            <span className="rounded-full bg-zinc-950 px-2.5 py-0.5 text-[14px] font-bold text-zinc-400">
               다이
             </span>
           )}
@@ -1230,7 +1230,7 @@ function PlayerPanel({
           )}
 
           {phase === "finished" && player.status === "loser" && (
-            <span className="rounded-full bg-white/5 px-2.5 py-0.5 text-[14px] font-bold text-zinc-400">
+            <span className="rounded-full bg-zinc-950 px-2.5 py-0.5 text-[14px] font-bold text-zinc-400">
               패배
             </span>
           )}
@@ -1253,7 +1253,7 @@ function PlayerPanel({
                   onClick={() => onToggleSelect(index)}
                   className={`rounded-lg transition ${
                     canSelectNow
-                      ? "cursor-pointer hover:scale-[1.03]"
+                      ? "cursor-pointer"
                       : "cursor-default"
                   } ${
                     isPendingSelected
@@ -1269,7 +1269,7 @@ function PlayerPanel({
                 </button>
 
                 {index === player.revealedCardIndex && (
-                  <span className="rounded-full bg-gold/15 px-1.5 py-0.5 text-[11px] font-semibold text-gold-bright">
+                  <span className="rounded-full bg-gold/15 px-1.5 py-0.5 text-[11px] font-semibold text-black">
                     공개됨
                   </span>
                 )}
@@ -1284,7 +1284,7 @@ function PlayerPanel({
                   <button
                     type="button"
                     onClick={() => onRevealCard(index)}
-                    className="rounded-full bg-gold px-2.5 py-0.5 text-[13px] font-semibold text-zinc-900 transition hover:scale-105 hover:bg-gold-bright active:scale-95"
+                    className="rounded-full bg-gold px-2.5 py-0.5 text-[13px] font-semibold text-white transition hover:bg-gold-deep active:scale-95"
                   >
                     이 카드 공개
                   </button>
@@ -1307,10 +1307,10 @@ function PlayerPanel({
           (isMe || phase === "showdown" || phase === "finished") && (
             <div
               key={player.handName}
-              className="animate-pop-in flex flex-col items-center justify-center rounded-xl border border-gold/20 bg-black/20 px-3 py-1.5 text-center sm:px-4"
+              className="animate-pop-in flex flex-col items-center justify-center rounded-xl border border-hairline bg-black/20 px-3 py-1.5 text-center sm:px-4"
             >
               <p className="text-[11px] font-medium text-zinc-400">족보</p>
-              <p className="text-[22.5px] font-bold text-gold-bright sm:text-[25px]">
+              <p className="text-[22.5px] font-bold text-black sm:text-[25px]">
                 {player.handName}
               </p>
             </div>
@@ -1326,13 +1326,13 @@ function PlayerPanel({
                 key={`${indices[0]}-${indices[1]}`}
                 className={`rounded-full px-2 py-0.5 text-[14px] transition ${
                   isBest
-                    ? "border border-gold/60 bg-gold/10 text-gold-bright ring-1 ring-gold/40"
-                    : "border border-transparent bg-white/5 text-zinc-400"
+                    ? "border border-hairline bg-gold/10 text-black ring-1 ring-gold/40"
+                    : "border border-transparent bg-zinc-950 text-zinc-400"
                 }`}
               >
                 {indices[0] + 1}+{indices[1] + 1}{" "}
                 <span
-                  className={`font-semibold ${isBest ? "text-gold-bright" : "text-zinc-200"}`}
+                  className={`font-semibold ${isBest ? "text-black" : "text-zinc-200"}`}
                 >
                   {name}
                 </span>
@@ -1342,7 +1342,7 @@ function PlayerPanel({
         )}
 
       {canRevealNow && (
-        <p className="mt-1.5 text-center text-[17.5px] text-gold-bright">
+        <p className="mt-1.5 text-center text-[17.5px] text-black">
           상대에게 보여줄 카드 한 장을 골라주세요.
         </p>
       )}
@@ -1355,7 +1355,7 @@ function PlayerPanel({
 
       {canSelectNow && (
         <div className="mt-1.5 text-center">
-          <p className="mb-1.5 text-[17.5px] text-gold-bright">
+          <p className="mb-1.5 text-[17.5px] text-black">
             족보로 쓸 카드 2장을 골라주세요. ({pendingSelection.length}/2)
           </p>
 
@@ -1363,7 +1363,7 @@ function PlayerPanel({
             type="button"
             onClick={onConfirmSelect}
             disabled={pendingSelection.length !== 2}
-            className="rounded-xl bg-gold px-5 py-1.5 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.03] hover:bg-gold-bright active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+            className="rounded-full bg-gold px-5 py-1.5 text-[17.5px] font-semibold text-white transition hover:bg-gold-deep active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
           >
             족보 확정
           </button>
@@ -1399,8 +1399,8 @@ function SeatCard({
 }) {
   if (!filled) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-white/15 bg-white/2 px-6 py-6 text-center sm:py-8">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full border border-dashed border-white/20 text-[17.5px] text-zinc-600 sm:h-10 sm:w-10">
+      <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-hairline bg-zinc-950 px-6 py-6 text-center sm:py-8">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full border border-dashed border-hairline text-[17.5px] text-zinc-600 sm:h-10 sm:w-10">
           ?
         </div>
 
@@ -1412,7 +1412,7 @@ function SeatCard({
   return (
     <div
       className={`relative flex flex-1 flex-col items-center justify-center gap-2 rounded-2xl border px-6 py-6 text-center sm:py-8 ${
-        isMe ? "border-gold/25 bg-gold/4" : "border-white/10 bg-white/3"
+        isMe ? "border-hairline bg-gold/4" : "border-hairline bg-zinc-950"
       }`}
     >
       {onRemove && (
@@ -1421,13 +1421,13 @@ function SeatCard({
           onClick={onRemove}
           aria-label={`${name} 빼기`}
           title="빼기"
-          className="absolute top-1.5 right-1.5 flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-[17px] leading-none transition hover:scale-110 hover:border-crimson/40 hover:bg-crimson/10 active:scale-95"
+          className="absolute top-1.5 right-1.5 flex h-8 w-8 items-center justify-center rounded-full border border-hairline bg-zinc-950 text-[17px] leading-none transition hover:border-crimson/40 hover:bg-crimson/10 active:scale-95"
         >
           ❌
         </button>
       )}
 
-      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-gold/80 to-gold-deep/80 text-[17.5px] font-bold text-zinc-900 sm:h-10 sm:w-10">
+      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gold text-[17.5px] font-bold text-white sm:h-10 sm:w-10">
         {name.charAt(0)}
       </div>
 
@@ -1448,10 +1448,10 @@ function SeatCard({
           isAI
             ? "bg-felt/15 text-felt-bright"
             : isHost
-              ? "bg-gold/15 text-gold-bright"
+              ? "bg-gold/15 text-black"
               : isReady
                 ? "bg-felt/20 text-felt-bright"
-                : "bg-white/5 text-zinc-500"
+                : "bg-zinc-950 text-zinc-500"
         }`}
       >
         {isAI ? "AI" : isHost ? "방장" : isReady ? "준비 완료" : "대기 중"}
@@ -1493,7 +1493,7 @@ function GameBoard({
     : (PHASE_LABEL[gameState.phase] ?? gameState.phase);
 
   return (
-    <div className="table-felt relative flex flex-1 flex-col justify-between gap-[clamp(0.5rem,1.2vw,0.75rem)] rounded-4xl border border-gold/20 p-[clamp(0.625rem,2vw,1.5rem)]">
+    <div className="table-felt relative flex flex-1 flex-col justify-between gap-[clamp(0.5rem,1.2vw,0.75rem)] rounded-4xl border border-hairline p-[clamp(0.625rem,2vw,1.5rem)]">
       {/* 상대방은 테이블 위쪽에 가로로 둘러앉는다(둥근 테이블 흉내) */}
       {opponents.length > 0 && (
         <div className="flex min-h-0 flex-1 flex-wrap content-start justify-center gap-1.5 overflow-y-auto sm:gap-2">
@@ -1550,7 +1550,7 @@ function LeaveNoticeToast({ message }: { message: string | null }) {
       }`}
     >
       {message && (
-        <p className="animate-fade-up rounded-full border border-white/10 bg-zinc-900/95 px-4 py-2 text-[14px] font-medium text-zinc-200 shadow-lg shadow-black/40">
+        <p className="animate-fade-up rounded-full border border-hairline bg-zinc-900/95 px-4 py-2 text-[14px] font-medium text-zinc-200">
           {message}
         </p>
       )}
@@ -1587,7 +1587,7 @@ function SpectateButton({
         onClick={onClick}
         disabled={disabled}
         aria-describedby={disabled ? "spectate-unavailable-hint" : undefined}
-        className="rounded-xl border border-white/15 bg-white/5 px-5 py-2 text-[15px] font-semibold text-zinc-200 transition hover:scale-[1.03] hover:bg-white/10 active:scale-95 disabled:pointer-events-none disabled:opacity-40 disabled:hover:scale-100"
+        className="rounded-full border border-hairline bg-white px-5 py-2 text-[15px] font-semibold text-zinc-200 transition hover:bg-zinc-800 active:scale-95 disabled:pointer-events-none disabled:opacity-40"
       >
         관전하기
       </button>
@@ -1596,7 +1596,7 @@ function SpectateButton({
         <p
           id="spectate-unavailable-hint"
           role="tooltip"
-          className="animate-fade-up pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-60 max-w-[80vw] -translate-x-1/2 rounded-lg border border-white/10 bg-zinc-900/95 px-3 py-2 text-center text-[13.5px] leading-snug font-medium text-zinc-200 shadow-lg shadow-black/40"
+          className="animate-fade-up pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-60 max-w-[80vw] -translate-x-1/2 rounded-lg border border-hairline bg-zinc-900/95 px-3 py-2 text-center text-[13.5px] leading-snug font-medium text-zinc-200"
         >
           {SPECTATE_UNAVAILABLE_MESSAGE}
         </p>
@@ -1757,7 +1757,7 @@ export default function GameRoomView({
         <div className="mx-auto flex w-full min-w-0 flex-1 flex-col overflow-hidden sm:pr-4">
           <header className="mb-2 flex shrink-0 items-center justify-between gap-3 sm:mb-4">
             <div className="flex min-w-0 items-baseline gap-2">
-              <h1 className="font-serif shrink-0 text-[22px] font-black tracking-tight text-gold sm:text-[26px]">
+              <h1 className="font-serif shrink-0 text-[22px] font-black tracking-tight text-black sm:text-[26px]">
                 섯다
               </h1>
 
@@ -1771,7 +1771,7 @@ export default function GameRoomView({
               <button
                 type="button"
                 onClick={onOpenChat}
-                className="relative rounded-lg border border-white/10 bg-white/3 px-2.5 py-1.5 text-[15px] font-semibold text-zinc-300 transition hover:scale-[1.03] hover:border-gold/40 hover:text-gold-bright active:scale-95 sm:hidden"
+                className="relative rounded-full border border-hairline bg-white px-2.5 py-1.5 text-[15px] font-semibold text-zinc-300 transition hover:border-hairline hover:text-black active:scale-95 sm:hidden"
               >
                 채팅
                 {hasUnreadChat && (
@@ -1782,7 +1782,7 @@ export default function GameRoomView({
               <button
                 type="button"
                 onClick={onLeaveRoom}
-                className="rounded-lg border border-white/10 bg-white/3 px-2.5 py-1.5 text-[15px] font-semibold text-zinc-400 transition hover:scale-[1.03] hover:border-crimson/40 hover:text-crimson-bright active:scale-95 sm:px-3"
+                className="rounded-full border border-crimson/40 bg-zinc-950 px-2.5 py-1.5 text-[15px] font-semibold text-zinc-400 transition hover:border-crimson/40 hover:text-crimson-bright active:scale-95 sm:px-3"
               >
                 나가기
               </button>
@@ -1813,10 +1813,10 @@ export default function GameRoomView({
                       onClick={() => onChangeMaxPlayers(count)}
                       disabled={count < playerCount}
                       aria-pressed={maxPlayers === count}
-                      className={`flex-1 rounded-lg border py-1 text-[15px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-30 ${
+                      className={`flex-1 rounded-full border py-1 text-[15px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-30 ${
                         maxPlayers === count
-                          ? "border-gold/70 bg-gold/15 text-gold-bright shadow-[0_0_0_1px_rgba(254,250,224,0.25)]"
-                          : "border-white/20 bg-black/20 text-zinc-400 hover:border-white/35 hover:bg-white/8 hover:text-zinc-200 disabled:hover:border-white/20 disabled:hover:bg-black/20 disabled:hover:text-zinc-400"
+                          ? "border-hairline bg-gold/15 text-black shadow-[0_0_0_1px_rgba(0,102,255,0.16)]"
+                          : "border-hairline bg-black/20 text-zinc-400 hover:border-hairline hover:bg-zinc-800 hover:text-zinc-200 disabled:hover:border-hairline disabled:hover:bg-black/20 disabled:hover:text-zinc-400"
                       }`}
                     >
                       {count}
@@ -1874,7 +1874,7 @@ export default function GameRoomView({
                       key={level}
                       type="button"
                       onClick={() => onAddAiPlayer(level)}
-                      className="rounded-xl border border-felt/30 bg-felt/10 px-2 py-2.5 text-[15px] font-semibold text-felt-bright transition hover:border-felt/50 hover:bg-felt/20 active:scale-[0.98]"
+                      className="rounded-full  bg-felt/15 px-2 py-2.5 text-[15px] font-semibold text-felt-bright transition hover:border-hairline hover:bg-felt/20 active:scale-[0.98]"
                     >
                       {label}
                     </button>
@@ -1889,7 +1889,7 @@ export default function GameRoomView({
                 type="button"
                 onClick={onStartGame}
                 disabled={!canStart}
-                className="w-full rounded-xl bg-gold px-6 py-3 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-gold-bright active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+                className="w-full rounded-full bg-gold px-6 py-3 text-[17.5px] font-semibold text-white transition hover:bg-gold-deep active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 게임 시작
                 {playerCount < MIN_ROOM_PLAYERS
@@ -1900,10 +1900,10 @@ export default function GameRoomView({
               <button
                 type="button"
                 onClick={onToggleReady}
-                className={`w-full rounded-xl px-6 py-3 text-[17.5px] font-semibold transition hover:scale-[1.02] active:scale-[0.98] ${
+                className={`w-full rounded-full px-6 py-3 text-[17.5px] font-semibold transition active:scale-[0.98] ${
                   myReady
-                    ? "bg-felt text-zinc-900 hover:bg-felt-bright"
-                    : "bg-white/10 text-white hover:bg-white/15"
+                    ? "bg-felt text-white hover:bg-felt-bright"
+                    : "bg-zinc-950 text-white hover:bg-zinc-800"
                 }`}
               >
                 {myReady ? "준비 완료 (취소하려면 클릭)" : "준비"}
@@ -1911,7 +1911,7 @@ export default function GameRoomView({
             )}
 
             {error && (
-              <p className="animate-fade-up mx-auto mt-2 max-w-md rounded-xl border border-crimson/30 bg-crimson/10 p-3 text-center text-[17.5px] font-medium text-crimson-bright">
+              <p className="animate-fade-up mx-auto mt-2 max-w-md rounded-xl border border-crimson/40 bg-crimson/10 p-3 text-center text-[17.5px] font-medium text-crimson-bright">
                 {error}
               </p>
             )}
@@ -1964,7 +1964,7 @@ export default function GameRoomView({
           현황)를 상시 보여주는 패널로 채운다. xl 미만에서는 아예 렌더링하지
           않아 좁은 화면 레이아웃에는 영향이 없다. */}
       <aside className="hidden w-56 shrink-0 flex-col gap-3 xl:flex">
-        <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
+        <div className="rounded-2xl border border-hairline bg-zinc-950 p-4">
           <p className="mb-1 truncate text-[15px] font-semibold text-zinc-200">
             {roomHasPassword ? "🔒 " : ""}
             {roomName}
@@ -1974,27 +1974,27 @@ export default function GameRoomView({
           </p>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
+        <div className="rounded-2xl border border-hairline bg-zinc-950 p-4">
           <p className="mb-3 text-[12px] font-semibold tracking-wide text-zinc-500">
             내 현황
           </p>
 
           <div className="mb-2.5 flex items-baseline justify-between">
             <span className="text-[13.5px] text-zinc-400">보유 칩</span>
-            <span className="font-mono text-[16px] font-bold tabular-nums text-gold-bright">
+            <span className="font-mono text-[16px] font-bold tabular-nums text-black">
               {(myPlayer?.chips ?? 0).toLocaleString()}
             </span>
           </div>
 
           <div className="flex items-baseline justify-between">
             <span className="text-[13.5px] text-zinc-400">이번 판 팟</span>
-            <span className="font-mono text-[16px] font-bold tabular-nums text-gold-bright">
+            <span className="font-mono text-[16px] font-bold tabular-nums text-black">
               {gameState.pot.toLocaleString()}
             </span>
           </div>
         </div>
 
-        <div className="flex items-center justify-center gap-2 rounded-2xl border border-gold/15 bg-gold/4 p-3">
+        <div className="flex items-center justify-center gap-2 rounded-2xl border border-hairline bg-gold/4 p-3">
           <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-gold-bright" />
           <p className="text-[13.5px] font-medium text-zinc-300">
             {infoRailPhaseLabel}
@@ -2004,7 +2004,7 @@ export default function GameRoomView({
 
       <div className="mx-auto flex w-full min-w-0 flex-1 flex-col overflow-hidden sm:pr-4 2xl:max-w-350">
         <header className="mb-2 flex shrink-0 items-center justify-between gap-3 sm:mb-4">
-          <h1 className="font-serif text-[25px] font-bold tracking-tight text-gold sm:text-3xl">
+          <h1 className="font-serif text-[25px] font-bold tracking-tight text-black sm:text-3xl">
             섯다
           </h1>
 
@@ -2012,7 +2012,7 @@ export default function GameRoomView({
             <button
               type="button"
               onClick={onOpenGuide}
-              className="rounded-lg border border-white/10 bg-white/3 px-2.5 py-1.5 text-[15px] font-semibold text-zinc-300 transition hover:scale-[1.03] hover:border-gold/40 hover:text-gold-bright active:scale-95 sm:px-3"
+              className="rounded-full border border-hairline bg-white px-2.5 py-1.5 text-[15px] font-semibold text-zinc-300 transition hover:border-hairline hover:text-black active:scale-95 sm:px-3"
             >
               족보 가이드
             </button>
@@ -2020,7 +2020,7 @@ export default function GameRoomView({
             <button
               type="button"
               onClick={onOpenChat}
-              className="relative rounded-lg border border-white/10 bg-white/3 px-2.5 py-1.5 text-[15px] font-semibold text-zinc-300 transition hover:scale-[1.03] hover:border-gold/40 hover:text-gold-bright active:scale-95 sm:hidden"
+              className="relative rounded-full border border-hairline bg-white px-2.5 py-1.5 text-[15px] font-semibold text-zinc-300 transition hover:border-hairline hover:text-black active:scale-95 sm:hidden"
             >
               채팅
               {hasUnreadChat && (
@@ -2031,7 +2031,7 @@ export default function GameRoomView({
             <button
               type="button"
               onClick={onLeaveRoom}
-              className="rounded-lg border border-white/10 bg-white/3 px-2.5 py-1.5 text-[15px] font-semibold text-zinc-400 transition hover:scale-[1.03] hover:border-crimson/40 hover:text-crimson-bright active:scale-95 sm:px-3"
+              className="rounded-full border border-crimson/40 bg-zinc-950 px-2.5 py-1.5 text-[15px] font-semibold text-zinc-400 transition hover:border-crimson/40 hover:text-crimson-bright active:scale-95 sm:px-3"
             >
               나가기
             </button>
@@ -2054,14 +2054,14 @@ export default function GameRoomView({
           {myPlayer?.isSpectator && (
             <div className="mb-2 flex flex-col items-center gap-1.5">
               {myPlayer.pendingActivation ? (
-                <p className="animate-fade-up rounded-xl border border-felt/30 bg-felt/10 px-4 py-2 text-center text-[15px] font-medium text-felt-bright">
+                <p className="animate-fade-up rounded-xl border border-hairline bg-felt/10 px-4 py-2 text-center text-[15px] font-medium text-felt-bright">
                   다음 판부터 참가합니다. 이번 판이 끝날 때까지 기다려주세요.
                 </p>
               ) : (
                 <button
                   type="button"
                   onClick={onJoinNextRound}
-                  className="animate-fade-up rounded-xl bg-felt/90 px-6 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.02] hover:bg-felt active:scale-95"
+                  className="animate-fade-up rounded-full bg-felt/90 text-white px-6 py-2.5 text-[17.5px] font-semibold transition hover:bg-felt active:scale-95"
                 >
                   경기 참여
                 </button>
@@ -2070,8 +2070,8 @@ export default function GameRoomView({
           )}
 
           {gameState.phase === "finished" && bankruptcyNotice && (
-            <div className="animate-pop-in flex flex-col items-center gap-2 rounded-xl border border-gold/30 bg-gold/10 p-3 text-center">
-              <p className="text-[17.5px] font-semibold text-gold-bright">
+            <div className="animate-pop-in flex flex-col items-center gap-2 rounded-xl border border-hairline bg-gold/10 p-3 text-center">
+              <p className="text-[17.5px] font-semibold text-black">
                 {bankruptcyNotice.playerNames.join(", ")}님이 파산했습니다.
               </p>
 
@@ -2096,7 +2096,7 @@ export default function GameRoomView({
                     <button
                       type="button"
                       onClick={() => onDecideBankruptcy("leave")}
-                      className="rounded-xl border border-crimson/40 bg-crimson/10 px-5 py-2 text-[15px] font-semibold text-crimson-bright transition hover:scale-[1.03] hover:bg-crimson/20 active:scale-95"
+                      className="rounded-full border border-crimson/40 bg-crimson/10 px-5 py-2 text-[15px] font-semibold text-crimson-bright transition hover:bg-crimson/20 active:scale-95"
                     >
                       나가기
                     </button>
@@ -2118,7 +2118,7 @@ export default function GameRoomView({
                   type="button"
                   onClick={onRestartGame}
                   disabled={hasVotedRestart}
-                  className="animate-pop-in rounded-xl bg-gold px-6 py-2.5 text-[17.5px] font-semibold text-zinc-900 shadow-lg shadow-gold/20 transition hover:scale-[1.03] hover:bg-gold-bright active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+                  className="animate-pop-in rounded-full bg-gold px-6 py-2.5 text-[17.5px] font-semibold text-white transition hover:bg-gold-deep active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {hasVotedRestart ? "동의함 · 대기 중" : "다시 하기"}
                 </button>
@@ -2130,7 +2130,7 @@ export default function GameRoomView({
             )}
 
           {gameState.phase === "showdown" && gameState.redealReason && (
-            <p className="animate-fade-up mx-auto max-w-md rounded-xl border border-gold/30 bg-gold/10 p-3 text-center text-[17.5px] font-semibold text-gold-bright">
+            <p className="animate-fade-up mx-auto max-w-md rounded-xl border border-hairline bg-gold/10 p-3 text-center text-[17.5px] font-semibold text-black">
               {gameState.redealReason}! 판돈은 그대로 두고 곧바로
               재경기합니다...
             </p>
@@ -2150,7 +2150,7 @@ export default function GameRoomView({
                     {bettingAmounts.maxBet.toLocaleString()}
                   </span>
                   {" · 남은 여유 "}
-                  <span className="font-mono font-semibold text-gold-bright">
+                  <span className="font-mono font-semibold text-black">
                     {bettingAmounts.remainingRoom.toLocaleString()}
                   </span>
                 </p>
@@ -2161,7 +2161,7 @@ export default function GameRoomView({
                       type="button"
                       onClick={onCheck}
                       disabled={!isMyTurn}
-                      className="rounded-xl border border-white/15 bg-white/3 px-5 py-2.5 text-[17.5px] font-semibold text-zinc-200 transition hover:scale-[1.03] hover:bg-white/10 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                      className="rounded-full border border-hairline bg-white px-5 py-2.5 text-[17.5px] font-semibold text-zinc-200 transition hover:bg-zinc-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 sm:px-7 sm:py-3"
                     >
                       체크
                     </button>
@@ -2175,7 +2175,7 @@ export default function GameRoomView({
                           bettingAmounts.allInAmount ||
                         bettingAmounts.callAmount > bettingAmounts.remainingRoom
                       }
-                      className="rounded-xl bg-felt/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                      className="rounded-full bg-felt/90 text-white px-5 py-2.5 text-[17.5px] font-semibold transition hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 sm:px-7 sm:py-3"
                     >
                       콜 {bettingAmounts.callAmount.toLocaleString()}
                     </button>
@@ -2192,7 +2192,7 @@ export default function GameRoomView({
                       bettingAmounts.raiseAmounts.half >
                         bettingAmounts.remainingRoom
                     }
-                    className="rounded-xl bg-felt/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                    className="rounded-full bg-felt/90 text-white px-5 py-2.5 text-[17.5px] font-semibold transition hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 sm:px-7 sm:py-3"
                   >
                     하프 {bettingAmounts.raiseAmounts.half.toLocaleString()}
                   </button>
@@ -2208,7 +2208,7 @@ export default function GameRoomView({
                       bettingAmounts.raiseAmounts.quarter >
                         bettingAmounts.remainingRoom
                     }
-                    className="rounded-xl bg-felt/90 px-5 py-2.5 text-[17.5px] font-semibold transition hover:scale-[1.03] hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                    className="rounded-full bg-felt/90 text-white px-5 py-2.5 text-[17.5px] font-semibold transition hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 sm:px-7 sm:py-3"
                   >
                     쿼터 {bettingAmounts.raiseAmounts.quarter.toLocaleString()}
                   </button>
@@ -2224,7 +2224,7 @@ export default function GameRoomView({
                       bettingAmounts.raiseAmounts.double >
                         bettingAmounts.remainingRoom
                     }
-                    className="rounded-xl bg-gold px-5 py-2.5 text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.03] hover:bg-gold-bright active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:px-7 sm:py-3"
+                    className="rounded-full bg-gold px-5 py-2.5 text-[17.5px] font-semibold text-white transition hover:bg-gold-deep active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 sm:px-7 sm:py-3"
                   >
                     더블 {bettingAmounts.raiseAmounts.double.toLocaleString()}
                   </button>
@@ -2235,7 +2235,7 @@ export default function GameRoomView({
                     type="button"
                     onClick={onAllIn}
                     disabled={!isMyTurn || bettingAmounts.allInAmount <= 0}
-                    className="animate-allin-glow rounded-xl border-2 border-gold-bright/30 bg-ember px-6 py-3 text-[18px] font-black text-white transition hover:scale-[1.04] hover:bg-ember active:scale-95 disabled:cursor-not-allowed disabled:animate-none disabled:opacity-30 disabled:hover:scale-100 sm:px-9 sm:py-3.5 sm:text-[21px]"
+                    className="rounded-xl border-2 border-hairline bg-ember px-6 py-3 text-[18px] font-black text-[#141414] transition hover:bg-ember active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 sm:px-9 sm:py-3.5 sm:text-[21px]"
                   >
                     올인 {bettingAmounts.allInAmount.toLocaleString()}
                   </button>
@@ -2246,7 +2246,7 @@ export default function GameRoomView({
                     type="button"
                     onClick={onFold}
                     disabled={!isMyTurn}
-                    className="rounded-xl border border-crimson/30 px-5 py-2.5 text-[15.5px] font-medium text-crimson-bright/80 transition hover:scale-[1.02] hover:border-crimson/50 hover:bg-crimson/10 hover:text-crimson-bright active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 sm:ml-2 sm:px-7 sm:py-3 sm:text-[16px]"
+                    className="rounded-full border border-crimson/40 px-5 py-2.5 text-[15.5px] font-medium text-crimson-bright/80 transition hover:border-crimson/40 hover:bg-crimson/10 hover:text-crimson-bright active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 sm:ml-2 sm:px-7 sm:py-3 sm:text-[16px]"
                   >
                     다이
                   </button>
@@ -2255,7 +2255,7 @@ export default function GameRoomView({
             )}
 
           {error && (
-            <p className="animate-fade-up mx-auto mt-2 max-w-md rounded-xl border border-crimson/30 bg-crimson/10 p-3 text-center text-[17.5px] font-medium text-crimson-bright">
+            <p className="animate-fade-up mx-auto mt-2 max-w-md rounded-xl border border-crimson/40 bg-crimson/10 p-3 text-center text-[17.5px] font-medium text-crimson-bright">
               {error}
             </p>
           )}
