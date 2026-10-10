@@ -46,7 +46,7 @@ export default function AboutPage() {
       </Link>
 
       <h1 className="mb-6 flex flex-col gap-1">
-        <span className="font-serif text-[28px] font-black tracking-tight text-gold sm:text-[32px]">
+        <span className="font-serif text-[28px] font-black tracking-tight text-black sm:text-[32px]">
           섯다란?
         </span>
 
@@ -99,7 +99,7 @@ export default function AboutPage() {
           화면과{" "}
           <Link
             href="/rules"
-            className="text-gold-bright underline underline-offset-2 hover:text-gold"
+            className="text-black underline underline-offset-2 hover:text-black"
           >
             족보 가이드 페이지
           </Link>
@@ -119,14 +119,14 @@ export default function AboutPage() {
         <li>
           <Link
             href="/"
-            className="text-gold-bright underline underline-offset-2 hover:text-gold"
+            className="text-black underline underline-offset-2 hover:text-black"
           >
             방 만들기
           </Link>
           로 새 게임방을 열거나,{" "}
           <Link
             href="/rooms"
-            className="text-gold-bright underline underline-offset-2 hover:text-gold"
+            className="text-black underline underline-offset-2 hover:text-black"
           >
             열려 있는 방 목록
           </Link>
@@ -200,7 +200,7 @@ export default function AboutPage() {
           href="https://ko.wikipedia.org/wiki/%EC%84%AF%EB%8B%A4"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-gold-bright underline underline-offset-2 hover:text-gold"
+          className="text-black underline underline-offset-2 hover:text-black"
         >
           위키백과의 섯다 문서
         </a>
@@ -209,7 +209,7 @@ export default function AboutPage() {
 
       <Link
         href="/rooms"
-        className="w-full rounded-xl bg-gold px-6 py-3.5 text-center text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-gold-bright active:scale-[0.98]"
+        className="w-full rounded-full bg-gold px-6 py-3.5 text-center text-[17.5px] font-semibold text-white transition hover:bg-gold-deep active:scale-[0.98]"
       >
         방 찾아 바로 시작하기
       </Link>

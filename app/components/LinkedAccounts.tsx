@@ -105,7 +105,7 @@ export function LinkedAccounts({
           return (
             <li
               key={provider}
-              className="rounded-xl border border-white/10 bg-white/3 px-4 py-2.5"
+              className="rounded-xl border border-hairline bg-zinc-950 px-4 py-2.5"
             >
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[14px] font-semibold text-zinc-200">
@@ -125,7 +125,7 @@ export function LinkedAccounts({
                         type="button"
                         disabled={busy}
                         onClick={() => unlink(provider)}
-                        className="rounded-lg border border-white/15 px-2.5 py-1 text-[12.5px] text-zinc-300 transition hover:border-crimson/40 hover:text-crimson-bright disabled:opacity-50"
+                        className="rounded-lg border border-hairline px-2.5 py-1 text-[12.5px] text-zinc-300 transition hover:border-crimson/40 hover:text-crimson-bright disabled:opacity-50"
                       >
                         해제
                       </button>
@@ -139,7 +139,7 @@ export function LinkedAccounts({
                       refresh();
                     }}
                     onError={(text) => setMessage({ text, error: true })}
-                    className="rounded-lg bg-gold px-3 py-1 text-[13px] font-semibold text-zinc-900 transition hover:bg-gold-bright disabled:opacity-50"
+                    className="rounded-full bg-gold px-3 py-1 text-[13px] font-semibold text-white transition hover:bg-gold-deep disabled:opacity-50"
                   >
                     연결하기
                   </GoogleSignInButton>
@@ -148,7 +148,7 @@ export function LinkedAccounts({
                     type="button"
                     disabled={busy}
                     onClick={() => link(provider)}
-                    className="rounded-lg bg-gold px-3 py-1 text-[13px] font-semibold text-zinc-900 transition hover:bg-gold-bright disabled:opacity-50"
+                    className="rounded-full bg-gold px-3 py-1 text-[13px] font-semibold text-white transition hover:bg-gold-deep disabled:opacity-50"
                   >
                     연결하기
                   </button>

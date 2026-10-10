@@ -39,7 +39,7 @@ export default function GuideIndexPage() {
         ← 메인으로
       </Link>
 
-      <h1 className="mb-2 font-serif text-[28px] font-black tracking-tight text-gold sm:text-[32px]">
+      <h1 className="mb-2 font-serif text-[28px] font-black tracking-tight text-black sm:text-[32px]">
         섯다 가이드
       </h1>
 
@@ -54,7 +54,7 @@ export default function GuideIndexPage() {
           <li key={article.slug}>
             <Link
               href={`/guide/${article.slug}`}
-              className="block rounded-xl border border-white/10 bg-white/3 p-4 transition hover:border-gold/40 hover:bg-white/6"
+              className="block rounded-xl border border-hairline bg-zinc-950 p-4 transition hover:border-hairline hover:bg-zinc-800"
             >
               <h2 className="mb-1 text-[17px] font-semibold text-zinc-100">
                 {article.title}
@@ -70,7 +70,7 @@ export default function GuideIndexPage() {
 
       <Link
         href="/rooms"
-        className="mt-10 w-full rounded-xl bg-gold px-6 py-3.5 text-center text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-gold-bright active:scale-[0.98]"
+        className="mt-10 w-full rounded-full bg-gold px-6 py-3.5 text-center text-[17.5px] font-semibold text-white transition hover:bg-gold-deep active:scale-[0.98]"
       >
         읽었다면, 방 찾아 바로 시작하기
       </Link>

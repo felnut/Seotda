@@ -44,7 +44,7 @@ export default function TermsPage() {
           ← 메인으로
         </Link>
 
-        <h1 className="mb-2 font-serif text-[28px] font-black tracking-tight text-gold sm:text-[32px]">
+        <h1 className="mb-2 font-serif text-[28px] font-black tracking-tight text-black sm:text-[32px]">
           이용약관
         </h1>
 
@@ -114,7 +114,7 @@ export default function TermsPage() {
           페이지를 통해 안내합니다. 개인정보 처리에 관한 내용은{" "}
           <Link
             href="/privacy"
-            className="text-gold-bright underline underline-offset-2 hover:text-gold"
+            className="text-black underline underline-offset-2 hover:text-black"
           >
             개인정보처리방침
           </Link>
@@ -125,7 +125,7 @@ export default function TermsPage() {
           문의:{" "}
           <a
             href="mailto:dev@felnut.com"
-            className="text-gold-bright underline underline-offset-2 hover:text-gold"
+            className="text-black underline underline-offset-2 hover:text-black"
           >
             dev@felnut.com
           </a>

@@ -75,7 +75,7 @@ export default async function GuideArticlePage({ params }: { params: Params }) {
       </div>
 
       <article>
-        <h1 className="mb-2 font-serif text-[26px] leading-snug font-black tracking-tight text-gold sm:text-[30px]">
+        <h1 className="mb-2 font-serif text-[26px] leading-snug font-black tracking-tight text-black sm:text-[30px]">
           {article.title}
         </h1>
 
@@ -130,7 +130,7 @@ export default async function GuideArticlePage({ params }: { params: Params }) {
       <nav className="mt-10 flex flex-col gap-3">
         <Link
           href={`/guide/${next.slug}`}
-          className="rounded-xl border border-white/10 bg-white/3 p-4 transition hover:border-gold/40"
+          className="rounded-xl border border-hairline bg-zinc-950 p-4 transition hover:border-zinc-600 hover:bg-zinc-800 active:scale-[0.99]"
         >
           <span className="block text-[12.5px] text-zinc-500">다음 글</span>
           <span className="text-[16px] font-semibold text-zinc-100">
@@ -140,7 +140,7 @@ export default async function GuideArticlePage({ params }: { params: Params }) {
 
         <Link
           href="/rooms"
-          className="w-full rounded-xl bg-gold px-6 py-3.5 text-center text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-gold-bright active:scale-[0.98]"
+          className="w-full rounded-full bg-gold px-6 py-3.5 text-center text-[17.5px] font-semibold text-white transition hover:bg-gold-deep active:scale-[0.98]"
         >
           방 찾아 바로 시작하기
         </Link>

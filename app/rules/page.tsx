@@ -33,7 +33,7 @@ const jsonLd = buildJsonLd({
 
 function MiniCard({ cardId, alt }: { cardId: string; alt: string }) {
   return (
-    <div className="relative h-16 w-10.5 shrink-0 overflow-hidden rounded-md border border-white/10 shadow-sm">
+    <div className="relative h-16 w-10.5 shrink-0 overflow-hidden rounded-md border border-hairline">
       <Image
         src={`/card/${cardId}.png`}
         alt={alt}
@@ -61,7 +61,7 @@ export default function RulesPage() {
           ← 메인으로
         </Link>
 
-        <h1 className="font-serif mb-2 text-[28px] font-black tracking-tight text-gold sm:text-[32px]">
+        <h1 className="font-serif mb-2 text-[28px] font-black tracking-tight text-black sm:text-[32px]">
           섯다 족보 가이드
         </h1>
 
@@ -169,7 +169,7 @@ export default function RulesPage() {
             {SPECIAL_HAND_GUIDE.map((entry) => (
               <li
                 key={entry.name}
-                className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/3 p-3"
+                className="flex items-center gap-3 rounded-lg border border-hairline bg-zinc-950 p-3"
               >
                 <div className="flex gap-1">
                   <MiniCard cardId={entry.cardIds[0]} alt={entry.name} />
@@ -205,9 +205,9 @@ export default function RulesPage() {
             {HAND_GUIDE.map((entry, index) => (
               <li
                 key={entry.name}
-                className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/3 p-3"
+                className="flex items-center gap-3 rounded-lg border border-hairline bg-zinc-950 p-3"
               >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/5 text-[13px] font-bold text-zinc-400">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-950 text-[13px] font-bold text-zinc-400">
                   {index + 1}
                 </span>
 
@@ -229,7 +229,7 @@ export default function RulesPage() {
 
         <Link
           href="/rooms"
-          className="mt-10 w-full rounded-xl bg-gold px-6 py-3.5 text-center text-[17.5px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-gold-bright active:scale-[0.98]"
+          className="mt-10 w-full rounded-full bg-gold px-6 py-3.5 text-center text-[17.5px] font-semibold text-white transition hover:bg-gold-deep active:scale-[0.98]"
         >
           족보를 익혔다면, 방 찾아 바로 시작하기
         </Link>

@@ -26,7 +26,7 @@ import { socket } from "@/lib/socket";
 import { clearSession, loadSession, saveSession } from "@/lib/session";
 import { loadNickname, saveNickname } from "@/lib/nickname";
 import { playChatSound, playTurnSound, playSoundFile, CHIP_SOUND_PATHS } from "@/lib/sound";
-import { RankingModal } from "./components/RankingModal";
+import { HamburgerMenu } from "./components/HamburgerMenu";
 import { ShareButtons } from "./components/ShareButtons";
 import { buildJsonLd } from "@/lib/seo/structuredData";
 import APP_VERSION from "@/lib/version.json";
@@ -104,18 +104,18 @@ function ProfilePanel({
 
       <aside
         inert={!open}
-        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col border-l border-white/10 bg-zinc-950 shadow-2xl transition-transform duration-300 ${
+        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col border-l border-hairline bg-zinc-950 transition-transform duration-300 ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
           <h3 className="text-[22.5px] font-bold">설정</h3>
 
           <button
             type="button"
             onClick={onClose}
             aria-label="닫기"
-            className="rounded-full p-2 text-zinc-400 transition hover:bg-white/10 hover:text-white"
+            className="rounded-full p-2 text-zinc-400 transition hover:bg-zinc-800 hover:text-black"
           >
             ✕
           </button>
@@ -137,7 +137,7 @@ function ProfilePanel({
             }}
             placeholder="닉네임을 입력하세요"
             maxLength={13}
-            className="mb-3 w-full rounded-xl border border-white/20 bg-black/40 shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] px-4 py-2.5 text-[17.5px] text-white outline-none transition focus:border-gold/50 focus:ring-2 focus:ring-gold/20"
+            className="mb-3 w-full rounded-lg border border-hairline bg-white px-4 py-2.5 text-[17.5px] text-black outline-none transition focus:border-black focus:ring-2 focus:ring-black/10"
           />
 
           <p className="mb-4 text-[13px] text-zinc-500">
@@ -149,7 +149,7 @@ function ProfilePanel({
             type="button"
             onClick={onSave}
             disabled={saving}
-            className="w-full rounded-xl bg-gold px-6 py-2.5 text-[15px] font-semibold text-zinc-900 transition hover:scale-[1.02] hover:bg-gold-bright active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+            className="w-full rounded-full bg-gold px-6 py-2.5 text-[15px] font-semibold text-white transition hover:bg-gold-deep active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? "저장 중..." : "닉네임 저장"}
           </button>
@@ -166,16 +166,16 @@ function ProfilePanel({
             </p>
           )}
 
-          <div className="my-5 border-t border-white/10" />
+          <div className="my-5 border-t border-hairline" />
 
           <LinkedAccounts active={open} notice={linkNotice} />
 
-          <div className="my-5 border-t border-white/10" />
+          <div className="my-5 border-t border-hairline" />
 
           <button
             type="button"
             onClick={onSignOut}
-            className="w-full rounded-xl border border-white/10 bg-white/3 px-6 py-2.5 text-[15px] font-semibold text-zinc-300 transition hover:border-crimson/40 hover:text-crimson-bright"
+            className="w-full rounded-full border border-crimson/40 bg-white px-6 py-2.5 text-[15px] font-semibold text-zinc-300 transition hover:border-crimson/40 hover:text-crimson-bright"
           >
             로그아웃
           </button>
@@ -190,7 +190,7 @@ function ProfilePanel({
 }
 
 // 설정 패널의 켜고/끄는 항목 하나. 라벨·설명·스위치 마크업을 공통으로
-// 묶어, 항목이 늘어나도 SettingsPanel 쪽은 나열만 하면 되게 한다.
+// 묶어, 항목이 늘어나도 SettingsContent 쪽은 나열만 하면 되게 한다.
 function SettingToggleRow({
   label,
   description,
@@ -203,7 +203,7 @@ function SettingToggleRow({
   onToggle: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/3 px-4 py-2.5">
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-hairline bg-zinc-950 px-4 py-2.5">
       <div>
         <p className="text-[14px] font-semibold text-zinc-200">{label}</p>
         <p className="text-[12px] text-zinc-500">{description}</p>
@@ -215,7 +215,7 @@ function SettingToggleRow({
         aria-checked={checked}
         onClick={onToggle}
         className={`relative h-6 w-11 shrink-0 rounded-full transition ${
-          checked ? "bg-felt" : "bg-white/15"
+          checked ? "bg-felt" : "bg-zinc-950 ring-1 ring-inset ring-black/15"
         }`}
       >
         <span
@@ -230,9 +230,7 @@ function SettingToggleRow({
   );
 }
 
-interface SettingsPanelProps {
-  open: boolean;
-  onClose: () => void;
+interface SettingsContentProps {
   soundEffects: boolean;
   onToggleSoundEffects: () => void;
   reduceMotion: boolean;
@@ -241,80 +239,50 @@ interface SettingsPanelProps {
   onToggleConfirmBets: () => void;
 }
 
-function SettingsPanel({
-  open,
-  onClose,
+// 햄버거 메뉴 아래 설정 뷰포트에 들어가는 항목들.
+function SettingsContent({
   soundEffects,
   onToggleSoundEffects,
   reduceMotion,
   onToggleReduceMotion,
   confirmBets,
   onToggleConfirmBets,
-}: SettingsPanelProps) {
+}: SettingsContentProps) {
   return (
-    <>
-      <div
-        className={`fixed inset-0 z-40 bg-black/60 transition-opacity duration-300 ${
-          open ? "opacity-100" : "pointer-events-none opacity-0"
-        }`}
-        onClick={onClose}
+    <div className="flex flex-col gap-3">
+      <SettingToggleRow
+        label="효과음"
+        description="누군가 베팅하거나(콜·하프·쿼터·더블·올인) 내 차례가 되거나 채팅이 오면 짧은 알림음을 재생합니다"
+        checked={soundEffects}
+        onToggle={onToggleSoundEffects}
       />
 
-      <aside
-        inert={!open}
-        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col border-l border-white/10 bg-zinc-950 shadow-2xl transition-transform duration-300 ${
-          open ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
-        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-          <h3 className="text-[22.5px] font-bold">설정</h3>
+      <SettingToggleRow
+        label="애니메이션 줄이기"
+        description="카드·칩이 움직이는 연출을 최소화합니다"
+        checked={reduceMotion}
+        onToggle={onToggleReduceMotion}
+      />
 
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="닫기"
-            className="rounded-full p-2 text-zinc-400 transition hover:bg-white/10 hover:text-white"
-          >
-            ✕
-          </button>
-        </div>
+      <SettingToggleRow
+        label="베팅 전 확인"
+        description="하프·쿼터·더블·올인을 누르면 금액을 한 번 더 확인합니다"
+        checked={confirmBets}
+        onToggle={onToggleConfirmBets}
+      />
 
-        <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-5 py-4">
-          <SettingToggleRow
-            label="효과음"
-            description="누군가 베팅하거나(콜·하프·쿼터·더블·올인) 내 차례가 되거나 채팅이 오면 짧은 알림음을 재생합니다"
-            checked={soundEffects}
-            onToggle={onToggleSoundEffects}
-          />
+      <div className="mt-1 border-t border-hairline pt-3">
+        <h4 className="mb-3 text-[15px] font-semibold text-zinc-200">
+          친구에게 알리기
+        </h4>
 
-          <SettingToggleRow
-            label="애니메이션 줄이기"
-            description="카드·칩이 움직이는 연출을 최소화합니다"
-            checked={reduceMotion}
-            onToggle={onToggleReduceMotion}
-          />
+        <ShareButtons />
+      </div>
 
-          <SettingToggleRow
-            label="베팅 전 확인"
-            description="하프·쿼터·더블·올인을 누르면 금액을 한 번 더 확인합니다"
-            checked={confirmBets}
-            onToggle={onToggleConfirmBets}
-          />
-
-          <div className="mt-2 border-t border-white/10 pt-4">
-            <h4 className="mb-3 text-[15px] font-semibold text-zinc-200">
-              친구에게 알리기
-            </h4>
-
-            <ShareButtons />
-          </div>
-
-          <p className="mt-6 text-center text-[12.5px] text-zinc-600">
-            v{APP_VERSION.major}.{APP_VERSION.minor}.{APP_VERSION.patch}
-          </p>
-        </div>
-      </aside>
-    </>
+      <p className="mt-2 text-center text-[12.5px] text-zinc-600">
+        v{APP_VERSION.major}.{APP_VERSION.minor}.{APP_VERSION.patch}
+      </p>
+    </div>
   );
 }
 
@@ -476,9 +444,7 @@ export default function Home() {
   }, [playerId]);
 
   const [isGuideOpen, setIsGuideOpen] = useState(false);
-  const [isRankingOpen, setIsRankingOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [profileNameDraft, setProfileNameDraft] = useState("");
   const [isSavingProfileName, setIsSavingProfileName] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
@@ -1213,54 +1179,36 @@ export default function Home() {
 
         <header className="flex items-center justify-end gap-1.5 px-4 pt-4 sm:gap-2 sm:px-6">
           {user && chips !== null && (
-            <span className="flex h-10 shrink-0 items-center whitespace-nowrap rounded-xl border border-gold/30 bg-gold/10 px-3 font-mono sm:px-4 text-[15px] font-semibold tabular-nums text-gold-bright">
+            <span className="flex h-10 shrink-0 items-center whitespace-nowrap rounded-xl border border-hairline bg-gold/10 px-3 font-mono sm:px-4 text-[15px] font-semibold tabular-nums text-black">
               칩 {chips.toLocaleString()}
             </span>
           )}
 
-          <button
-            type="button"
-            onClick={() => setIsRankingOpen(true)}
-            className="flex h-10 shrink-0 items-center whitespace-nowrap justify-center rounded-xl border border-white/15 bg-white/5 px-3 text-[15px] sm:px-4 font-semibold text-zinc-100 transition hover:bg-white/10"
-          >
-            랭킹
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsSettingsOpen(true)}
-            className="flex h-10 shrink-0 items-center whitespace-nowrap justify-center rounded-xl border border-white/15 bg-white/5 px-3 text-[15px] sm:px-4 font-semibold text-zinc-100 transition hover:bg-white/10"
-          >
-            설정
-          </button>
-
-          {user ? (
-            <button
-              type="button"
-              onClick={() => {
-                setProfileError("");
-                setProfileSaved(false);
-                setIsProfileOpen(true);
-              }}
-              className="flex h-10 min-w-0 items-center justify-center rounded-xl border border-white/15 bg-white/5 px-3 text-[15px] font-semibold whitespace-nowrap text-zinc-100 transition hover:bg-white/10 sm:px-4"
-            >
-              <span className="max-w-[6.5rem] truncate">
-                {profileName ?? user.displayName ?? "플레이어"}
-              </span>
-              님
-            </button>
-          ) : (
-            <Link href="/login" className="flex h-10 shrink-0 items-center whitespace-nowrap justify-center rounded-xl border border-white/15 bg-white/5 px-3 text-[15px] sm:px-4 font-semibold text-zinc-100 transition hover:bg-white/10">
-              로그인
-            </Link>
-          )}
+          <HamburgerMenu
+            userName={user ? (profileName ?? user.displayName ?? "플레이어") : null}
+            onOpenProfile={() => {
+              setProfileError("");
+              setProfileSaved(false);
+              setIsProfileOpen(true);
+            }}
+            settings={
+              <SettingsContent
+                soundEffects={soundEffects}
+                onToggleSoundEffects={toggleSoundEffects}
+                reduceMotion={reduceMotion}
+                onToggleReduceMotion={toggleReduceMotion}
+                confirmBets={confirmBets}
+                onToggleConfirmBets={toggleConfirmBets}
+              />
+            }
+          />
         </header>
 
         <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 pt-4 pb-8 xl:flex-row">
 
         <div className="flex w-full max-w-md flex-col items-center">
           <h1 className="mb-6 text-center">
-            <span className="block font-serif text-[52px] leading-none font-black tracking-tight text-gold">
+            <span className="block font-serif text-[52px] leading-none font-black tracking-tight text-black">
               섯다
             </span>
             <span className="mt-3 block text-[19px] font-semibold text-zinc-100">
@@ -1270,7 +1218,7 @@ export default function Home() {
 
           {/* 닉네임 → 방 정보 → 시작 버튼 순서로 한 카드 안에 이어 붙여,
               "무엇을 어떤 순서로 하면 되는지"가 한눈에 보이게 한다. */}
-          <section className="animate-fade-up w-full rounded-2xl border border-white/15 bg-zinc-900/70 p-5 shadow-xl shadow-black/30 sm:p-6">
+          <section className="animate-fade-up w-full rounded-2xl border border-hairline bg-zinc-900/70 p-5 sm:p-6">
             <label
               htmlFor="lobby-nickname"
               className="mb-1.5 block pl-[17px] text-[14px] font-semibold text-zinc-200"
@@ -1287,7 +1235,7 @@ export default function Home() {
               }}
               placeholder="비워두면 기본 이름이 부여돼요"
               maxLength={13}
-              className="mb-4 h-12 w-full rounded-xl border border-white/20 bg-black/30 px-4 text-[16px] text-white outline-none transition placeholder:text-zinc-500 focus:border-gold/60 focus:ring-2 focus:ring-gold/20"
+              className="mb-4 h-12 w-full rounded-lg border border-hairline bg-white px-4 text-[16px] text-black outline-none transition placeholder:text-zinc-500 focus:border-black focus:ring-2 focus:ring-black/10"
             />
 
             <div className="mb-4 grid grid-cols-2 gap-2">
@@ -1297,7 +1245,7 @@ export default function Home() {
                 placeholder="방 이름 (선택)"
                 aria-label="방 이름"
                 maxLength={20}
-                className="h-12 w-full rounded-xl border border-white/20 bg-black/30 px-4 text-[15px] text-white outline-none transition placeholder:text-zinc-500 focus:border-gold/60 focus:ring-2 focus:ring-gold/20"
+                className="h-12 w-full rounded-lg border border-hairline bg-white px-4 text-[15px] text-black outline-none transition placeholder:text-zinc-500 focus:border-black focus:ring-2 focus:ring-black/10"
               />
 
               <input
@@ -1306,7 +1254,7 @@ export default function Home() {
                 placeholder="비밀번호 (선택)"
                 aria-label="비밀번호"
                 maxLength={20}
-                className="h-12 w-full rounded-xl border border-white/20 bg-black/30 px-4 text-[15px] text-white outline-none transition placeholder:text-zinc-500 focus:border-gold/60 focus:ring-2 focus:ring-gold/20"
+                className="h-12 w-full rounded-lg border border-hairline bg-white px-4 text-[15px] text-black outline-none transition placeholder:text-zinc-500 focus:border-black focus:ring-2 focus:ring-black/10"
               />
             </div>
 
@@ -1315,7 +1263,7 @@ export default function Home() {
               type="button"
               onClick={createRoom}
               disabled={isSubmittingRoom}
-              className="h-14 w-full rounded-xl bg-gold text-[18px] font-bold text-zinc-900 shadow-lg shadow-black/30 transition hover:bg-gold-bright active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-14 w-full rounded-full bg-gold text-[18px] font-bold text-white transition hover:bg-gold-deep active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmittingRoom ? "만드는 중..." : "▶ 방 만들고 시작하기"}
             </button>
@@ -1323,14 +1271,14 @@ export default function Home() {
             {/* 8. 방 찾기 */}
             <Link
               href="/rooms"
-              className="mt-2 flex h-12 w-full items-center justify-center rounded-xl border border-white/20 text-[16px] font-semibold text-zinc-100 transition hover:border-felt-bright/50 hover:bg-felt/20 active:scale-[0.98]"
+              className="mt-2 flex h-12 w-full items-center justify-center rounded-full border border-black bg-white text-[16px] font-semibold text-zinc-100 transition hover:bg-zinc-950 active:scale-[0.98]"
             >
               열린 방에 참가하기
             </Link>
           </section>
 
           {error && (
-            <p className="animate-fade-up mt-4 w-full rounded-xl border border-crimson/30 bg-crimson/10 p-3 text-center text-[16px] font-medium text-crimson-bright">
+            <p className="animate-fade-up mt-4 w-full rounded-xl border border-crimson/40 bg-crimson/10 p-3 text-center text-[16px] font-medium text-crimson-bright">
               {error}
             </p>
           )}
@@ -1360,11 +1308,6 @@ export default function Home() {
           © {new Date().getFullYear()} 섯다
         </p>
 
-        <RankingModal
-          open={isRankingOpen}
-          onClose={() => setIsRankingOpen(false)}
-        />
-
         {user && (
           <ProfilePanel
             open={isProfileOpen}
@@ -1384,16 +1327,6 @@ export default function Home() {
           />
         )}
 
-        <SettingsPanel
-          open={isSettingsOpen}
-          onClose={() => setIsSettingsOpen(false)}
-          soundEffects={soundEffects}
-          onToggleSoundEffects={toggleSoundEffects}
-          reduceMotion={reduceMotion}
-          onToggleReduceMotion={toggleReduceMotion}
-          confirmBets={confirmBets}
-          onToggleConfirmBets={toggleConfirmBets}
-        />
       </main>
     );
   }

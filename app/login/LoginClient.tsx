@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/useAuth";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
 
 const BUTTON_CLASS =
-  "relative flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-white/20 bg-white/5 text-[16px] font-semibold text-zinc-100 transition hover:bg-white/10 active:scale-[0.98]";
+  "relative flex h-12 w-full items-center justify-center gap-3 rounded-full border border-hairline bg-white text-[16px] font-semibold text-zinc-100 transition hover:bg-zinc-800";
 
 function GoogleIcon() {
   return (
@@ -85,7 +85,7 @@ export function LoginClient({ initialError }: { initialError?: string }) {
           ← 메인으로
         </Link>
 
-        <h1 className="mb-2 font-serif text-[32px] font-black tracking-tight text-gold">
+        <h1 className="mb-2 font-serif text-[32px] font-black tracking-tight text-black">
           로그인
         </h1>
 
@@ -94,7 +94,7 @@ export function LoginClient({ initialError }: { initialError?: string }) {
           바로 플레이할 수 있어요.
         </p>
 
-        <section className="flex flex-col gap-2 rounded-2xl border border-white/15 bg-zinc-900/70 p-5 shadow-xl shadow-black/30">
+        <section className="flex flex-col gap-2 rounded-2xl border border-hairline bg-zinc-900/70 p-5">
           <GoogleSignInButton onError={setError} className={`${BUTTON_CLASS} disabled:opacity-60`}>
             <GoogleIcon />
             Google로 계속하기
@@ -117,7 +117,7 @@ export function LoginClient({ initialError }: { initialError?: string }) {
         </section>
 
         {error && (
-          <p className="animate-fade-up mt-4 rounded-xl border border-crimson/30 bg-crimson/10 p-3 text-center text-[15px] font-medium text-crimson-bright">
+          <p className="animate-fade-up mt-4 rounded-xl border border-crimson/40 bg-crimson/10 p-3 text-center text-[15px] font-medium text-crimson-bright">
             {error}
           </p>
         )}

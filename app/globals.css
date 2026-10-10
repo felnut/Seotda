@@ -1,96 +1,88 @@
 @import "tailwindcss";
+@import "./themes.css";
 
 :root {
-  --background: #283618;
-  --foreground: #ebe6c8;
+  /* 한글 대체 서체 — layout.tsx 의 <link> 로 불러온다 */
+  --font-pretendard:
+    "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+    "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  --background: var(--t-bg);
+  --foreground: var(--t-fg);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
-  /* 중립색(white/black/zinc)을 순색 대신 차분한 슬레이트 톤으로 다시
-     정의한다. bg-white/10, text-zinc-400 같은 기존 유틸리티가 전부 이
-     톤을 그대로 물려받으므로, 마크업을 건드리지 않고도 화면 전체의
-     "칩 색"이 깔끔하고 현대적인 인상으로 바뀐다. 전체적으로 어둡다는
-     피드백이 있어 기존 대비 한 단계씩 밝혔다. */
-  --color-white: #ebe6c8;
-  --color-black: #10160a;
+  /* [임시] Cal.com 디자인 — 흰 캔버스 + 근검정 8px 버튼, 12px 카드, 그림자는 아주 옅게 */
+  --color-white: var(--t-white);
+  --color-black: var(--t-black);
+  --color-hairline: var(--t-hairline);
 
-  --color-zinc-100: #e3dfc2;
-  --color-zinc-200: #d0cca9;
-  --color-zinc-300: #b7b995;
-  --color-zinc-400: #aab08a;
-  --color-zinc-500: #8b926d;
-  --color-zinc-600: #69704d;
-  --color-zinc-800: #3e4b26;
-  --color-zinc-900: #2f3c1c;
-  --color-zinc-950: #202b13;
+  --color-zinc-100: var(--t-zinc-100);
+  --color-zinc-200: var(--t-zinc-200);
+  --color-zinc-300: var(--t-zinc-300);
+  --color-zinc-400: var(--t-zinc-400);
+  --color-zinc-500: var(--t-zinc-500);
+  --color-zinc-600: var(--t-zinc-600);
+  --color-zinc-800: var(--t-zinc-800);
+  --color-zinc-900: var(--t-zinc-900);
+  --color-zinc-950: var(--t-zinc-950);
 
-  /* 크림(주요 액션·강조) — 삼색 팔레트: #283618 / #606c38 / #fefae0 */
-  --color-gold: #dcd7b0;
-  --color-gold-bright: #ebe6c8;
-  --color-gold-deep: #a9a67c;
+  /* 주요 버튼: BMW 블루 */
+  --color-gold: var(--t-gold);
+  --color-gold-bright: var(--t-gold-bright);
+  --color-gold-deep: var(--t-gold-deep);
 
-  /* 올리브 펠트(테이블·차분한/진행형 액션, "나" 표시) */
-  --color-felt: #606c38;
-  --color-felt-bright: #a9b57a;
+  /* 성공(콜·진행) */
+  --color-felt: var(--t-felt);
+  --color-felt-bright: var(--t-felt-bright);
 
-  /* 인주(위험·이탈) */
-  --color-crimson: #c14e3b;
-  --color-crimson-bright: #e0776a;
+  /* 에러(다이·위험) */
+  --color-crimson: var(--t-crimson);
+  --color-crimson-bright: var(--t-crimson-bright);
 
-  /* 잉걸불(올인 — 놋쇠와 인주 사이의 긴장감) */
-  --color-ember: #d97328;
+  /* 올인 */
+  --color-ember: var(--t-ember);
 
-  --font-sans: var(--font-noto-sans-kr);
-  --font-mono: var(--font-plex-mono);
-  /* "섯다" 로고 등 브랜드 타이틀에만 쓰는 포인트 서체 */
-  --font-serif: var(--font-nanum-myeongjo);
+  --font-sans: var(--tf-sans);
+  --font-mono: var(--tf-mono);
+  --font-serif: var(--tf-serif);
+
+  /* 모서리·그림자는 테마마다 다르다 — 값은 themes.css */
+  --radius-xs: var(--r-xs);
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-xl);
+  --radius-2xl: var(--r-2xl);
+  --radius-3xl: var(--r-3xl);
+  --radius-4xl: var(--r-4xl);
+
+  --shadow-sm: var(--s-sm);
+  --shadow-md: var(--s-md);
+  --shadow-lg: var(--s-lg);
+  --shadow-xl: var(--s-xl);
+  --shadow-2xl: var(--s-2xl);
+}
+
+/* 테마를 바꿀 때 페이지 높이가 달라져 스크롤바가 생겼다 사라지면 화면이 옆으로
+   튀므로, 스크롤바 자리를 항상 비워 둔다. */
+html {
+  scrollbar-gutter: stable;
 }
 
 body {
-  /* 평면적인 단색 대신, 중앙이 살짝 밝고 가장자리로 갈수록 어두워지는
-     비네팅을 깔아 화면 전체에 은은한 깊이감을 준다. background-attachment를
-     fixed로 두지 않으면 이 그라데이션이 뷰포트가 아니라 문서 전체
-     높이를 기준으로 늘어나, /rules·/about처럼 스크롤이 긴 페이지에서는
-     특정 위치에 밝기가 급격히 바뀌는 띠가 생긴다. */
-  background:
-    radial-gradient(
-      ellipse 90% 60% at 50% 0%,
-      rgba(96, 108, 56, 0.28),
-      transparent 60%
-    ),
-    radial-gradient(ellipse 140% 100% at 50% 50%, #2c3b1a 0%, #1c2610 75%);
-  background-attachment: fixed;
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), "Malgun Gothic", sans-serif;
+  background: var(--t-bg);
+  background-attachment: var(--t-bg-attach, scroll);
+  color: var(--t-fg);
+  font-family: var(--ff-body);
 }
 
-/* 게임 테이블 펠트 — 단색 배경 대신 중앙이 밝고 모서리가 어두운
-   비네팅 + 미세한 대각선 위브 텍스처로 "천 위에 놓인 테이블" 느낌을 준다.
-   box-shadow의 inset 성분은 테이블 테두리가 바닥보다 한 단 꺼진 것처럼
-   보이게 해 입체감을 더한다. */
+/* 게임 테이블 — 배경·테두리는 테마 변수 */
 .table-felt {
-  background-image:
-    repeating-linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.025) 0px,
-      rgba(255, 255, 255, 0.025) 1px,
-      transparent 1px,
-      transparent 3px
-    ),
-    radial-gradient(
-      ellipse 100% 80% at 50% 35%,
-      rgba(254, 250, 224, 0.1),
-      transparent 70%
-    ),
-    radial-gradient(ellipse 120% 100% at 50% 50%, #606c38 0%, #2d3c1a 100%);
-  box-shadow:
-    inset 0 2px 4px rgba(0, 0, 0, 0.4),
-    inset 0 0 60px rgba(0, 0, 0, 0.45),
-    0 12px 30px -10px rgba(0, 0, 0, 0.6);
+  background: var(--table-bg);
+  border: var(--table-border);
 }
 
 ::-webkit-scrollbar {
@@ -99,7 +91,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(254, 250, 224, 0.15);
+  background: rgba(20, 20, 20, 0.2);
   border-radius: 9999px;
 }
 
@@ -149,13 +141,12 @@ body {
 }
 
 @keyframes turn-glow {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(254, 250, 224, 0.45);
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--glow), 0.45);
   }
 
-  50% {
-    box-shadow: 0 0 0 10px rgba(254, 250, 224, 0);
+  100% {
+    box-shadow: 0 0 0 10px rgba(var(--glow), 0);
   }
 }
 
@@ -164,11 +155,11 @@ body {
 @keyframes allin-glow {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(217, 115, 40, 0.55);
+    box-shadow: 0 0 0 0 rgba(255, 154, 31, 0.55);
   }
 
   50% {
-    box-shadow: 0 0 14px 3px rgba(217, 115, 40, 0.35);
+    box-shadow: 0 0 14px 3px rgba(255, 154, 31, 0.35);
   }
 }
 
@@ -221,7 +212,7 @@ body {
 }
 
 .animate-turn-glow {
-  animation: turn-glow 1.8s ease-out infinite;
+  animation: turn-glow 1.4s ease-out infinite;
 }
 
 .animate-chip-toss-up {
@@ -259,4 +250,45 @@ body {
 :root.reduce-motion .animate-chip-toss-down,
 :root.reduce-motion .animate-allin-glow {
   animation: none;
+}
+
+/* 버튼 면 색 위의 글자색 — 테마·모드마다 대비가 맞는 쪽으로 themes.css 가 정한다.
+   (유틸리티 클래스보다 우선하도록 레이어 밖에 둔다) */
+.bg-gold {
+  color: var(--on-gold);
+}
+
+.bg-felt {
+  color: var(--on-felt);
+}
+
+.bg-ember {
+  color: var(--on-ember);
+}
+
+.bg-crimson {
+  color: var(--on-crimson);
+}
+
+/* 다크/화이트 전환 시 색이 부드럽게 바뀌도록 — 전환하는 순간에만 켜진다. */
+html.theme-fading,
+html.theme-fading *,
+html.theme-fading *::before,
+html.theme-fading *::after {
+  transition:
+    background-color 0.4s ease,
+    border-color 0.4s ease,
+    color 0.4s ease,
+    fill 0.4s ease,
+    stroke 0.4s ease,
+    box-shadow 0.4s ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.theme-fading,
+  html.theme-fading *,
+  html.theme-fading *::before,
+  html.theme-fading *::after {
+    transition: none !important;
+  }
 }
