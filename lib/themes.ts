@@ -15,7 +15,7 @@ export interface ThemeMeta {
 export const THEMES: ThemeMeta[] = [
   {
     "id": "airbnb",
-    "label": "Airbnb",
+    "label": "Coral",
     "nativeLight": true,
     "swatch": [
       "#ffffff",
@@ -25,7 +25,7 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     "id": "airtable",
-    "label": "Airtable",
+    "label": "Pine",
     "nativeLight": true,
     "swatch": [
       "#ffffff",
@@ -35,7 +35,7 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     "id": "apple",
-    "label": "Apple",
+    "label": "Cloud",
     "nativeLight": true,
     "swatch": [
       "#f5f5f7",
@@ -45,7 +45,7 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     "id": "bmw",
-    "label": "BMW",
+    "label": "Azure",
     "nativeLight": true,
     "swatch": [
       "#ffffff",
@@ -55,7 +55,7 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     "id": "bmw-m",
-    "label": "BMW M",
+    "label": "Carbon",
     "nativeLight": false,
     "swatch": [
       "#000000",
@@ -65,7 +65,7 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     "id": "bugatti",
-    "label": "Bugatti",
+    "label": "Onyx",
     "nativeLight": false,
     "swatch": [
       "#000000",
@@ -75,7 +75,7 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     "id": "cal",
-    "label": "Cal",
+    "label": "Paper",
     "nativeLight": true,
     "swatch": [
       "#ffffff",
@@ -85,7 +85,7 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     "id": "clay",
-    "label": "Clay",
+    "label": "Ivory",
     "nativeLight": true,
     "swatch": [
       "#fffaf0",
@@ -95,7 +95,7 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     "id": "clickhouse",
-    "label": "ClickHouse",
+    "label": "Volt",
     "nativeLight": false,
     "swatch": [
       "#0a0a0a",
@@ -105,7 +105,7 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     "id": "coinbase",
-    "label": "Coinbase",
+    "label": "Cobalt",
     "nativeLight": true,
     "swatch": [
       "#ffffff",
@@ -115,7 +115,7 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     "id": "composio",
-    "label": "Composio",
+    "label": "Indigo Night",
     "nativeLight": false,
     "swatch": [
       "#0f0f0f",
@@ -125,7 +125,7 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     "id": "cursor",
-    "label": "Cursor",
+    "label": "Ember",
     "nativeLight": true,
     "swatch": [
       "#f7f7f4",
@@ -135,7 +135,7 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     "id": "dell",
-    "label": "Dell",
+    "label": "Sunbeam",
     "nativeLight": true,
     "swatch": [
       "#ffffff",
@@ -145,7 +145,7 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     "id": "discord",
-    "label": "Discord",
+    "label": "Twilight",
     "nativeLight": false,
     "swatch": [
       "#14184a",
@@ -155,7 +155,7 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     "id": "ferrari",
-    "label": "Ferrari",
+    "label": "Rosso",
     "nativeLight": false,
     "swatch": [
       "#181818",
@@ -165,7 +165,7 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     "id": "figma",
-    "label": "Figma",
+    "label": "Mono",
     "nativeLight": true,
     "swatch": [
       "#ffffff",
@@ -175,7 +175,7 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     "id": "framer",
-    "label": "Framer",
+    "label": "Void",
     "nativeLight": false,
     "swatch": [
       "#090909",
@@ -185,7 +185,7 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     "id": "hashicorp",
-    "label": "HashiCorp",
+    "label": "Emerald",
     "nativeLight": false,
     "swatch": [
       "#000000",
@@ -195,7 +195,7 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     "id": "intercom",
-    "label": "Intercom",
+    "label": "Linen",
     "nativeLight": true,
     "swatch": [
       "#f5f1ec",
@@ -205,7 +205,7 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     "id": "kraken",
-    "label": "Kraken",
+    "label": "Violet",
     "nativeLight": true,
     "swatch": [
       "#ffffff",
@@ -215,7 +215,7 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     "id": "linear",
-    "label": "Linear",
+    "label": "Slate",
     "nativeLight": false,
     "swatch": [
       "#010102",
@@ -225,7 +225,7 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     "id": "lovable",
-    "label": "Lovable",
+    "label": "Cream",
     "nativeLight": true,
     "swatch": [
       "#f7f4ed",
@@ -235,7 +235,7 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     "id": "minimax",
-    "label": "MiniMax",
+    "label": "Mint Ink",
     "nativeLight": true,
     "swatch": [
       "#ffffff",
@@ -245,7 +245,7 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     "id": "mintlify",
-    "label": "Mintlify",
+    "label": "Mist",
     "nativeLight": true,
     "swatch": [
       "#d9e5f1",
@@ -255,7 +255,7 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     "id": "miro",
-    "label": "Miro",
+    "label": "Graphite",
     "nativeLight": true,
     "swatch": [
       "#ffffff",
@@ -265,7 +265,7 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     "id": "mobbin",
-    "label": "Mobbin",
+    "label": "Classic",
     "nativeLight": true,
     "swatch": [
       "#ffffff",
