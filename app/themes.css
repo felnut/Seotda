@@ -1,7 +1,7 @@
 /* 자동 생성 — design/themes/runtime/ 스크립트가 디자인 패치 26종에서 뽑은 값입니다. 직접 고치지 마세요.
    <html data-theme="이름"> 으로 테마를, data-mode="alt" 로 반대 모드(다크↔화이트)를 고릅니다. */
 
-/* Airbnb */
+/* Coral */
 :root[data-theme="airbnb"] {
   --native-light: 1;
   --t-white: #ffffff;
@@ -90,7 +90,7 @@
 
 :root[data-theme="airbnb"] :is(h1, h2, .font-serif) { letter-spacing: -0.02em; }
 
-/* Airtable */
+/* Pine */
 :root[data-theme="airtable"] {
   --native-light: 1;
   --t-white: #ffffff;
@@ -179,7 +179,7 @@
 
 :root[data-theme="airtable"] :is(h1, h2, .font-serif) { letter-spacing: 0; }
 
-/* Apple */
+/* Cloud */
 :root[data-theme="apple"] {
   --native-light: 1;
   --t-white: #ffffff;
@@ -268,7 +268,7 @@
 
 :root[data-theme="apple"] :is(h1, h2, .font-serif) { letter-spacing: -0.01em; }
 
-/* BMW */
+/* Azure */
 :root[data-theme="bmw"] {
   --native-light: 1;
   --t-white: #ffffff;
@@ -357,7 +357,7 @@
 
 :root[data-theme="bmw"] :is(h1, h2, .font-serif) { letter-spacing: 0; }
 
-/* BMW M */
+/* Carbon */
 :root[data-theme="bmw-m"] {
   --native-light: 0;
   --t-white: #000000;
@@ -444,7 +444,7 @@
 
 :root[data-theme="bmw-m"] :is(h1, h2, .font-serif) { letter-spacing: 0; }
 
-/* Bugatti */
+/* Onyx */
 :root[data-theme="bugatti"] {
   --native-light: 0;
   --t-white: #000000;
@@ -533,7 +533,7 @@
 
 :root[data-theme="bugatti"] :is(h1, h2, .font-serif) { letter-spacing: 0.12em; text-transform: uppercase; }
 
-/* Cal */
+/* Paper */
 :root[data-theme="cal"] {
   --native-light: 1;
   --t-white: #ffffff;
@@ -622,7 +622,7 @@
 
 :root[data-theme="cal"] :is(h1, h2, .font-serif) { letter-spacing: -0.03em; }
 
-/* Clay */
+/* Ivory */
 :root[data-theme="clay"] {
   --native-light: 1;
   --t-white: #ffffff;
@@ -711,7 +711,7 @@
 
 :root[data-theme="clay"] :is(h1, h2, .font-serif) { letter-spacing: -0.04em; }
 
-/* ClickHouse */
+/* Volt */
 :root[data-theme="clickhouse"] {
   --native-light: 0;
   --t-white: #0a0a0a;
@@ -802,7 +802,7 @@
 
 :root[data-theme="clickhouse"] :is(h1, h2, .font-serif) { letter-spacing: -0.04em; }
 
-/* Coinbase */
+/* Cobalt */
 :root[data-theme="coinbase"] {
   --native-light: 1;
   --t-white: #ffffff;
@@ -891,7 +891,7 @@
 
 :root[data-theme="coinbase"] :is(h1, h2, .font-serif) { letter-spacing: -0.03em; }
 
-/* Composio */
+/* Indigo Night */
 :root[data-theme="composio"] {
   --native-light: 0;
   --t-white: #0f0f0f;
@@ -980,7 +980,7 @@
 
 :root[data-theme="composio"] :is(h1, h2, .font-serif) { letter-spacing: -0.03em; }
 
-/* Cursor */
+/* Ember */
 :root:not([data-theme]),
 :root[data-theme="cursor"] {
   --native-light: 1;
@@ -1073,7 +1073,7 @@
 :root:not([data-theme]) :is(h1, h2, .font-serif),
 :root[data-theme="cursor"] :is(h1, h2, .font-serif) { letter-spacing: -0.03em; }
 
-/* Dell */
+/* Sunbeam */
 :root[data-theme="dell"] {
   --native-light: 1;
   --t-white: #ffffff;
@@ -1154,7 +1154,7 @@
   --on-crimson: #ffffff;
 }
 
-/* Discord */
+/* Twilight */
 :root[data-theme="discord"] {
   --native-light: 0;
   --t-white: #14184a;
@@ -1246,7 +1246,7 @@
 
 :root[data-theme="discord"] :is(h1, h2, .font-serif) { font-family: var(--font-hanken), var(--font-pretendard), sans-serif; }
 
-/* Ferrari */
+/* Rosso */
 :root[data-theme="ferrari"] {
   --native-light: 0;
   --t-white: #181818;
@@ -1335,7 +1335,7 @@
 
 :root[data-theme="ferrari"] :is(h1, h2, .font-serif) { letter-spacing: -0.02em; }
 
-/* Figma */
+/* Mono */
 :root[data-theme="figma"] {
   --native-light: 1;
   --t-white: #ffffff;
@@ -1424,7 +1424,7 @@
 
 :root[data-theme="figma"] :is(h1, h2, .font-serif) { letter-spacing: -0.03em; }
 
-/* Framer */
+/* Void */
 :root[data-theme="framer"] {
   --native-light: 0;
   --t-white: #090909;
@@ -1513,7 +1513,7 @@
 
 :root[data-theme="framer"] :is(h1, h2, .font-serif) { letter-spacing: -0.04em; }
 
-/* HashiCorp */
+/* Emerald */
 :root[data-theme="hashicorp"] {
   --native-light: 0;
   --t-white: #000000;
@@ -1600,7 +1600,7 @@
 
 :root[data-theme="hashicorp"] :is(h1, h2, .font-serif) { letter-spacing: -0.03em; }
 
-/* Intercom */
+/* Linen */
 :root[data-theme="intercom"] {
   --native-light: 1;
   --t-white: #ffffff;
@@ -1689,7 +1689,7 @@
 
 :root[data-theme="intercom"] :is(h1, h2, .font-serif) { letter-spacing: -0.03em; }
 
-/* Kraken */
+/* Violet */
 :root[data-theme="kraken"] {
   --native-light: 1;
   --t-white: #ffffff;
@@ -1778,7 +1778,7 @@
 
 :root[data-theme="kraken"] :is(h1, h2, .font-serif) { font-family: var(--font-plex-sans), var(--font-pretendard), sans-serif; letter-spacing: -0.02em; }
 
-/* Linear */
+/* Slate */
 :root[data-theme="linear"] {
   --native-light: 0;
   --t-white: #010102;
@@ -1867,7 +1867,7 @@
 
 :root[data-theme="linear"] :is(h1, h2, .font-serif) { letter-spacing: -0.03em; }
 
-/* Lovable */
+/* Cream */
 :root[data-theme="lovable"] {
   --native-light: 1;
   --t-white: #ffffff;
@@ -1956,7 +1956,7 @@
 
 :root[data-theme="lovable"] :is(h1, h2, .font-serif) { letter-spacing: -0.03em; }
 
-/* MiniMax */
+/* Mint Ink */
 :root[data-theme="minimax"] {
   --native-light: 1;
   --t-white: #ffffff;
@@ -2045,7 +2045,7 @@
 
 :root[data-theme="minimax"] :is(h1, h2, .font-serif) { letter-spacing: -0.04em; }
 
-/* Mintlify */
+/* Mist */
 :root[data-theme="mintlify"] {
   --native-light: 1;
   --t-white: #ffffff;
@@ -2134,7 +2134,7 @@
 
 :root[data-theme="mintlify"] :is(h1, h2, .font-serif) { letter-spacing: -0.035em; }
 
-/* Miro */
+/* Graphite */
 :root[data-theme="miro"] {
   --native-light: 1;
   --t-white: #ffffff;
@@ -2223,7 +2223,7 @@
 
 :root[data-theme="miro"] :is(h1, h2, .font-serif) { letter-spacing: -0.03em; }
 
-/* Mobbin */
+/* Classic */
 :root[data-theme="mobbin"] {
   --native-light: 1;
   --t-white: #ffffff;

@@ -11,7 +11,10 @@ import {
   RoomPlayerInfo,
 } from "@/types/seotda";
 import { RaiseRatio } from "@/lib/seotda/bettingRound";
-import { confirmBetAmount, RAISE_RATIO_LABEL } from "@/lib/seotda/bettingDisplay";
+import {
+  confirmBetAmount,
+  RAISE_RATIO_LABEL,
+} from "@/lib/seotda/bettingDisplay";
 import { MIN_ROOM_PLAYERS } from "@/lib/seotda/constants";
 import { getFirebaseAuth, getFirebaseDb } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/useAuth";
@@ -25,7 +28,12 @@ import { STARTING_CHIPS } from "@/lib/seotda/game";
 import { socket } from "@/lib/socket";
 import { clearSession, loadSession, saveSession } from "@/lib/session";
 import { loadNickname, saveNickname } from "@/lib/nickname";
-import { playChatSound, playTurnSound, playSoundFile, CHIP_SOUND_PATHS } from "@/lib/sound";
+import {
+  playChatSound,
+  playTurnSound,
+  playSoundFile,
+  CHIP_SOUND_PATHS,
+} from "@/lib/sound";
 import { HamburgerMenu } from "./components/HamburgerMenu";
 import { ShareButtons } from "./components/ShareButtons";
 import { buildJsonLd } from "@/lib/seo/structuredData";
@@ -66,7 +74,6 @@ const CONFIRM_BETS_STORAGE_KEY = "seotda-confirm-bets";
 
 // 방장이 최소 인원 미달인 채로 "게임 시작"을 눌렀을 때 보여주는 안내.
 const NOT_ENOUGH_PLAYERS_ERROR = "함께할 플레이어가 부족합니다.";
-
 
 function ProfilePanel({
   open,
@@ -980,7 +987,7 @@ export default function Home() {
     if (
       isMidGame &&
       !window.confirm(
-        "게임을 나가시겠습니까? 진행 중인 판은 자동으로 다이(패배) 처리되고, 이미 낸 판돈은 돌려받지 못합니다.",
+        "게임을 나가시겠습니까? 진행 중인 판은 자동으로 다이(패배) 처리되고, 이미 낸 판돈은 돌려받지 못합니다.(AI가 있다면 적용되지 않습니다.)",
       )
     ) {
       return;
@@ -1185,7 +1192,9 @@ export default function Home() {
           )}
 
           <HamburgerMenu
-            userName={user ? (profileName ?? user.displayName ?? "플레이어") : null}
+            userName={
+              user ? (profileName ?? user.displayName ?? "플레이어") : null
+            }
             onOpenProfile={() => {
               setProfileError("");
               setProfileSaved(false);
@@ -1205,103 +1214,101 @@ export default function Home() {
         </header>
 
         <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 pt-4 pb-8 xl:flex-row">
+          <div className="flex w-full max-w-md flex-col items-center">
+            <h1 className="mb-6 text-center">
+              <span className="block font-serif text-[52px] leading-none font-black tracking-tight text-black">
+                섯다
+              </span>
+              <span className="mt-3 block text-[19px] font-semibold text-zinc-100">
+                친구와 온라인으로 즐기는 전통 카드 게임
+              </span>
+            </h1>
 
-        <div className="flex w-full max-w-md flex-col items-center">
-          <h1 className="mb-6 text-center">
-            <span className="block font-serif text-[52px] leading-none font-black tracking-tight text-black">
-              섯다
-            </span>
-            <span className="mt-3 block text-[19px] font-semibold text-zinc-100">
-              친구와 온라인으로 즐기는 전통 카드 게임
-            </span>
-          </h1>
-
-          {/* 닉네임 → 방 정보 → 시작 버튼 순서로 한 카드 안에 이어 붙여,
+            {/* 닉네임 → 방 정보 → 시작 버튼 순서로 한 카드 안에 이어 붙여,
               "무엇을 어떤 순서로 하면 되는지"가 한눈에 보이게 한다. */}
-          <section className="animate-fade-up w-full rounded-2xl border border-hairline bg-zinc-900/70 p-5 sm:p-6">
-            <label
-              htmlFor="lobby-nickname"
-              className="mb-1.5 block pl-[17px] text-[14px] font-semibold text-zinc-200"
-            >
-              닉네임
-            </label>
-
-            <input
-              id="lobby-nickname"
-              value={displayName}
-              onChange={(event) => {
-                setDisplayName(event.target.value);
-                saveNickname(event.target.value.trim());
-              }}
-              placeholder="비워두면 기본 이름이 부여돼요"
-              maxLength={13}
-              className="mb-4 h-12 w-full rounded-lg border border-hairline bg-white px-4 text-[16px] text-black outline-none transition placeholder:text-zinc-500 focus:border-black focus:ring-2 focus:ring-black/10"
-            />
-
-            <div className="mb-4 grid grid-cols-2 gap-2">
-              <input
-                value={createRoomName}
-                onChange={(event) => setCreateRoomName(event.target.value)}
-                placeholder="방 이름 (선택)"
-                aria-label="방 이름"
-                maxLength={20}
-                className="h-12 w-full rounded-lg border border-hairline bg-white px-4 text-[15px] text-black outline-none transition placeholder:text-zinc-500 focus:border-black focus:ring-2 focus:ring-black/10"
-              />
+            <section className="animate-fade-up w-full rounded-2xl border border-hairline bg-zinc-900/70 p-5 sm:p-6">
+              <label
+                htmlFor="lobby-nickname"
+                className="mb-1.5 block pl-[17px] text-[14px] font-semibold text-zinc-200"
+              >
+                닉네임
+              </label>
 
               <input
-                value={createPassword}
-                onChange={(event) => setCreatePassword(event.target.value)}
-                placeholder="비밀번호 (선택)"
-                aria-label="비밀번호"
-                maxLength={20}
-                className="h-12 w-full rounded-lg border border-hairline bg-white px-4 text-[15px] text-black outline-none transition placeholder:text-zinc-500 focus:border-black focus:ring-2 focus:ring-black/10"
+                id="lobby-nickname"
+                value={displayName}
+                onChange={(event) => {
+                  setDisplayName(event.target.value);
+                  saveNickname(event.target.value.trim());
+                }}
+                placeholder="비워두면 기본 이름이 부여돼요"
+                maxLength={13}
+                className="mb-4 h-12 w-full rounded-lg border border-hairline bg-white px-4 text-[16px] text-black outline-none transition placeholder:text-zinc-500 focus:border-black focus:ring-2 focus:ring-black/10"
               />
-            </div>
 
-            {/* 7. 방 만들기 */}
-            <button
-              type="button"
-              onClick={createRoom}
-              disabled={isSubmittingRoom}
-              className="h-14 w-full rounded-full bg-gold text-[18px] font-bold text-white transition hover:bg-gold-deep active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isSubmittingRoom ? "만드는 중..." : "▶ 방 만들고 시작하기"}
-            </button>
+              <div className="mb-4 grid grid-cols-2 gap-2">
+                <input
+                  value={createRoomName}
+                  onChange={(event) => setCreateRoomName(event.target.value)}
+                  placeholder="방 이름 (선택)"
+                  aria-label="방 이름"
+                  maxLength={20}
+                  className="h-12 w-full rounded-lg border border-hairline bg-white px-4 text-[15px] text-black outline-none transition placeholder:text-zinc-500 focus:border-black focus:ring-2 focus:ring-black/10"
+                />
 
-            {/* 8. 방 찾기 */}
-            <Link
-              href="/rooms"
-              className="mt-2 flex h-12 w-full items-center justify-center rounded-full border border-black bg-white text-[16px] font-semibold text-zinc-100 transition hover:bg-zinc-950 active:scale-[0.98]"
-            >
-              열린 방에 참가하기
-            </Link>
-          </section>
+                <input
+                  value={createPassword}
+                  onChange={(event) => setCreatePassword(event.target.value)}
+                  placeholder="비밀번호 (선택)"
+                  aria-label="비밀번호"
+                  maxLength={20}
+                  className="h-12 w-full rounded-lg border border-hairline bg-white px-4 text-[15px] text-black outline-none transition placeholder:text-zinc-500 focus:border-black focus:ring-2 focus:ring-black/10"
+                />
+              </div>
 
-          {error && (
-            <p className="animate-fade-up mt-4 w-full rounded-xl border border-crimson/40 bg-crimson/10 p-3 text-center text-[16px] font-medium text-crimson-bright">
-              {error}
-            </p>
-          )}
+              {/* 7. 방 만들기 */}
+              <button
+                type="button"
+                onClick={createRoom}
+                disabled={isSubmittingRoom}
+                className="h-14 w-full rounded-full bg-gold text-[18px] font-bold text-white transition hover:bg-gold-deep active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSubmittingRoom ? "만드는 중..." : "▶ 방 만들고 시작하기"}
+              </button>
 
-          <nav className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-0 text-[13.5px] text-zinc-400">
-            <Link href="/about" className="py-2.5 hover:text-zinc-100">
-              섯다란?
-            </Link>
-            <Link href="/guide" className="py-2.5 hover:text-zinc-100">
-              가이드
-            </Link>
-            <Link href="/rules" className="py-2.5 hover:text-zinc-100">
-              게임 규칙
-            </Link>
-            <Link href="/privacy" className="py-2.5 hover:text-zinc-100">
-              개인정보처리방침
-            </Link>
-            <Link href="/terms" className="py-2.5 hover:text-zinc-100">
-              이용약관
-            </Link>
-          </nav>
-        </div>
+              {/* 8. 방 찾기 */}
+              <Link
+                href="/rooms"
+                className="mt-2 flex h-12 w-full items-center justify-center rounded-full border border-black bg-white text-[16px] font-semibold text-zinc-100 transition hover:bg-zinc-950 active:scale-[0.98]"
+              >
+                열린 방에 참가하기
+              </Link>
+            </section>
 
+            {error && (
+              <p className="animate-fade-up mt-4 w-full rounded-xl border border-crimson/40 bg-crimson/10 p-3 text-center text-[16px] font-medium text-crimson-bright">
+                {error}
+              </p>
+            )}
+
+            <nav className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-0 text-[13.5px] text-zinc-400">
+              <Link href="/about" className="py-2.5 hover:text-zinc-100">
+                섯다란?
+              </Link>
+              <Link href="/guide" className="py-2.5 hover:text-zinc-100">
+                가이드
+              </Link>
+              <Link href="/rules" className="py-2.5 hover:text-zinc-100">
+                게임 규칙
+              </Link>
+              <Link href="/privacy" className="py-2.5 hover:text-zinc-100">
+                개인정보처리방침
+              </Link>
+              <Link href="/terms" className="py-2.5 hover:text-zinc-100">
+                이용약관
+              </Link>
+            </nav>
+          </div>
         </div>
 
         <p className="pb-6 text-center text-[13.5px] text-zinc-500">
@@ -1326,7 +1333,6 @@ export default function Home() {
             linkNotice={linkNotice}
           />
         )}
-
       </main>
     );
   }
@@ -1381,4 +1387,3 @@ export default function Home() {
     />
   );
 }
-
