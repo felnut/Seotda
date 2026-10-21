@@ -51,6 +51,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ko"
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
       className="h-full antialiased"
     >

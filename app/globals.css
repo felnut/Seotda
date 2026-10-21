@@ -536,3 +536,8 @@ button:not(:disabled), summary { cursor: pointer; }
 }
 :root.reduce-motion :is(.lobby-intro, .play-panel, .guide-intro, .article-intro, .core-guides > li, .game-flow > li, .hero-card) { animation: none; }
 :root.reduce-motion :is(.primary-action, .secondary-action, .primary-action > span, .secondary-action > span, .guide-arrow, .core-guides a) { transition: none; translate: none; }
+
+/* Native anchor scrolling retains URLs, keyboard navigation and section offsets. */
+@media (prefers-reduced-motion: no-preference) {
+  html:not(.reduce-motion):has(.rules-layout) { scroll-behavior: smooth; }
+}
