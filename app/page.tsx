@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
+import { SiteLinks } from "./components/SiteLinks";
 import {
   BankruptcyNotice,
   ChatMessage,
@@ -308,6 +309,7 @@ export default function Home() {
   const [roomPlayers, setRoomPlayers] = useState<RoomPlayerInfo[]>([]);
 
   // 방 만들기 화면에서 입력하는 방 이름/비밀번호 (아직 만들어진 방의 값이 아님)
+  const soloStart = useRef<string | null>(null);
   const [createRoomName, setCreateRoomName] = useState("");
   const [createPassword, setCreatePassword] = useState("");
 
@@ -646,6 +648,10 @@ export default function Home() {
 
   useEffect(() => {
     socket.on("room-created", (info: RoomInfo) => {
+      if (soloStart.current === "requested") {
+        soloStart.current = info.roomId;
+        socket.emit("add-ai-player", { roomId: info.roomId, level: "normal" });
+      }
       setRoomId(info.roomId);
       setRoomName(info.name);
       setRoomHasPassword(info.hasPassword);
@@ -696,6 +702,11 @@ export default function Home() {
         maxPlayers: number;
         players: RoomPlayerInfo[];
       }) => {
+        if (soloStart.current && soloStart.current !== "requested" && players.some((player) => player.isAI)) {
+          const soloRoomId = soloStart.current;
+          soloStart.current = null;
+          socket.emit("start-game", soloRoomId);
+        }
         setPlayerCount(count);
         setMaxPlayers(maxPlayers);
         setRoomPlayers(players);
@@ -794,6 +805,7 @@ export default function Home() {
     );
 
     socket.on("error-message", ({ message }: { message: string }) => {
+      soloStart.current = null;
       setError(message);
       setHasVotedRestart(false);
       setIsSubmittingRoom(false);
@@ -896,21 +908,28 @@ export default function Home() {
   }, [user]);
 
   // 7. 방 만들기
-  const createRoom = async () => {
+  const createRoom = async (solo = false) => {
     if (isSubmittingRoom) return;
 
     setError("");
     setIsSubmittingRoom(true);
+    soloStart.current = solo ? "requested" : null;
 
-    const idToken = user ? await user.getIdToken() : undefined;
+    try {
+      const idToken = user ? await user.getIdToken() : undefined;
 
-    // 정원은 정하지 않고 보낸다 — 방을 만든 뒤 대기실에서 방장이 조정한다.
-    socket.emit("create-room", {
-      name: displayName.trim() || undefined,
-      roomName: createRoomName.trim() || undefined,
-      password: createPassword.trim() || undefined,
-      idToken,
-    });
+      // 정원은 정하지 않고 보낸다 — 방을 만든 뒤 대기실에서 방장이 조정한다.
+      socket.emit("create-room", {
+        name: displayName.trim() || undefined,
+        roomName: solo ? "AI와 연습하는 방" : createRoomName.trim() || undefined,
+        password: solo ? undefined : createPassword.trim() || undefined,
+        idToken,
+      });
+    } catch {
+      soloStart.current = null;
+      setIsSubmittingRoom(false);
+      setError("로그인 정보를 확인하지 못했어요. 다시 시도해주세요.");
+    }
   };
 
   // 9. 게임 시작
@@ -1187,7 +1206,7 @@ export default function Home() {
 
         <header className="lobby-header">
           <Link href="/" className="brand" aria-label="섯다 홈"><span className="brand-mark" aria-hidden="true">花</span> 섯다<span className="brand-caption">SEOTDA</span></Link>
-          <nav className="header-links" aria-label="주요 메뉴"><Link href="/rooms">방 찾기</Link><Link href="/rules">족보와 규칙</Link><Link href="/ranking">랭킹</Link></nav>
+          <SiteLinks />
           <div className="ml-auto flex items-center gap-3">
           {user && chips !== null && (
             <span className="flex h-10 shrink-0 items-center whitespace-nowrap rounded-xl border border-hairline bg-gold/10 px-3 font-mono sm:px-4 text-[15px] font-semibold tabular-nums text-black">
@@ -1205,6 +1224,8 @@ export default function Home() {
               setIsProfileOpen(true);
             }}
             settings={
+              <>
+              {!user && <div className="mb-5"><label htmlFor="settings-nickname" className="field-label">게스트 닉네임 <span>선택</span></label><input id="settings-nickname" className="lobby-input" value={displayName} maxLength={13} placeholder="비워두면 자동으로 정해져요" onChange={(event) => { setDisplayName(event.target.value); saveNickname(event.target.value.trim()); }} /><p className="mt-2 text-sm text-zinc-400">다음에 만들거나 참가하는 방에서 사용해요.</p></div>}
               <SettingsContent
                 soundEffects={soundEffects}
                 onToggleSoundEffects={toggleSoundEffects}
@@ -1213,6 +1234,7 @@ export default function Home() {
                 confirmBets={confirmBets}
                 onToggleConfirmBets={toggleConfirmBets}
               />
+              </>
             }
           />
           </div>
@@ -1238,23 +1260,18 @@ export default function Home() {
             <h2 id="play-title">지금 한 판 시작할까요?</h2>
             <p className="panel-description">로그인 없이도 바로 시작할 수 있어요.</p>
             <form onSubmit={(event) => { event.preventDefault(); createRoom(); }}>
-              <label htmlFor="lobby-nickname" className="field-label">닉네임 <span>선택</span></label>
-              <input id="lobby-nickname" value={displayName} onChange={(event) => { setDisplayName(event.target.value); saveNickname(event.target.value.trim()); }} placeholder="어떤 이름으로 만날까요?" maxLength={13} className="lobby-input" autoComplete="nickname" />
-              <details className="room-options">
-                <summary>방 이름 · 비밀번호 설정 <span>선택</span></summary>
-                <div className="space-y-3 pt-4">
-                  <label className="field-label" htmlFor="room-name">방 이름</label>
-                  <input id="room-name" value={createRoomName} onChange={(event) => setCreateRoomName(event.target.value)} placeholder="예: 퇴근 후 한 판" maxLength={20} className="lobby-input" />
-                  <label className="field-label" htmlFor="room-password">비밀번호</label>
-                  <input id="room-password" type="password" value={createPassword} onChange={(event) => setCreatePassword(event.target.value)} placeholder="친구끼리만 즐기고 싶을 때" maxLength={20} autoComplete="new-password" className="lobby-input" />
-                </div>
-              </details>
-              <button type="submit" disabled={isSubmittingRoom} className="primary-action">{isSubmittingRoom ? "방을 열고 있어요…" : "새 방 만들기"}<span aria-hidden="true">↗</span></button>
+              <div className="room-fields">
+                <div><label className="field-label" htmlFor="room-name">방 이름 <span>선택</span></label><input id="room-name" value={createRoomName} onChange={(event) => setCreateRoomName(event.target.value)} placeholder="예: 퇴근 후 한 판" maxLength={20} className="lobby-input" aria-describedby="room-name-hint" /><p id="room-name-hint" className="field-hint">비워두면 자동으로 이름을 붙여드려요.</p></div>
+                <div><label className="field-label" htmlFor="room-password">비밀번호 <span>선택</span></label><input id="room-password" type="password" value={createPassword} onChange={(event) => setCreatePassword(event.target.value)} placeholder="친구끼리만 즐기고 싶을 때" maxLength={20} autoComplete="new-password" className="lobby-input" aria-describedby="room-password-hint" /><p id="room-password-hint" className="field-hint">비워두면 누구나 참가할 수 있어요.</p></div>
+              </div>
+              <button type="submit" disabled={isSubmittingRoom} className="primary-action">{isSubmittingRoom ? "방을 열고 있어요…" : "친구와 방 만들기"}<span aria-hidden="true">↗</span></button>
             </form>
             {error && <p role="alert" className="mt-3 rounded-lg bg-crimson/10 p-3 text-sm text-crimson-bright">{error}</p>}
-            <div className="panel-divider"><span>이미 열린 방이 있다면</span></div>
-            <Link href="/rooms" className="secondary-action">참가할 방 찾기 <span aria-hidden="true">→</span></Link>
-            <p className="panel-note">방을 만든 뒤 친구를 기다리거나 AI를 추가하세요.</p>
+            <div className="alternative-actions">
+              <button type="button" onClick={() => createRoom(true)} disabled={isSubmittingRoom} className="secondary-action">AI와 혼자 시작하기 <span aria-hidden="true">↗</span></button>
+              <Link href="/rooms" className="secondary-action">기존 방 참가하기 <span aria-hidden="true">→</span></Link>
+            </div>
+            <p className="panel-note">혼자 시작하면 보통 난이도 AI와 바로 플레이해요.</p>
           </section>
         </div>
 

@@ -418,3 +418,35 @@ button:not(:disabled), summary { cursor: pointer; }
 @media (max-width: 680px) {
   .betting-actions button { padding: 10px 8px; }
 }
+
+/* Starting a game: room fields stay visible; less frequent identity settings live in the menu. */
+.room-fields { display: grid; gap: 18px; margin-bottom: 24px; }
+.field-hint { margin-top: 7px; font-size: 13px; line-height: 1.6; color: var(--t-zinc-400); }
+.alternative-actions { display: grid; gap: 10px; margin-top: 12px; }
+.alternative-actions button:disabled { opacity: .5; cursor: wait; }
+.panel-note { font-size: 12px; color: var(--t-zinc-400); }
+.mobile-nav-links { display: none; }
+.header-links { gap: 22px; white-space: nowrap; }
+.first-reads { padding: 24px; border: 1px solid var(--t-hairline); border-radius: 14px; background: var(--t-zinc-900); }
+.rules-nav, .guide-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 32px; }
+.guide-nav { margin-top: 32px; }
+.rules-nav a, .guide-nav a { display: flex; align-items: center; min-height: 44px; padding: 8px 13px; border: 1px solid var(--t-hairline); border-radius: 8px; font-size: 14px; color: var(--t-zinc-300); }
+.rules-nav a:hover, .guide-nav a:hover { border-color: var(--t-gold); color: var(--t-gold); }
+.rules-section, .guide-section { scroll-margin-top: 24px; }
+.guide-section { margin-bottom: 36px; }
+.hand-rankings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.reading-page p, .reading-page section > ol, .reading-page section > ul { font-size: 16px; line-height: 1.85; }
+.reading-page .text-zinc-500 { color: var(--t-zinc-400); }
+@media (max-width: 680px) {
+  .header-links a:nth-child(n+3), .site-header nav a:nth-child(n+3) { display: none; }
+  .header-links a:nth-child(2) { display: block; }
+  .mobile-nav-links { display: block; }
+  .lobby-content { flex-direction: column-reverse; padding-top: 22px; gap: 32px; }
+  .lobby-intro h1 { font-size: 36px; }
+  .lobby-card-art { display: none; }
+  .lobby-description { max-width: none; }
+  .play-panel { padding: 23px; }
+  .panel-description { margin-bottom: 22px; }
+  .hand-rankings { grid-template-columns: 1fr; }
+  .first-reads { padding: 18px; }
+}

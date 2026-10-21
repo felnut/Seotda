@@ -24,9 +24,18 @@ const jsonLd = buildJsonLd({
   image: "https://seotda.felnut.com/opengraph-image",
 });
 
+const GROUPS = [
+  { id: "start", title: "처음 시작하기", slugs: ["getting-started", "common-mistakes", "room-guide"] },
+  { id: "hands", title: "족보와 규칙", slugs: ["hand-rankings", "special-hands", "card-basics"] },
+  { id: "strategy", title: "베팅과 전략", slugs: ["betting-ratios", "all-in-side-pot", "hand-probability", "when-to-fold", "reveal-strategy", "chip-management"] },
+  { id: "system", title: "게임 시스템", slugs: ["ddaeng-fee", "ai-opponents"] },
+  { id: "background", title: "용어와 배경 지식", slugs: ["glossary", "hwatu-months", "play-responsibly"] },
+];
+const FIRST_READS = ["getting-started", "hand-rankings", "betting-ratios"];
+
 export default function GuideIndexPage() {
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col px-4 py-10 sm:py-14">
+    <main className="reading-page mx-auto flex min-h-screen w-full max-w-2xl flex-col px-4 py-10 sm:py-14">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -48,24 +57,27 @@ export default function GuideIndexPage() {
         지금 궁금한 내용을 골라 읽어보세요.
       </p>
 
-      <ul className="flex flex-col gap-3">
-        {GUIDE_ARTICLES.map((article) => (
-          <li key={article.slug}>
-            <Link
-              href={`/guide/${article.slug}`}
-              className="block rounded-xl border border-hairline bg-zinc-950 p-4 transition hover:border-hairline hover:bg-zinc-800"
-            >
-              <h2 className="mb-1 text-[17px] font-semibold text-zinc-100">
-                {article.title}
-              </h2>
-
-              <p className="text-[13.5px] leading-relaxed text-zinc-400">
-                {article.summary}
-              </p>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <section className="first-reads" aria-labelledby="first-reads-title">
+        <h2 id="first-reads-title" className="mb-2 text-xl font-bold">처음이라면, 이 순서로</h2>
+        <p className="mb-5 text-zinc-400">세 가지를 읽으면 첫 판을 시작할 준비가 돼요.</p>
+        <ol className="space-y-3">
+          {FIRST_READS.map((slug, index) => {
+            const article = GUIDE_ARTICLES.find((item) => item.slug === slug)!;
+            return <li key={slug}><Link href={`/guide/${slug}`} className="flex items-center gap-4 rounded-lg border border-hairline p-4 hover:border-gold"><span className="text-gold">0{index + 1}</span><span className="font-semibold">{article.title}</span><span className="ml-auto" aria-hidden="true">→</span></Link></li>;
+          })}
+        </ol>
+      </section>
+      <nav className="guide-nav" aria-label="가이드 주제">{GROUPS.map((group) => <a key={group.id} href={`#${group.id}`}>{group.title}</a>)}</nav>
+      {GROUPS.map((group) => (
+        <section key={group.id} id={group.id} className="guide-section">
+          <h2 className="mb-4 text-xl font-bold">{group.title}</h2>
+          <ul className="flex flex-col gap-3">
+            {GUIDE_ARTICLES.filter((article) => group.slugs.includes(article.slug)).map((article) => (
+              <li key={article.slug}><Link href={`/guide/${article.slug}`} className="block rounded-xl border border-hairline bg-zinc-950 p-4 transition hover:border-gold"><h3 className="mb-2 text-base font-semibold">{article.title}</h3><p className="text-[15px] leading-7 text-zinc-400">{article.summary}</p></Link></li>
+            ))}
+          </ul>
+        </section>
+      ))}
 
       <Link
         href="/rooms"

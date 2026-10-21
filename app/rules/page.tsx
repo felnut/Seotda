@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { HandRankings } from "@/app/components/HandRankings";
 import { HAND_GUIDE, SPECIAL_HAND_GUIDE } from "@/lib/seotda/handGuide";
 import { buildJsonLd } from "@/lib/seo/structuredData";
 
@@ -47,7 +48,7 @@ function MiniCard({ cardId, alt }: { cardId: string; alt: string }) {
 
 export default function RulesPage() {
   return (
-    <main className="flex min-h-screen w-full flex-col items-center gap-6 px-4 py-10 sm:py-14 xl:flex-row xl:justify-center">
+    <main className="reading-page flex min-h-screen w-full flex-col items-center gap-6 px-4 py-10 sm:py-14 xl:flex-row xl:justify-center">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -70,7 +71,11 @@ export default function RulesPage() {
           게임 중에도 ‘족보 가이드’에서 언제든 확인할 수 있어요.
         </p>
 
-        <section className="mb-8">
+        <nav className="rules-nav" aria-label="규칙 목차">
+          <a href="#game-flow">게임 진행</a><a href="#betting">베팅 방법</a><a href="#special-hands">특수 족보</a><a href="#hand-rankings">일반 족보</a><a href="#points">끗 계산</a>
+        </nav>
+
+        <section id="game-flow" className="rules-section mb-8">
           <h2 className="mb-3 text-[18px] font-bold text-zinc-200">
             게임은 이렇게 진행됩니다
           </h2>
@@ -111,7 +116,7 @@ export default function RulesPage() {
           </ol>
         </section>
 
-        <section className="mb-8">
+        <section id="betting" className="rules-section mb-8">
           <h2 className="mb-3 text-[18px] font-bold text-zinc-200">
             베팅 액션 알아보기
           </h2>
@@ -151,7 +156,7 @@ export default function RulesPage() {
           </p>
         </section>
 
-        <section className="mb-8">
+        <section id="special-hands" className="rules-section mb-8">
           <h2 className="mb-3 text-[18px] font-bold text-zinc-200">
             특수 족보
           </h2>
@@ -187,7 +192,7 @@ export default function RulesPage() {
           </ul>
         </section>
 
-        <section>
+        <section id="hand-rankings" className="rules-section mb-8">
           <h2 className="mb-3 text-[18px] font-bold text-zinc-200">
             일반 족보 (높은 순)
           </h2>
@@ -198,30 +203,13 @@ export default function RulesPage() {
             {HAND_GUIDE.length}개의 족보가 있습니다.
           </p>
 
-          <ol className="space-y-2">
-            {HAND_GUIDE.map((entry, index) => (
-              <li
-                key={entry.name}
-                className="flex items-center gap-3 rounded-lg border border-hairline bg-zinc-950 p-3"
-              >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-950 text-[13px] font-bold text-zinc-400">
-                  {index + 1}
-                </span>
+          <HandRankings />
+        </section>
 
-                <div className="flex gap-1">
-                  <MiniCard cardId={entry.cardIds[0]} alt={entry.name} />
-                  <MiniCard cardId={entry.cardIds[1]} alt={entry.name} />
-                </div>
-
-                <div>
-                  <p className="text-[17px] font-semibold text-zinc-100">
-                    {entry.name}
-                  </p>
-                  <p className="text-[13.5px] text-zinc-500">{entry.months}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
+        <section id="points" className="rules-section mb-8 rounded-xl border border-hairline bg-zinc-950 p-5">
+          <h2 className="mb-3 text-lg font-bold">끗은 이렇게 계산해요</h2>
+          <p className="text-zinc-400">별도 족보가 없는 조합은 두 카드의 월을 더한 뒤 일의 자리로 비교해요. 2월과 7월은 9끗(갑오), 7월과 10월은 7끗이에요. 끗끼리는 9끗이 가장 높고, 0끗은 망통이에요.</p>
+          <p className="mt-3 text-zinc-400">광땡·땡·알리 같은 일반 족보는 끗보다 높아요. 특수 족보는 적용 조건에 따라 승패나 재경기를 결정하니, 위의 설명을 함께 확인하세요.</p>
         </section>
 
         <Link

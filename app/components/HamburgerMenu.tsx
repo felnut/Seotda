@@ -143,14 +143,10 @@ export function HamburgerMenu({
           </Link>
         )}
 
-        <Link
-          href="/ranking"
-          role="menuitem"
-          onClick={() => setOpen(false)}
-          className={ITEM_CLASS}
-        >
-          랭킹
-        </Link>
+        <div className="mobile-nav-links">
+          <Link href="/guide" role="menuitem" onClick={() => setOpen(false)} className={ITEM_CLASS}>가이드</Link>
+          <Link href="/ranking" role="menuitem" onClick={() => setOpen(false)} className={ITEM_CLASS}>랭킹</Link>
+        </div>
 
         {settings && (
           <button
