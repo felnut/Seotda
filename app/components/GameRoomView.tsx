@@ -71,11 +71,11 @@ function CardBack({
 }) {
   return (
     <div
-      className={`animate-fade-up flex aspect-2/3 shrink-0 items-center justify-center rounded-lg border border-hairline bg-linear-to-br from-zinc-800 to-zinc-900 ${CARD_SIZE_CLASS[size]}`}
+      className={`card-back animate-fade-up flex aspect-2/3 shrink-0 items-center justify-center rounded-lg border border-hairline bg-linear-to-br from-zinc-800 to-zinc-900 ${CARD_SIZE_CLASS[size]}`}
       style={{ animationDelay: `${index * 80}ms` }}
     >
       <span className="text-[22.5px] font-bold text-black/30 sm:text-3xl">
-        ?
+        花
       </span>
     </div>
   );
@@ -1401,10 +1401,10 @@ function SeatCard({
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-hairline bg-zinc-950 px-6 py-6 text-center sm:py-8">
         <div className="flex h-9 w-9 items-center justify-center rounded-full border border-dashed border-hairline text-[17.5px] text-zinc-600 sm:h-10 sm:w-10">
-          ?
+          ＋
         </div>
 
-        <p className="text-[17.5px] text-zinc-500">상대방을 기다리는 중...</p>
+        <p className="text-[17.5px] text-zinc-500">비어 있는 자리</p>
       </div>
     );
   }
@@ -1751,7 +1751,7 @@ export default function GameRoomView({
     const canStart = isHost && allOthersReady;
 
     return (
-      <main className="flex h-dvh flex-col overflow-hidden px-3 py-2 sm:flex-row sm:gap-0 sm:px-6 sm:py-4">
+      <main className="game-shell flex h-dvh flex-col overflow-hidden px-3 py-2 waiting-shell sm:flex-row sm:gap-0 sm:px-6 sm:py-4">
         <LeaveNoticeToast message={leaveNotice} />
 
         <div className="mx-auto flex w-full min-w-0 flex-1 flex-col overflow-hidden sm:pr-4">
@@ -1789,10 +1789,8 @@ export default function GameRoomView({
             </div>
           </header>
 
-          <div className="flex min-h-0 flex-1 flex-col justify-center gap-3 overflow-y-auto sm:gap-4">
-            <p className="text-center text-[15px] font-medium text-zinc-500 sm:text-[17.5px]">
-              {playerCount} / {maxPlayers}명 참가 중
-            </p>
+          <div className="waiting-lounge flex min-h-0 flex-1 flex-col justify-center gap-3 overflow-y-auto sm:gap-4">
+            <div className="waiting-heading"><p className="eyebrow">테이블 준비</p><h2>함께할 사람이 모이면, 시작.</h2><p>{playerCount} / {maxPlayers}명 착석 · 친구를 기다리거나 AI와 먼저 즐겨보세요.</p></div>
 
             {/* 정원은 방을 만든 뒤 방장이 여기서 조정한다. 이미 들어와 있는
                 인원보다 적게는 줄일 수 없다. */}
@@ -1815,7 +1813,7 @@ export default function GameRoomView({
                       aria-pressed={maxPlayers === count}
                       className={`flex-1 rounded-full border py-1 text-[15px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-30 ${
                         maxPlayers === count
-                          ? "border-hairline bg-gold/15 text-black shadow-[0_0_0_1px_rgba(0,102,255,0.16)]"
+                          ? "border-gold bg-gold/15 text-black"
                           : "border-hairline bg-black/20 text-zinc-400 hover:border-hairline hover:bg-zinc-800 hover:text-zinc-200 disabled:hover:border-hairline disabled:hover:bg-black/20 disabled:hover:text-zinc-400"
                       }`}
                     >
@@ -1847,19 +1845,19 @@ export default function GameRoomView({
 
             <p className="animate-fade-up text-center text-[15px] font-medium text-zinc-500 sm:text-[17.5px]">
               {roomFull
-                ? "정원이 모두 찼습니다."
+                ? "모두 모였어요. 준비를 마치면 방장이 시작할 수 있어요."
                 : roomHasPassword
-                  ? "친구에게 비밀번호를 알려주고 방 찾기에서 참가하도록 안내하세요."
-                  : "친구에게 방 찾기에서 이 방을 찾아 참가하도록 안내하거나, AI를 추가해보세요."}
+                  ? "친구에게 방 이름과 비밀번호를 알려주세요."
+                  : "친구는 ‘방 찾기’에서 이 방의 이름을 찾아 참가할 수 있어요."}
             </p>
           </div>
 
-          <div className="shrink-0 pt-2">
+          <div className="game-actions shrink-0 pt-2">
             {/* 방장은 빈자리를 AI로 채울 수 있다 */}
             {isHost && !roomFull && (
               <div className="mb-2">
                 <p className="mb-1 text-center text-[13px] text-zinc-500">
-                  AI 추가 (실력을 골라주세요)
+                  함께할 AI의 난이도를 선택하세요
                 </p>
 
                 <div className="grid grid-cols-3 gap-2">
@@ -1903,10 +1901,10 @@ export default function GameRoomView({
                 className={`w-full rounded-full px-6 py-3 text-[17.5px] font-semibold transition active:scale-[0.98] ${
                   myReady
                     ? "bg-felt text-white hover:bg-felt-bright"
-                    : "bg-zinc-950 text-white hover:bg-zinc-800"
+                    : "bg-gold text-white hover:bg-gold-deep"
                 }`}
               >
-                {myReady ? "준비 완료 (취소하려면 클릭)" : "준비"}
+                {myReady ? "준비 완료 · 취소하기" : "준비하기"}
               </button>
             )}
 
@@ -1956,7 +1954,7 @@ export default function GameRoomView({
    * 게임 화면 — 스크롤 없이 한 화면(h-dvh)에 들어오도록 세로 구성
    */
   return (
-    <main className="flex h-dvh flex-col overflow-hidden px-3 py-2 sm:flex-row sm:gap-4 sm:px-6 sm:py-4">
+    <main className="game-shell flex h-dvh flex-col overflow-hidden px-3 py-2 sm:flex-row sm:gap-4 sm:px-6 sm:py-4">
       <LeaveNoticeToast message={leaveNotice} />
 
       {/* 노트북/데스크톱처럼 넓은 화면에서는 채팅을 접어도 테이블 반대편에
@@ -2050,7 +2048,7 @@ export default function GameRoomView({
           />
         </div>
 
-        <div className="shrink-0 pt-2">
+        <div className="game-actions shrink-0 pt-2">
           {myPlayer?.isSpectator && (
             <div className="mb-2 flex flex-col items-center gap-1.5">
               {myPlayer.pendingActivation ? (
@@ -2155,7 +2153,7 @@ export default function GameRoomView({
                   </span>
                 </p>
 
-                <div className="animate-fade-up grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:justify-center sm:gap-3">
+                <div className="betting-actions animate-fade-up grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:justify-center sm:gap-3">
                   {gameState.currentBet === 0 ? (
                     <button
                       type="button"
@@ -2229,8 +2227,7 @@ export default function GameRoomView({
                     더블 {bettingAmounts.raiseAmounts.double.toLocaleString()}
                   </button>
 
-                  {/* 올인은 되돌릴 수 없는 가장 큰 액션이라, 다른 버튼보다 한 단계
-                      크고 은은하게 맥동하는 테두리를 둬 눈에 먼저 들어오게 한다. */}
+                  {/* Keep all-in visually distinct without making it the dominant action. */}
                   <button
                     type="button"
                     onClick={onAllIn}

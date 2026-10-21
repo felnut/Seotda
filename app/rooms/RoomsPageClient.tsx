@@ -107,7 +107,7 @@ export function RoomsPageClient() {
   };
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col px-4 py-10 sm:py-14">
+    <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-5 py-10 sm:py-14">
       <Link
         href="/"
         className="mb-6 inline-block w-fit text-[13.5px] text-zinc-500 hover:text-zinc-300"
@@ -115,15 +115,16 @@ export function RoomsPageClient() {
         ← 메인으로
       </Link>
 
-      <h1 className="font-serif mb-1 text-[32px] font-black tracking-tight text-black">
-        방 찾기
-      </h1>
-
-      <div className="flex min-h-64 flex-col gap-2 rounded-2xl border border-hairline bg-zinc-950 p-3">
+      <div className="rooms-heading">
+        <div><p className="eyebrow">함께할 테이블</p><h1>어느 방에 앉을까요?</h1><p>친구의 방을 찾거나, 새로운 한 판에 함께하세요.</p></div>
+        <Link href="/" className="primary-action w-auto!">새 방 만들기 <span aria-hidden="true">＋</span></Link>
+      </div>
+      <div className="rooms-toolbar"><span>열린 방 <strong>{roomList.length}</strong></span><span>4초마다 자동 업데이트</span></div>
+      <div className="rooms-grid">
         {roomList.length === 0 && (
           <EmptyState
-            title="참가할 수 있는 방이 없습니다"
-            subtitle="아래에서 새 방을 만들고 친구를 초대해보세요."
+            title="아직 열린 테이블이 없어요"
+            subtitle="첫 번째 방을 열어보세요. 혼자라면 AI와 시작할 수 있어요."
           />
         )}
 
@@ -136,9 +137,9 @@ export function RoomsPageClient() {
               type="button"
               onClick={() => handleRoomClick(room)}
               disabled={isJoining || isFull}
-              className="animate-fade-up flex w-full items-center justify-between gap-3 rounded-xl border border-hairline bg-zinc-950 px-4 py-3.5 text-left transition hover:border-hairline hover:bg-gold/8 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+              className="room-tile animate-fade-up"
             >
-              <span className="flex min-w-0 items-center gap-2">
+              <span className="flex min-w-0 flex-col items-start gap-3">
                 <span className="truncate text-[17px] font-semibold text-zinc-100">
                   {room.hasPassword ? "🔒 " : ""}
                   {room.name}
@@ -146,7 +147,7 @@ export function RoomsPageClient() {
 
                 {room.inProgress && (
                   <span className="shrink-0 rounded-full bg-gold/15 px-2 py-0.5 text-[12.5px] font-bold text-black">
-                    진행중 · 관전 참가
+                    진행 중 · 관전으로 참가
                   </span>
                 )}
               </span>
@@ -167,12 +168,7 @@ export function RoomsPageClient() {
         </p>
       )}
 
-      <Link
-        href="/"
-        className="mt-8 w-full rounded-full bg-gold px-6 py-3.5 text-center text-[17.5px] font-semibold text-white transition hover:bg-gold-deep active:scale-[0.98]"
-      >
-        새 방 만들기
-      </Link>
+      <p className="mt-6 text-sm text-zinc-500">진행 중인 방은 먼저 관전하고, 다음 판부터 참가할 수 있어요.</p>
 
       {passwordPromptRoom && (
         <div
@@ -180,6 +176,10 @@ export function RoomsPageClient() {
           onClick={() => setPasswordPromptRoom(null)}
         >
           <form
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="password-dialog-title"
+            onKeyDown={(event) => { if (event.key === "Escape") setPasswordPromptRoom(null); }}
             onClick={(event) => event.stopPropagation()}
             onSubmit={(event) => {
               event.preventDefault();
@@ -187,7 +187,7 @@ export function RoomsPageClient() {
             }}
             className="animate-pop-in w-full max-w-xs rounded-2xl border border-hairline bg-zinc-950 p-6"
           >
-            <h2 className="mb-1 text-[19px] font-bold">
+            <h2 id="password-dialog-title" className="mb-1 text-[19px] font-bold">
               🔒 {passwordPromptRoom.name}
             </h2>
 
@@ -201,6 +201,7 @@ export function RoomsPageClient() {
               value={passwordInput}
               onChange={(event) => setPasswordInput(event.target.value)}
               placeholder="비밀번호"
+              aria-label="방 비밀번호"
               maxLength={20}
               className="mb-2 w-full rounded-lg border border-hairline bg-white px-4 py-2.5 text-[17.5px] text-black outline-none transition focus:border-black focus:ring-2 focus:ring-black/10"
             />

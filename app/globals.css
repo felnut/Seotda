@@ -14,7 +14,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
-  /* [임시] Cal.com 디자인 — 흰 캔버스 + 근검정 8px 버튼, 12px 카드, 그림자는 아주 옅게 */
+  /* Shared palette tokens keep every screen consistent. */
   --color-white: var(--t-white);
   --color-black: var(--t-black);
   --color-hairline: var(--t-hairline);
@@ -29,7 +29,7 @@
   --color-zinc-900: var(--t-zinc-900);
   --color-zinc-950: var(--t-zinc-950);
 
-  /* 주요 버튼: BMW 블루 */
+  /* Primary action */
   --color-gold: var(--t-gold);
   --color-gold-bright: var(--t-gold-bright);
   --color-gold-deep: var(--t-gold-deep);
@@ -270,25 +270,151 @@ body {
   color: var(--on-crimson);
 }
 
-/* 다크/화이트 전환 시 색이 부드럽게 바뀌도록 — 전환하는 순간에만 켜진다. */
-html.theme-fading,
-html.theme-fading *,
-html.theme-fading *::before,
-html.theme-fading *::after {
-  transition:
-    background-color 0.4s ease,
-    border-color 0.4s ease,
-    color 0.4s ease,
-    fill 0.4s ease,
-    stroke 0.4s ease,
-    box-shadow 0.4s ease !important;
+/* Shared interaction and typography across the lobby, guides and table. */
+body { line-height: 1.6; letter-spacing: -.025em; }
+button, summary, a { -webkit-tap-highlight-color: transparent; }
+button:not(:disabled), summary { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--t-gold); outline-offset: 4px; }
+::selection { background: var(--t-gold); color: var(--on-gold); }
+.lobby-shell { width: min(1200px, 100%); margin: 0 auto; padding: 0 44px; }
+.lobby-header { display: flex; align-items: center; gap: 48px; min-height: 100px; border-bottom: 1px solid var(--t-hairline); }
+.brand { display: flex; align-items: center; gap: 10px; font-size: 24px; font-weight: 800; letter-spacing: -.06em; }
+.brand-mark { display: grid; place-items: center; width: 30px; height: 37px; background: var(--t-gold); color: var(--on-gold); border-radius: 3px; font-family: serif; font-size: 22px; }
+.brand-caption { margin: 3px 0 0 7px; font: 10px var(--tf-mono); letter-spacing: .16em; color: var(--t-zinc-500); }
+.header-links { display: flex; gap: 28px; color: var(--t-zinc-400); font-size: 14px; }
+.header-links a:hover, .lobby-footer a:hover { color: var(--t-fg); }
+.lobby-content { display: grid; grid-template-columns: 1fr 400px; align-items: center; gap: 70px; padding: 64px 0 52px; }
+.eyebrow { display: flex; align-items: center; gap: 9px; font-size: 11px; font-weight: 600; letter-spacing: .12em; color: var(--t-zinc-400); }
+.eyebrow > span { width: 5px; height: 5px; background: var(--t-gold); border-radius: 50%; }
+.lobby-intro h1 { margin: 22px 0; font-size: clamp(42px, 4.6vw, 64px); line-height: 1.22; font-weight: 750; letter-spacing: -.065em; }
+.lobby-description { font-size: 16px; line-height: 1.9; color: var(--t-zinc-400); }
+.lobby-card-art { position: relative; height: 235px; margin: 12px 0 8px; overflow: hidden; }
+.card-orbit { position: absolute; width: 360px; height: 170px; top: 65px; left: 38px; border: 1px solid var(--t-hairline); border-radius: 50%; transform: rotate(-12deg); }
+.hero-card { position: absolute; top: 18px; width: 100px; height: 166px; object-fit: cover; border: 4px solid #f4ebdc; border-radius: 5px; box-shadow: 6px 15px 25px #0003; }
+.hero-card-back { left: 130px; transform: rotate(-19deg); }
+.hero-card-front { left: 222px; top: 36px; transform: rotate(12deg); }
+.art-stamp { position: absolute; left: 356px; top: 42px; border: 1px solid var(--t-gold); padding: 4px 5px; color: var(--t-gold); font: 19px serif; writing-mode: vertical-rl; transform: rotate(7deg); }
+.art-label { position: absolute; left: 0; top: 58px; font-size: 10px; color: var(--t-zinc-500); writing-mode: vertical-rl; letter-spacing: .13em; }
+.lobby-facts { display: flex; gap: 16px; font-size: 12px; color: var(--t-zinc-400); }
+.lobby-facts span + span { padding-left: 16px; border-left: 1px solid var(--t-hairline); }
+.play-panel { padding: 32px; border: 1px solid var(--t-hairline); border-radius: 20px; background: var(--t-zinc-900); box-shadow: var(--s-xl); }
+.play-panel > .eyebrow { color: var(--t-gold); font-size: 10px; }
+.play-panel h2 { margin-top: 12px; font-size: 23px; letter-spacing: -.055em; font-weight: 700; }
+.panel-description { margin-top: 8px; margin-bottom: 30px; color: var(--t-zinc-400); font-size: 13px; }
+.field-label { display: flex; gap: 7px; align-items: center; margin-bottom: 9px; font-size: 13px; font-weight: 600; }
+.field-label > span, .room-options summary > span { font-size: 11px; font-weight: 400; color: var(--t-zinc-500); }
+.lobby-input { width: 100%; height: 48px; padding: 0 14px; border: 1px solid var(--t-hairline); border-radius: 8px; background: var(--t-bg); color: var(--t-fg); font-size: 14px; }
+.lobby-input::placeholder { color: var(--t-zinc-500); }
+.room-options { padding: 17px 0 23px; font-size: 12px; color: var(--t-zinc-400); }
+.room-options summary > span { float: right; }
+.primary-action, .secondary-action { display: flex; width: 100%; min-height: 49px; align-items: center; justify-content: space-between; padding: 12px 17px; border-radius: 8px; font-size: 14px; font-weight: 700; transition: background .15s, transform .15s; }
+.primary-action { background: var(--t-gold); color: var(--on-gold); }
+.primary-action:hover { background: var(--t-gold-deep); }
+.primary-action:disabled { opacity: .5; cursor: wait; }
+.secondary-action { border: 1px solid var(--t-hairline); color: var(--t-fg); }
+.secondary-action:hover { background: var(--t-zinc-800); }
+.panel-divider { display: flex; align-items: center; gap: 12px; margin: 25px 0 17px; font-size: 10px; color: var(--t-zinc-500); }
+.panel-divider::before, .panel-divider::after { content: ""; flex: 1; height: 1px; background: var(--t-hairline); }
+.panel-note { margin-top: 18px; text-align: center; font-size: 11px; color: var(--t-zinc-500); }
+.learn-strip { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; border-top: 1px solid var(--t-hairline); border-bottom: 1px solid var(--t-hairline); padding: 28px 0; gap: 30px; }
+.learn-strip > div > p { margin-top: 7px; font-size: 15px; font-weight: 500; }
+.learn-strip > a { display: flex; align-items: center; gap: 16px; padding: 8px 0 8px 25px; border-left: 1px solid var(--t-hairline); }
+.learn-strip > a > span { color: var(--t-zinc-500); font: 11px var(--tf-mono); }
+.learn-strip > a > span:last-child { margin-left: auto; font-size: 18px; }
+.learn-strip strong { font-size: 14px; font-weight: 600; }
+.learn-strip a p { margin-top: 4px; color: var(--t-zinc-500); font-size: 12px; }
+.learn-strip a:hover strong { color: var(--t-gold); }
+.lobby-footer { display: flex; justify-content: space-between; gap: 20px; padding: 28px 0; color: var(--t-zinc-500); font-size: 11px; }
+.lobby-footer nav { display: flex; gap: 22px; }
+
+@media (max-width: 900px) {
+  .lobby-shell { padding: 0 24px; }
+  .lobby-content { gap: 32px; grid-template-columns: 1fr 360px; }
+  .play-panel { padding: 26px; }
+  .hero-card-back { left: 60px; }
+  .hero-card-front { left: 150px; }
+  .art-stamp { left: 270px; }
+  .card-orbit { left: 0; width: 310px; }
+  .brand-caption { display: none; }
+  .header-links { gap: 20px; }
+  .learn-strip { gap: 16px; }
+}
+@media (max-width: 680px) {
+  .lobby-shell { padding: 0 22px; }
+  .lobby-header { min-height: 77px; gap: 20px; }
+  .header-links { margin-left: auto; font-size: 12px; gap: 18px; }
+  .header-links a:last-child { display: none; }
+  .lobby-header > div { margin-left: 0; }
+  .lobby-content { display: flex; flex-direction: column; align-items: stretch; padding: 32px 0; gap: 28px; }
+  .lobby-intro { position: relative; }
+  .lobby-intro h1 { font-size: 43px; margin: 17px 0; }
+  .lobby-description { font-size: 13px; }
+  .lobby-card-art { position: absolute; width: 108px; height: 115px; right: 0; top: 120px; pointer-events: none; }
+  .lobby-description { max-width: calc(100% - 112px); }
+  .hero-card { width: 44px; height: 76px; border-width: 2px; }
+  .hero-card-back { left: 8px; top: 4px; }
+  .hero-card-front { left: 50px; top: 17px; }
+  .art-stamp, .art-label, .card-orbit { display: none; }
+  .lobby-facts { font-size: 10px; gap: 12px; margin-top: 22px; }
+  .lobby-facts span + span { padding-left: 12px; }
+  .play-panel { padding: 25px; box-shadow: none; }
+  .play-panel h2 { font-size: 22px; }
+  .learn-strip { grid-template-columns: 1fr; gap: 16px; padding: 26px 0; }
+  .learn-strip > a { border-left: 0; border-top: 1px solid var(--t-hairline); padding: 18px 0 0; }
+  .lobby-footer { flex-direction: column; gap: 12px; padding: 24px 0; }
+}
+@media (max-width: 370px) {
+  .lobby-intro h1 { font-size: 38px; }
+  .lobby-card-art { right: -15px; transform: scale(.8); transform-origin: right center; }
+  .header-links { gap: 12px; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  html.theme-fading,
-  html.theme-fading *,
-  html.theme-fading *::before,
-  html.theme-fading *::after {
-    transition: none !important;
-  }
+.site-header { display: flex; align-items: center; gap: 30px; width: min(1112px, calc(100% - 44px)); min-height: 84px; margin: 0 auto; border-bottom: 1px solid var(--t-hairline); }
+.site-header nav { display: flex; gap: 24px; margin-left: auto; font-size: 13px; color: var(--t-zinc-400); }
+.site-header a:hover { color: var(--t-gold); }
+.site-shell main { min-height: calc(100dvh - 84px); }
+.site-shell main h1 { letter-spacing: -.055em; font-family: var(--font-pretendard); font-weight: 700; }
+.site-shell main h2 { letter-spacing: -.035em; }
+.site-shell main p { text-wrap: pretty; }
+.rooms-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 34px; }
+.rooms-heading h1 { margin: 10px 0; font-size: 34px; font-weight: 700; }
+.rooms-heading p:last-child { font-size: 14px; color: var(--t-zinc-400); }
+.rooms-heading .primary-action { gap: 28px; flex-shrink: 0; }
+.rooms-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; font-size: 13px; color: var(--t-zinc-400); }
+.rooms-toolbar strong { margin-left: 6px; color: var(--t-gold); }
+.rooms-toolbar > span:last-child { font-size: 11px; color: var(--t-zinc-500); }
+.rooms-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 22px; min-height: 280px; border: 1px solid var(--t-hairline); background: var(--t-zinc-950); border-radius: 16px; }
+.room-tile { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 22px; border: 1px solid var(--t-hairline); border-radius: 12px; background: var(--t-white); text-align: left; }
+.room-tile:hover { border-color: var(--t-gold); }
+.room-tile:disabled { opacity: .5; cursor: not-allowed; }
+.game-shell { width: min(1600px, 100%); margin: 0 auto; }
+.game-shell > div > header { border-bottom: 1px solid var(--t-hairline); padding-bottom: 12px; }
+.waiting-lounge, .waiting-shell .game-actions { width: min(760px, 100%); margin-inline: auto; }
+.waiting-heading { margin-bottom: 20px; }
+.waiting-heading h2 { font-size: clamp(23px, 3vw, 32px); font-weight: 650; letter-spacing: -.05em; margin: 10px 0; }
+.waiting-heading > p:last-child { font-size: 13px; color: var(--t-zinc-400); }
+.waiting-shell .game-actions { border-top: 1px solid var(--t-hairline); margin-top: 16px; padding-top: 16px; }
+.table-felt { border-radius: 24px; box-shadow: inset 0 0 70px #00000010; }
+@media (max-width: 680px) {
+  .site-header { gap: 16px; min-height: 77px; }
+  .site-header nav { gap: 14px; font-size: 12px; }
+  .site-header nav a:last-child { display: none; }
+  .rooms-heading { align-items: flex-start; flex-direction: column; gap: 18px; }
+  .rooms-heading h1 { font-size: 29px; }
+  .rooms-grid { grid-template-columns: 1fr; padding: 14px; }
+  .waiting-heading { margin-bottom: 8px; }
+  .waiting-heading h2 { font-size: 24px; }
+  .waiting-shell .game-actions { margin-top: 8px; padding-top: 8px; }
+}
+
+/* Text on solid action surfaces must not inherit the theme's canvas color. */
+.bg-felt\/90 { color: var(--on-felt); }
+.game-shell .bg-felt:hover { color: var(--on-felt); background: var(--t-felt); }
+.game-shell h1 { font-family: var(--font-pretendard); font-size: 23px; }
+.betting-actions button { min-height: 54px; border-radius: 10px; font-size: 14px; line-height: 1.4; padding: 10px 18px; font-weight: 600; }
+.game-actions > button { border-radius: 10px; }
+.card-back { background: repeating-linear-gradient(45deg, transparent 0 5px, #ffffff05 5px 6px), var(--t-zinc-900); }
+.card-back span { color: var(--t-zinc-400); font-family: serif; font-size: 21px; }
+@media (max-width: 680px) {
+  .betting-actions button { padding: 10px 8px; }
 }

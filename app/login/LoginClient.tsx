@@ -86,12 +86,12 @@ export function LoginClient({ initialError }: { initialError?: string }) {
         </Link>
 
         <h1 className="mb-2 font-serif text-[32px] font-black tracking-tight text-black">
-          로그인
+          이어지는 한 판
         </h1>
 
         <p className="mb-6 text-[14.5px] leading-relaxed text-zinc-300">
-          로그인하면 칩과 랭킹 기록이 계정에 저장돼요. 로그인 없이도 게스트로
-          바로 플레이할 수 있어요.
+          칩과 기록을 남기고 싶다면 로그인하세요.
+          가볍게 즐기고 싶다면 게스트로 시작해도 좋아요.
         </p>
 
         <section className="flex flex-col gap-2 rounded-2xl border border-hairline bg-zinc-900/70 p-5">
@@ -116,6 +116,7 @@ export function LoginClient({ initialError }: { initialError?: string }) {
           </a>
         </section>
 
+        <Link href="/" className="mt-5 block py-3 text-center text-sm text-zinc-400 underline underline-offset-4">게스트로 시작하기</Link>
         {error && (
           <p className="animate-fade-up mt-4 rounded-xl border border-crimson/40 bg-crimson/10 p-3 text-center text-[15px] font-medium text-crimson-bright">
             {error}

@@ -19,7 +19,7 @@ interface HamburgerMenuProps {
 const ITEM_CLASS =
   "flex h-11 w-full items-center justify-between rounded-xl px-3 text-left text-[15.5px] font-semibold text-zinc-100 transition hover:bg-zinc-800";
 
-// 로비 우측 상단 햄버거 메뉴 — 로그인(프로필), 랭킹, 설정, 다크/화이트 전환을 한곳에 모은다.
+// Shared account, settings and three-theme menu.
 export function HamburgerMenu({
   userName,
   onOpenProfile,
@@ -32,14 +32,8 @@ export function HamburgerMenu({
   const open = view !== "closed";
   const setOpen = (next: boolean) => setView(next ? "menu" : "closed");
   const rootRef = useRef<HTMLDivElement>(null);
-  const { looksLight, toggle, theme, setTheme } = useThemeMode();
+  const { theme, setTheme } = useThemeMode();
   const themeLabel = THEMES.find((item) => item.id === theme)?.label ?? "";
-
-  // 메뉴에 테마 전환이 있으므로 떠 있는 전환 버튼은 숨긴다(ThemeToggle 참고).
-  useEffect(() => {
-    document.documentElement.classList.add("has-menu-theme");
-    return () => document.documentElement.classList.remove("has-menu-theme");
-  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -187,17 +181,6 @@ export function HamburgerMenu({
           </span>
         </button>
 
-        <button
-          type="button"
-          role="menuitem"
-          onClick={toggle}
-          className={ITEM_CLASS}
-        >
-          <span>{looksLight ? "다크 모드" : "화이트 모드"}</span>
-          <span aria-hidden="true" className="text-[17px]">
-            {looksLight ? "🌙" : "☀️"}
-          </span>
-        </button>
       </div>
 
       {/* 설정 뷰포트 — 햄버거 버튼 바로 아래에 펼쳐진다. */}
@@ -247,31 +230,20 @@ export function HamburgerMenu({
             ‹
           </button>
           <h3 className="text-[17px] font-bold">테마</h3>
-          <button
-            type="button"
-            onClick={toggle}
-            className="ml-auto flex h-8 items-center gap-1.5 rounded-full border border-hairline px-3 text-[13px] font-semibold text-zinc-200 transition hover:bg-zinc-800"
-          >
-            <span aria-hidden="true">{looksLight ? "🌙" : "☀️"}</span>
-            {looksLight ? "다크" : "화이트"}
-          </button>
         </div>
 
-        <ul role="radiogroup" aria-label="테마" className="overflow-y-auto p-1.5">
+        <ul aria-label="테마" className="overflow-y-auto p-1.5">
           {THEMES.map((item) => {
             const selected = item.id === theme;
 
             return (
               <li key={item.id}>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  onClick={() => setTheme(item.id)}
-                  className={`flex h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-[15px] font-semibold transition hover:bg-zinc-800 ${
+                <label
+                  className={`flex min-h-18 w-full items-center gap-3 rounded-xl px-3 cursor-pointer text-left text-[15px] font-semibold transition focus-within:ring-2 focus-within:ring-gold hover:bg-zinc-800 ${
                     selected ? "bg-zinc-800 text-zinc-100" : "text-zinc-200"
                   }`}
                 >
+                  <input type="radio" name="site-theme" value={item.id} checked={selected} onChange={() => setTheme(item.id)} className="sr-only" />
                   <span className="flex shrink-0 -space-x-1" aria-hidden="true">
                     {item.swatch.map((color, index) => (
                       <span
@@ -281,9 +253,9 @@ export function HamburgerMenu({
                       />
                     ))}
                   </span>
-                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                  <span className="min-w-0 flex-1"><span className="block">{item.label}</span><span className="mt-1 block text-xs font-normal text-zinc-400">{item.description}</span></span>
                   {selected && <span aria-hidden="true">✓</span>}
-                </button>
+                </label>
               </li>
             );
           })}

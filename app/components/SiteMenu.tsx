@@ -1,19 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useAuth } from "@/lib/useAuth";
 import { HamburgerMenu } from "./HamburgerMenu";
 
-// 로비가 아닌 안내·가이드·랭킹 같은 페이지 우측 상단의 햄버거 메뉴.
-// 부모(레이아웃)가 relative 여야 한다.
 export function SiteMenu() {
   const user = useAuth();
-
   return (
-    <div className="absolute top-4 right-4 z-30 sm:right-6">
-      <HamburgerMenu
-        userName={user ? (user.displayName ?? "플레이어") : null}
-        showHome
-      />
-    </div>
+    <header className="site-header">
+      <Link href="/" className="brand" aria-label="섯다 홈"><span className="brand-mark" aria-hidden="true">花</span> 섯다</Link>
+      <nav aria-label="주요 메뉴"><Link href="/rooms">방 찾기</Link><Link href="/rules">족보와 규칙</Link><Link href="/guide">가이드</Link></nav>
+      <HamburgerMenu userName={user ? (user.displayName ?? "플레이어") : null} showHome />
+    </header>
   );
 }

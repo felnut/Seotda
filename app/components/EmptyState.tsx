@@ -8,7 +8,7 @@ export function EmptyState({
   subtitle?: string;
 }) {
   return (
-    <div className="animate-fade-up flex flex-1 flex-col items-center justify-center gap-3 py-10 text-center">
+    <div className="col-span-full animate-fade-up flex flex-1 flex-col items-center justify-center gap-3 py-10 text-center">
       <svg
         width="72"
         height="58"
@@ -24,8 +24,8 @@ export function EmptyState({
           height="46"
           rx="6"
           transform="rotate(-10 6 10)"
-          fill="#ffffff"
-          stroke="#0066ff"
+          fill="var(--t-white)"
+          stroke="var(--t-gold)"
           strokeOpacity="0.35"
           strokeWidth="1.5"
         />
@@ -36,13 +36,13 @@ export function EmptyState({
           height="46"
           rx="6"
           transform="rotate(8 32 6)"
-          fill="#f3f3f3"
-          stroke="#0066ff"
+          fill="var(--t-zinc-800)"
+          stroke="var(--t-gold)"
           strokeOpacity="0.55"
           strokeWidth="1.5"
         />
-        <circle cx="49" cy="27" r="7" fill="#0066ff" fillOpacity="0.18" />
-        <circle cx="49" cy="27" r="2.5" fill="#141414" fillOpacity="0.7" />
+        <circle cx="49" cy="27" r="7" fill="var(--t-gold)" fillOpacity="0.18" />
+        <circle cx="49" cy="27" r="2.5" fill="var(--t-black)" fillOpacity="0.7" />
       </svg>
 
       <p className="text-[15.5px] font-semibold text-zinc-300">{title}</p>

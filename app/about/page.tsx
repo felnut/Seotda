@@ -38,183 +38,28 @@ export default function AboutPage() {
       />
 
       <div className="mx-auto flex w-full max-w-2xl flex-col">
-      <Link
-        href="/"
-        className="mb-6 inline-block w-fit text-[13.5px] text-zinc-500 hover:text-zinc-300"
-      >
-        ← 메인으로
-      </Link>
-
-      <h1 className="mb-6 flex flex-col gap-1">
-        <span className="font-serif text-[28px] font-black tracking-tight text-black sm:text-[32px]">
-          섯다란?
-        </span>
-
-        <span className="text-[15px] font-normal text-zinc-500">
-          친구와 온라인으로 즐기는 전통 카드 게임 소개
-        </span>
-      </h1>
-
-      <p className="mb-4 text-[14.5px] leading-relaxed text-zinc-400">
-        이 사이트는 친구와 온라인으로 즐기는 전통 카드 게임, 섯다를 다룹니다.
-        섯다는 화투 카드 20장 중 2장(경우에 따라 3장)만으로 승부를 겨루는 한국의
-        전통 카드 게임으로, 두 장의 카드가 이루는 월(月) 숫자 조합, 즉 족보의
-        높낮이를 겨룹니다. 광땡·알리·독사· 구사 같은 특수 족보가 나오면 판의
-        흐름이 순식간에 뒤바뀌는 것이 이 게임의 가장 큰 매력입니다.
-      </p>
-
-      <p className="mb-8 text-[14.5px] leading-relaxed text-zinc-400">
-        명절에 온 가족이 둘러앉아 즐기던 놀이를 이제는 브라우저만 있으면 언제
-        어디서나, 멀리 있는 친구와도 함께 즐길 수 있습니다. 방을 하나 만들어 방
-        이름만 알려주면 곧바로 접속할 수 있고, 인원이 둘뿐이어도 AI를 채워 바로
-        대전을 시작할 수 있어 별도의 설치나 준비 없이 바로 즐기는 전통 카드
-        게임을 경험할 수 있습니다.
-      </p>
-
-      <h2 className="mb-2 text-[18px] font-bold text-zinc-200">주요 기능</h2>
-
-      <ul className="mb-8 list-disc space-y-1.5 pl-5 text-[14.5px] leading-relaxed text-zinc-400">
-        <li>
-          실시간 멀티플레이 — 지연 없는 실시간 통신으로 베팅과 카드 공개가
-          바로바로 반영됩니다.
-        </li>
-        <li>
-          친구와 함께 — 비밀번호를 걸어 나만의 방을 만들고, 방 이름만 공유하면
-          친구를 초대할 수 있습니다.
-        </li>
-        <li>
-          AI 상대 — 인원이 부족해도 AI 플레이어를 채워 곧바로 게임을 시작할 수
-          있습니다.
-        </li>
-        <li>
-          구글 로그인과 랭킹 — 로그인하면 보유 칩이 계정에 저장되고, 랭킹에서
-          다른 플레이어들과 순위를 겨룰 수 있습니다.
-        </li>
-        <li>
-          실시간 채팅과 이모티콘 — 게임 도중에도 대화를 나누며 분위기를 즐길 수
-          있습니다.
-        </li>
-        <li>
-          족보 가이드 — 헷갈리기 쉬운 광땡·알리·독사·구사 같은 족보를 게임
-          화면과{" "}
-          <Link
-            href="/rules"
-            className="text-black underline underline-offset-2 hover:text-black"
-          >
-            족보 가이드 페이지
-          </Link>
-          에서 바로 확인할 수 있습니다.
-        </li>
-      </ul>
-
-      <h2 className="mb-2 text-[18px] font-bold text-zinc-200">
-        시작하는 방법
-      </h2>
-
-      <ol className="mb-8 list-decimal space-y-1.5 pl-5 text-[14.5px] leading-relaxed text-zinc-400">
-        <li>
-          닉네임을 입력합니다. 선택 사항이며, 입력하지 않으면 자동으로 이름이
-          부여됩니다.
-        </li>
-        <li>
-          <Link
-            href="/"
-            className="text-black underline underline-offset-2 hover:text-black"
-          >
-            방 만들기
-          </Link>
-          로 새 게임방을 열거나,{" "}
-          <Link
-            href="/rooms"
-            className="text-black underline underline-offset-2 hover:text-black"
-          >
-            열려 있는 방 목록
-          </Link>
-          에서 이미 열려 있는 방에 참가합니다.
-        </li>
-        <li>2명 이상 모이면 방장이 게임을 시작할 수 있습니다.</li>
-      </ol>
-
-      <h2 className="mb-2 text-[18px] font-bold text-zinc-200">
-        자주 묻는 질문
-      </h2>
-
-      <div className="mb-10 space-y-4">
-        <div>
-          <p className="mb-1 text-[14.5px] font-semibold text-zinc-200">
-            몇 명이서 즐길 수 있나요?
-          </p>
-          <p className="text-[14.5px] leading-relaxed text-zinc-400">
-            한 방에 최소 2명, 최대 6명까지 참가할 수 있습니다. 인원이 모자라면
-            방장이 &ldquo;AI 추가&rdquo; 버튼으로 빈 자리를 채워 혼자서도
-            바로 시작할 수 있습니다.
-          </p>
-        </div>
-
-        <div>
-          <p className="mb-1 text-[14.5px] font-semibold text-zinc-200">
-            실제 돈을 걸어야 하나요?
-          </p>
-          <p className="text-[14.5px] leading-relaxed text-zinc-400">
-            아닙니다. 모든 참가자는 시작 시 10,000칩을 받아 재미로만
-            사용하며, 결제나 환전 기능은 제공하지 않습니다.
-          </p>
-        </div>
-
-        <div>
-          <p className="mb-1 text-[14.5px] font-semibold text-zinc-200">
-            로그인하지 않아도 되나요?
-          </p>
-          <p className="text-[14.5px] leading-relaxed text-zinc-400">
-            네, 닉네임만 입력하면 로그인 없이 바로 참가할 수 있습니다. 다만
-            구글 로그인을 하면 보유 칩이 계정에 저장되고 랭킹에도
-            반영됩니다.
-          </p>
-        </div>
-
-        <div>
-          <p className="mb-1 text-[14.5px] font-semibold text-zinc-200">
-            칩을 다 잃으면 게임이 끝나나요?
-          </p>
-          <p className="text-[14.5px] leading-relaxed text-zinc-400">
-            그 판이 끝나면 관전자로 전환되며, 계속 지켜볼지 방을 나갈지
-            선택할 수 있습니다. 방을 나간 뒤 다시 참가하면 시작 칩을 새로
-            받아 도전할 수 있습니다.
-          </p>
-        </div>
-
-        <div>
-          <p className="mb-1 text-[14.5px] font-semibold text-zinc-200">
-            모바일에서도 할 수 있나요?
-          </p>
-          <p className="text-[14.5px] leading-relaxed text-zinc-400">
-            네, 별도 앱 설치 없이 모바일 브라우저에서도 PC와 동일하게
-            즐길 수 있습니다.
-          </p>
-        </div>
+        <Link href="/" className="mb-8 w-fit text-sm text-zinc-400">← 로비로</Link>
+        <p className="eyebrow">우리의 테이블</p>
+        <h1 className="my-5 text-4xl font-bold tracking-tight">멀리 있어도,<br />한 테이블에 둘러앉듯.</h1>
+        <p className="mb-10 text-base leading-8 text-zinc-400">섯다는 두 장의 화투로 승부를 겨루는 카드 게임이에요.
+          좋은 패를 기다리는 설렘도, 상대의 선택을 읽는 재미도 친구와 함께 나눠보세요.</p>
+        <section className="mb-10 border-y border-hairline py-7">
+          <h2 className="mb-5 text-xl font-bold">시작은 간단해요</h2>
+          <ol className="space-y-5 text-sm text-zinc-400">
+            <li><strong className="mr-3 text-gold">01</strong> 방을 만들고, 친구에게 방 이름을 알려주세요.</li>
+            <li><strong className="mr-3 text-gold">02</strong> 2–6명이 모이면 준비 완료. 혼자라면 AI를 추가하세요.</li>
+            <li><strong className="mr-3 text-gold">03</strong> 모두 준비되면 방장이 게임을 시작해요.</li>
+          </ol>
+        </section>
+        <section className="mb-10 space-y-6">
+          <h2 className="text-xl font-bold">궁금한 점이 있나요?</h2>
+          <details className="border-b border-hairline pb-5" open><summary className="font-semibold">로그인이 필요한가요?</summary><p className="mt-3 text-sm leading-7 text-zinc-400">게스트로 바로 즐길 수 있어요. 로그인하면 보유 칩과 랭킹 기록이 계정에 저장돼요. AI가 참여한 방은 랭킹에 반영되지 않아요.</p></details>
+          <details className="border-b border-hairline pb-5"><summary className="font-semibold">실제 돈을 사용하나요?</summary><p className="mt-3 text-sm leading-7 text-zinc-400">게임용 칩으로만 플레이해요. 결제나 환전 기능은 없어요.</p></details>
+          <details className="border-b border-hairline pb-5"><summary className="font-semibold">규칙을 몰라도 괜찮을까요?</summary><p className="mt-3 text-sm leading-7 text-zinc-400">AI와 먼저 한 판 연습해보세요. 게임 화면에서 족보를 확인할 수 있고, <Link href="/rules" className="text-gold underline underline-offset-4">족보와 규칙</Link>에도 진행 방법을 정리해두었어요.</p></details>
+          <details className="border-b border-hairline pb-5"><summary className="font-semibold">휴대폰에서도 할 수 있나요?</summary><p className="mt-3 text-sm leading-7 text-zinc-400">별도 설치 없이 휴대폰과 PC 브라우저에서 즐길 수 있어요.</p></details>
+        </section>
+        <Link href="/" className="primary-action">우리만의 방 만들기 <span aria-hidden="true">↗</span></Link>
       </div>
-
-      <p className="mb-10 text-[13.5px] text-zinc-500">
-        섯다의 자세한 규칙과 유래가 궁금하다면{" "}
-        <a
-          href="https://ko.wikipedia.org/wiki/%EC%84%AF%EB%8B%A4"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-black underline underline-offset-2 hover:text-black"
-        >
-          위키백과의 섯다 문서
-        </a>
-        를 참고해보세요.
-      </p>
-
-      <Link
-        href="/rooms"
-        className="w-full rounded-full bg-gold px-6 py-3.5 text-center text-[17.5px] font-semibold text-white transition hover:bg-gold-deep active:scale-[0.98]"
-      >
-        방 찾아 바로 시작하기
-      </Link>
-      </div>
-
     </main>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import Image from "next/image";
 import {
   BankruptcyNotice,
   ChatMessage,
@@ -1178,13 +1179,16 @@ export default function Home() {
    */
   if (!roomId) {
     return (
-      <main className="relative flex min-h-screen flex-col">
+      <main className="lobby-shell">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
 
-        <header className="flex items-center justify-end gap-1.5 px-4 pt-4 sm:gap-2 sm:px-6">
+        <header className="lobby-header">
+          <Link href="/" className="brand" aria-label="섯다 홈"><span className="brand-mark" aria-hidden="true">花</span> 섯다<span className="brand-caption">SEOTDA</span></Link>
+          <nav className="header-links" aria-label="주요 메뉴"><Link href="/rooms">방 찾기</Link><Link href="/rules">족보와 규칙</Link><Link href="/ranking">랭킹</Link></nav>
+          <div className="ml-auto flex items-center gap-3">
           {user && chips !== null && (
             <span className="flex h-10 shrink-0 items-center whitespace-nowrap rounded-xl border border-hairline bg-gold/10 px-3 font-mono sm:px-4 text-[15px] font-semibold tabular-nums text-black">
               칩 {chips.toLocaleString()}
@@ -1211,109 +1215,55 @@ export default function Home() {
               />
             }
           />
+          </div>
         </header>
 
-        <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 pt-4 pb-8 xl:flex-row">
-          <div className="flex w-full max-w-md flex-col items-center">
-            <h1 className="mb-6 text-center">
-              <span className="block font-serif text-[52px] leading-none font-black tracking-tight text-black">
-                섯다
-              </span>
-              <span className="mt-3 block text-[19px] font-semibold text-zinc-100">
-                친구와 온라인으로 즐기는 전통 카드 게임
-              </span>
-            </h1>
+        <div className="lobby-content">
+          <section className="lobby-intro" aria-labelledby="lobby-title">
+            <p className="eyebrow"><span /> 친구와 마주 앉는 카드 테이블</p>
+            <h1 id="lobby-title">가볍게 모여,<br />진하게 한 판<span className="text-gold">.</span></h1>
+            <p className="lobby-description">두 장의 패, 한 번의 선택.<br />친구와 함께, 어디서든.</p>
+            <div className="lobby-card-art" aria-hidden="true">
+              <span className="card-orbit" />
+              <span className="art-label">좋은 패보다, 좋은 사람들과.</span>
+              <Image className="hero-card hero-card-back" src="/card/1-light.png" alt="" width={135} height={220} priority />
+              <Image className="hero-card hero-card-front" src="/card/3-light.png" alt="" width={135} height={220} priority />
+              <span className="art-stamp">一局</span>
+            </div>
+            <div className="lobby-facts"><span>2–6명 함께</span><span>설치 없이 바로</span><span>혼자라면 AI와</span></div>
+          </section>
 
-            {/* 닉네임 → 방 정보 → 시작 버튼 순서로 한 카드 안에 이어 붙여,
-              "무엇을 어떤 순서로 하면 되는지"가 한눈에 보이게 한다. */}
-            <section className="animate-fade-up w-full rounded-2xl border border-hairline bg-zinc-900/70 p-5 sm:p-6">
-              <label
-                htmlFor="lobby-nickname"
-                className="mb-1.5 block pl-[17px] text-[14px] font-semibold text-zinc-200"
-              >
-                닉네임
-              </label>
-
-              <input
-                id="lobby-nickname"
-                value={displayName}
-                onChange={(event) => {
-                  setDisplayName(event.target.value);
-                  saveNickname(event.target.value.trim());
-                }}
-                placeholder="비워두면 기본 이름이 부여돼요"
-                maxLength={13}
-                className="mb-4 h-12 w-full rounded-lg border border-hairline bg-white px-4 text-[16px] text-black outline-none transition placeholder:text-zinc-500 focus:border-black focus:ring-2 focus:ring-black/10"
-              />
-
-              <div className="mb-4 grid grid-cols-2 gap-2">
-                <input
-                  value={createRoomName}
-                  onChange={(event) => setCreateRoomName(event.target.value)}
-                  placeholder="방 이름 (선택)"
-                  aria-label="방 이름"
-                  maxLength={20}
-                  className="h-12 w-full rounded-lg border border-hairline bg-white px-4 text-[15px] text-black outline-none transition placeholder:text-zinc-500 focus:border-black focus:ring-2 focus:ring-black/10"
-                />
-
-                <input
-                  value={createPassword}
-                  onChange={(event) => setCreatePassword(event.target.value)}
-                  placeholder="비밀번호 (선택)"
-                  aria-label="비밀번호"
-                  maxLength={20}
-                  className="h-12 w-full rounded-lg border border-hairline bg-white px-4 text-[15px] text-black outline-none transition placeholder:text-zinc-500 focus:border-black focus:ring-2 focus:ring-black/10"
-                />
-              </div>
-
-              {/* 7. 방 만들기 */}
-              <button
-                type="button"
-                onClick={createRoom}
-                disabled={isSubmittingRoom}
-                className="h-14 w-full rounded-full bg-gold text-[18px] font-bold text-white transition hover:bg-gold-deep active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isSubmittingRoom ? "만드는 중..." : "▶ 방 만들고 시작하기"}
-              </button>
-
-              {/* 8. 방 찾기 */}
-              <Link
-                href="/rooms"
-                className="mt-2 flex h-12 w-full items-center justify-center rounded-full border border-black bg-white text-[16px] font-semibold text-zinc-100 transition hover:bg-zinc-950 active:scale-[0.98]"
-              >
-                열린 방에 참가하기
-              </Link>
-            </section>
-
-            {error && (
-              <p className="animate-fade-up mt-4 w-full rounded-xl border border-crimson/40 bg-crimson/10 p-3 text-center text-[16px] font-medium text-crimson-bright">
-                {error}
-              </p>
-            )}
-
-            <nav className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-0 text-[13.5px] text-zinc-400">
-              <Link href="/about" className="py-2.5 hover:text-zinc-100">
-                섯다란?
-              </Link>
-              <Link href="/guide" className="py-2.5 hover:text-zinc-100">
-                가이드
-              </Link>
-              <Link href="/rules" className="py-2.5 hover:text-zinc-100">
-                게임 규칙
-              </Link>
-              <Link href="/privacy" className="py-2.5 hover:text-zinc-100">
-                개인정보처리방침
-              </Link>
-              <Link href="/terms" className="py-2.5 hover:text-zinc-100">
-                이용약관
-              </Link>
-            </nav>
-          </div>
+          <section className="play-panel" aria-labelledby="play-title">
+            <p className="eyebrow">LET’S PLAY</p>
+            <h2 id="play-title">지금 한 판 시작할까요?</h2>
+            <p className="panel-description">로그인 없이도 바로 시작할 수 있어요.</p>
+            <form onSubmit={(event) => { event.preventDefault(); createRoom(); }}>
+              <label htmlFor="lobby-nickname" className="field-label">닉네임 <span>선택</span></label>
+              <input id="lobby-nickname" value={displayName} onChange={(event) => { setDisplayName(event.target.value); saveNickname(event.target.value.trim()); }} placeholder="어떤 이름으로 만날까요?" maxLength={13} className="lobby-input" autoComplete="nickname" />
+              <details className="room-options">
+                <summary>방 이름 · 비밀번호 설정 <span>선택</span></summary>
+                <div className="space-y-3 pt-4">
+                  <label className="field-label" htmlFor="room-name">방 이름</label>
+                  <input id="room-name" value={createRoomName} onChange={(event) => setCreateRoomName(event.target.value)} placeholder="예: 퇴근 후 한 판" maxLength={20} className="lobby-input" />
+                  <label className="field-label" htmlFor="room-password">비밀번호</label>
+                  <input id="room-password" type="password" value={createPassword} onChange={(event) => setCreatePassword(event.target.value)} placeholder="친구끼리만 즐기고 싶을 때" maxLength={20} autoComplete="new-password" className="lobby-input" />
+                </div>
+              </details>
+              <button type="submit" disabled={isSubmittingRoom} className="primary-action">{isSubmittingRoom ? "방을 열고 있어요…" : "새 방 만들기"}<span aria-hidden="true">↗</span></button>
+            </form>
+            {error && <p role="alert" className="mt-3 rounded-lg bg-crimson/10 p-3 text-sm text-crimson-bright">{error}</p>}
+            <div className="panel-divider"><span>이미 열린 방이 있다면</span></div>
+            <Link href="/rooms" className="secondary-action">참가할 방 찾기 <span aria-hidden="true">→</span></Link>
+            <p className="panel-note">방을 만든 뒤 친구를 기다리거나 AI를 추가하세요.</p>
+          </section>
         </div>
 
-        <p className="pb-6 text-center text-[13.5px] text-zinc-500">
-          © {new Date().getFullYear()} 섯다
-        </p>
+        <nav className="learn-strip" aria-label="게임 알아보기">
+          <div><span className="eyebrow">처음이어도 괜찮아요</span><p>한 판이면 익숙해질 거예요.</p></div>
+          <Link href="/rules"><span>01</span><div><strong>족보와 규칙</strong><p>광땡부터 망통까지, 한눈에.</p></div><span aria-hidden="true">↗</span></Link>
+          <Link href="/guide"><span>02</span><div><strong>플레이 가이드</strong><p>베팅이 고민될 때 꺼내 보세요.</p></div><span aria-hidden="true">↗</span></Link>
+        </nav>
+        <footer className="lobby-footer"><span>© {new Date().getFullYear()} 섯다</span><nav aria-label="사이트 안내"><Link href="/about">서비스 소개</Link><Link href="/privacy">개인정보처리방침</Link><Link href="/terms">이용약관</Link></nav></footer>
 
         {user && (
           <ProfilePanel

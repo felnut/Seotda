@@ -40,13 +40,12 @@ export default function GuideIndexPage() {
       </Link>
 
       <h1 className="mb-2 font-serif text-[28px] font-black tracking-tight text-black sm:text-[32px]">
-        섯다 가이드
+        한 판이 쉬워지는 가이드
       </h1>
 
       <p className="mb-8 text-[14.5px] leading-relaxed text-zinc-400">
-        처음 시작하는 분도, 이미 몇 판 해 본 분도 참고할 수 있도록 섯다의
-        규칙과 족보, 베팅, 확률, 전략을 글로 정리했습니다. 이 사이트에서
-        진행되는 실제 규칙을 기준으로 썼습니다.
+        처음이라면 기본 규칙부터. 익숙해졌다면 베팅과 확률까지.
+        지금 궁금한 내용을 골라 읽어보세요.
       </p>
 
       <ul className="flex flex-col gap-3">
@@ -72,7 +71,7 @@ export default function GuideIndexPage() {
         href="/rooms"
         className="mt-10 w-full rounded-full bg-gold px-6 py-3.5 text-center text-[17.5px] font-semibold text-white transition hover:bg-gold-deep active:scale-[0.98]"
       >
-        읽었다면, 방 찾아 바로 시작하기
+        이제 한 판 즐기러 가기
       </Link>
     </main>
   );
