@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { CARDS } from "@/lib/seotda/cards";
 import { HandRankings } from "@/app/components/HandRankings";
 import { HAND_GUIDE, SPECIAL_HAND_GUIDE } from "@/lib/seotda/handGuide";
 import { buildJsonLd } from "@/lib/seo/structuredData";
@@ -37,7 +38,7 @@ function MiniCard({ cardId, alt }: { cardId: string; alt: string }) {
     <div className="relative h-16 w-10.5 shrink-0 overflow-hidden rounded-md border border-hairline">
       <Image
         src={`/card/${cardId}.png`}
-        alt={alt}
+        alt={`${alt}: ${CARDS.find((card) => card.id === cardId)?.name ?? cardId} 카드`}
         fill
         sizes="42px"
         className="object-cover"
@@ -82,39 +83,13 @@ export default function RulesPage() {
             게임은 이렇게 진행됩니다
           </h2>
 
-          <ol className="space-y-2 text-[14.5px] leading-relaxed text-zinc-400">
-            <li>
-              <span className="font-semibold text-zinc-200">
-                1. 시작금(앤티) 징수
-              </span>{" "}
-              — 참가자 전원이 100칩씩 자동으로 판돈에 냅니다.
-            </li>
-            <li>
-              <span className="font-semibold text-zinc-200">2. 카드 배분</span>{" "}
-              — 화투 카드 2장을 받아 자신만 확인합니다.
-            </li>
-            <li>
-              <span className="font-semibold text-zinc-200">3. 1차 베팅</span> —
-              체크·콜·하프/쿼터/더블·올인·다이 중 하나를 골라 판을 키우거나
-              접습니다.
-            </li>
-            <li>
-              <span className="font-semibold text-zinc-200">
-                4. 3번째 카드 & 공개
-              </span>{" "}
-              — 한 장을 더 받아 3장이 되고, 그중 한 장을 상대에게 공개합니다.
-            </li>
-            <li>
-              <span className="font-semibold text-zinc-200">5. 2차 베팅</span> —
-              공개된 카드를 참고해 다시 한 번 베팅합니다.
-            </li>
-            <li>
-              <span className="font-semibold text-zinc-200">
-                6. 족보 선택 &amp; 쇼다운
-              </span>{" "}
-              — 3장 중 최종 족보로 쓸 2장을 스스로 고르면, 남은 참가자끼리
-              족보를 비교해 승자가 판돈을 가져갑니다.
-            </li>
+          <ol className="game-flow" role="list">
+            <li><h3>앤티</h3><p>모두 100칩씩 판돈에 내요.</p></li>
+            <li><h3>카드 배분</h3><p>나만 볼 수 있는 카드 2장을 받아요.</p></li>
+            <li><h3>1차 베팅</h3><p>패를 보고 베팅하거나 다이를 선택해요.</p></li>
+            <li><h3>세 번째 카드</h3><p>한 장을 더 받고, 3장 중 한 장을 공개해요.</p></li>
+            <li><h3>2차 베팅</h3><p>공개된 패를 참고해 한 번 더 베팅해요.</p></li>
+            <li><h3>족보 선택·쇼다운</h3><p>3장 중 2장을 고르면, 족보를 비교해 판돈을 나눠요.</p></li>
           </ol>
         </section>
 

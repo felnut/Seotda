@@ -123,8 +123,7 @@ export function RoomsPageClient() {
       <div className="rooms-grid">
         {roomList.length === 0 && (
           <div className="col-span-full flex flex-col items-center justify-center pb-6">
-            <EmptyState title="아직 열린 테이블이 없어요" subtitle="첫 번째 방을 열어보세요. 혼자라면 AI와 시작할 수 있어요." />
-            <Link href="/" className="primary-action w-auto! gap-8">새 방 만들기 <span aria-hidden="true">＋</span></Link>
+            <EmptyState title="아직 열린 테이블이 없어요" subtitle="위의 ‘새 방 만들기’로 첫 테이블을 열어보세요. 로비에서 AI와 혼자 시작할 수도 있어요." />
           </div>
         )}
 

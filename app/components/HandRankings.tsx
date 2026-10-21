@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { CARDS } from "@/lib/seotda/cards";
 import { HAND_GUIDE } from "@/lib/seotda/handGuide";
 
 export function HandRankings() {
@@ -19,7 +20,7 @@ export function HandRankings() {
           <li key={entry.name} value={entry.rank} className="flex items-center gap-3 rounded-lg border border-hairline bg-zinc-950 p-3">
             <span className="w-5 shrink-0 text-center text-sm text-zinc-400" aria-label={`${entry.rank}위`}>{entry.rank}</span>
             <div className="flex shrink-0 gap-1">
-              {entry.cardIds.map((id) => <Image key={id} src={`/card/${id}.png`} alt="" width={32} height={49} className="rounded-sm object-cover" />)}
+              {entry.cardIds.map((id) => <Image key={id} src={`/card/${id}.png`} alt={`${entry.name} 조합: ${CARDS.find((card) => card.id === id)?.name ?? id} 카드`} width={32} height={49} className="rounded-sm object-cover" />)}
             </div>
             <div><p className="text-base font-semibold">{entry.name}</p><p className="text-sm text-zinc-400">{entry.months}</p></div>
           </li>

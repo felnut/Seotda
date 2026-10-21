@@ -5,7 +5,7 @@ import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
-const THEME_INIT_SCRIPT = `(function(){try{var d=document.documentElement,ids=${JSON.stringify(THEMES.map((t) => t.id))},t=localStorage.getItem("${THEME_STORAGE_KEY}");d.dataset.theme=ids.indexOf(t)>=0?t:"${DEFAULT_THEME}"}catch(e){document.documentElement.dataset.theme="${DEFAULT_THEME}"}})();`;
+const THEME_INIT_SCRIPT = `(function(){try{var d=document.documentElement,ids=${JSON.stringify(THEMES.map((t) => t.id))},t=localStorage.getItem("${THEME_STORAGE_KEY}");if(localStorage.getItem("seotda-reduce-motion")==="1")d.classList.add("reduce-motion");d.dataset.theme=ids.indexOf(t)>=0?t:"${DEFAULT_THEME}"}catch(e){document.documentElement.dataset.theme="${DEFAULT_THEME}"}})();`;
 
 const ADSENSE_CLIENT_ID = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
 

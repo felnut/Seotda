@@ -55,33 +55,19 @@ export default async function GuideArticlePage({ params }: { params: Params }) {
   });
 
   const index = GUIDE_ARTICLES.findIndex((a) => a.slug === article.slug);
-  const next = GUIDE_ARTICLES[(index + 1) % GUIDE_ARTICLES.length];
+  const next = GUIDE_ARTICLES[index + 1];
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col px-4 py-10 sm:py-14">
+    <main className="guide-article reading-page mx-auto flex min-h-screen w-full max-w-2xl flex-col px-5 py-10 sm:py-14">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <div className="mb-6 flex flex-col items-start text-[13.5px] text-zinc-500">
-        <Link href="/" className="py-1 hover:text-zinc-300">
-          ← 메인으로
-        </Link>
-
-        <Link href="/guide" className="py-1 hover:text-zinc-300">
-          ← 이전으로
-        </Link>
-      </div>
+      <nav className="article-breadcrumb" aria-label="현재 위치"><Link href="/guide">가이드</Link><span aria-hidden="true">/</span><span>{article.title}</span></nav>
 
       <article>
-        <h1 className="mb-2 font-serif text-[26px] leading-snug font-black tracking-tight text-black sm:text-[30px]">
-          {article.title}
-        </h1>
-
-        <p className="mb-8 text-[13px] text-zinc-500">
-          {article.dateModified} 업데이트
-        </p>
+        <header className="article-intro"><p className="eyebrow">0{index + 1} / 03</p><h1>{article.title}</h1><p>{article.summary}</p></header>
 
         {article.body.map((block, i) => {
           if (block.type === "h") {
@@ -123,12 +109,10 @@ export default async function GuideArticlePage({ params }: { params: Params }) {
         })}
       </article>
 
-      <div className="mt-8 flex w-full justify-center">
-        <AdSlot slotId={ADSENSE_ARTICLE_SLOT_ID} width={300} height={250} />
-      </div>
+      {ADSENSE_ARTICLE_SLOT_ID && <div className="mt-8 flex w-full justify-center"><AdSlot slotId={ADSENSE_ARTICLE_SLOT_ID} width={300} height={250} /></div>}
 
       <nav className="mt-10 flex flex-col gap-3">
-        <Link
+        {next && <Link
           href={`/guide/${next.slug}`}
           className="rounded-xl border border-hairline bg-zinc-950 p-4 transition hover:border-zinc-600 hover:bg-zinc-800 active:scale-[0.99]"
         >
@@ -136,13 +120,13 @@ export default async function GuideArticlePage({ params }: { params: Params }) {
           <span className="text-[16px] font-semibold text-zinc-100">
             {next.title}
           </span>
-        </Link>
+        </Link>}
 
         <Link
-          href="/rooms"
-          className="w-full rounded-full bg-gold px-6 py-3.5 text-center text-[17.5px] font-semibold text-white transition hover:bg-gold-deep active:scale-[0.98]"
+          href="/"
+          className="primary-action"
         >
-          방 찾아 바로 시작하기
+          플레이 시작하기
         </Link>
       </nav>
     </main>

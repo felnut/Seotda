@@ -427,13 +427,10 @@ button:not(:disabled), summary { cursor: pointer; }
 .panel-note { font-size: 12px; color: var(--t-zinc-400); }
 .mobile-nav-links { display: none; }
 .header-links { gap: 22px; white-space: nowrap; }
-.first-reads { padding: 24px; border: 1px solid var(--t-hairline); border-radius: 14px; background: var(--t-zinc-900); }
-.rules-nav, .guide-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 32px; }
-.guide-nav { margin-top: 32px; }
-.rules-nav a, .guide-nav a { display: flex; align-items: center; min-height: 44px; padding: 8px 13px; border: 1px solid var(--t-hairline); border-radius: 8px; font-size: 14px; color: var(--t-zinc-300); }
-.rules-nav a:hover, .guide-nav a:hover { border-color: var(--t-gold); color: var(--t-gold); }
-.rules-section, .guide-section { scroll-margin-top: 24px; }
-.guide-section { margin-bottom: 36px; }
+.rules-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 32px; }
+.rules-nav a { display: flex; align-items: center; min-height: 44px; padding: 8px 13px; border: 1px solid var(--t-hairline); border-radius: 8px; font-size: 14px; color: var(--t-zinc-300); }
+.rules-nav a:hover { border-color: var(--t-gold); color: var(--t-gold); }
+.rules-section { scroll-margin-top: 24px; }
 .hand-rankings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .reading-page p, .reading-page section > ol, .reading-page section > ul { font-size: 16px; line-height: 1.85; }
 .reading-page .text-zinc-500 { color: var(--t-zinc-400); }
@@ -448,7 +445,6 @@ button:not(:disabled), summary { cursor: pointer; }
   .play-panel { padding: 23px; }
   .panel-description { margin-bottom: 22px; }
   .hand-rankings { grid-template-columns: 1fr; }
-  .first-reads { padding: 18px; }
 }
 
 /* Keep the rules index beside the full article so it remains available throughout the scroll. */
@@ -462,3 +458,81 @@ button:not(:disabled), summary { cursor: pointer; }
   .rules-layout .rules-nav a { flex-grow: 1; justify-content: center; padding-inline: 10px; }
   .rules-layout .rules-section { scroll-margin-top: 144px; }
 }
+
+/* An uncluttered reading surface; the existing Korean palettes supply its colors. */
+.guide-index { width: min(880px, 100%); margin: 0 auto; padding: 64px 28px; }
+.guide-intro { margin-bottom: 40px; }
+.guide-intro h1 { margin: 16px 0; font-size: clamp(32px, 4vw, 48px); line-height: 1.25; letter-spacing: -.055em; }
+.guide-intro > p:last-child { color: var(--t-zinc-400); font-size: 16px; line-height: 1.85; }
+.core-guides { border-top: 1px solid var(--t-hairline); }
+.core-guides > li { border-bottom: 1px solid var(--t-hairline); }
+.core-guides a { display: grid; grid-template-columns: 48px 1fr 32px; gap: 24px; align-items: center; padding: 32px 12px; border-radius: 8px; transition: background .15s; }
+.core-guides a:hover { background: var(--t-zinc-900); }
+.guide-number { align-self: start; padding-top: 5px; color: var(--t-gold); font: 14px var(--tf-mono); }
+.core-guides h2 { margin-bottom: 9px; font-size: 23px; font-weight: 650; letter-spacing: -.04em; }
+.core-guides p { color: var(--t-zinc-400); font-size: 15px; line-height: 1.75; word-break: keep-all; }
+.guide-arrow { color: var(--t-zinc-400); font-size: 24px; transition: color .15s; }
+.core-guides a:hover .guide-arrow { color: var(--t-gold); }
+.guide-reference { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-top: 32px; padding: 24px; border: 1px solid var(--t-hairline); border-radius: 12px; }
+.guide-reference h2 { margin-bottom: 5px; font-size: 15px; font-weight: 600; }
+.guide-reference p { font-size: 14px; line-height: 1.7; color: var(--t-zinc-400); }
+.guide-reference a { display: flex; flex-shrink: 0; align-items: center; min-height: 44px; gap: 16px; color: var(--t-gold); font-size: 14px; }
+.guide-bottom { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-top: 44px; }
+.guide-bottom > p { font-size: 14px; color: var(--t-zinc-400); }
+.guide-bottom .primary-action { width: auto; gap: 40px; }
+.article-breadcrumb { display: flex; align-items: center; gap: 12px; margin-bottom: 40px; font-size: 13px; color: var(--t-zinc-400); }
+.article-breadcrumb a:hover { color: var(--t-gold); }
+.article-intro { margin-bottom: 32px; padding-bottom: 28px; border-bottom: 1px solid var(--t-hairline); }
+.article-intro h1 { margin: 14px 0; font-size: clamp(30px, 4vw, 42px); line-height: 1.3; }
+.article-intro > p:last-child { color: var(--t-zinc-300); }
+.guide-article article > p, .guide-article article > ul, .guide-article article > ol { font-size: 16px; line-height: 1.9; word-break: keep-all; }
+.play-panel { border-radius: 16px; box-shadow: none; }
+@media (max-width: 680px) {
+  .guide-index { padding: 36px 22px; }
+  .guide-intro { margin-bottom: 28px; }
+  .core-guides a { grid-template-columns: 28px 1fr 20px; gap: 12px; padding: 25px 0; }
+  .core-guides h2 { font-size: 21px; }
+  .guide-reference { align-items: flex-start; flex-direction: column; gap: 8px; padding: 20px; }
+  .guide-bottom { align-items: stretch; flex-direction: column; gap: 16px; margin-top: 32px; }
+  .guide-bottom .primary-action { width: 100%; }
+}
+
+.game-flow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; counter-reset: game-step; list-style: none; padding: 0; }
+.game-flow li { position: relative; padding: 20px 18px 20px 56px; border: 1px solid var(--t-hairline); border-radius: 10px; background: var(--t-zinc-950); counter-increment: game-step; }
+.game-flow li::before { content: counter(game-step, decimal-leading-zero); position: absolute; left: 18px; top: 22px; color: var(--t-gold); font: 12px var(--tf-mono); }
+.game-flow h3 { font-size: 15px; font-weight: 650; margin-bottom: 6px; }
+.reading-page .game-flow p { font-size: 14px; line-height: 1.8; color: var(--t-zinc-300); word-break: keep-all; }
+.field-hint { font-size: 14px; }
+@media (max-width: 680px) {
+  .game-flow { grid-template-columns: 1fr; gap: 8px; }
+}
+
+/* Motion stays on presentation layers; transforms do not change layout or game state. */
+@keyframes surface-enter {
+  from { opacity: 0; translate: 0 12px; }
+  to { opacity: 1; translate: 0 0; }
+}
+.lobby-intro, .play-panel, .guide-intro, .article-intro, .core-guides > li, .game-flow > li {
+  animation: surface-enter 440ms cubic-bezier(.2, .65, .3, 1) both;
+}
+.play-panel, .core-guides > li:nth-child(1), .game-flow > li:nth-child(2) { animation-delay: 60ms; }
+.core-guides > li:nth-child(2), .game-flow > li:nth-child(3) { animation-delay: 110ms; }
+.core-guides > li:nth-child(3), .game-flow > li:nth-child(4) { animation-delay: 160ms; }
+.game-flow > li:nth-child(5) { animation-delay: 200ms; }
+.game-flow > li:nth-child(6) { animation-delay: 240ms; }
+.hero-card { animation: surface-enter 600ms cubic-bezier(.2, .65, .3, 1) both; }
+.hero-card-front { animation-delay: 120ms; }
+.primary-action, .secondary-action { transition: background-color 160ms, border-color 160ms, translate 160ms; }
+.primary-action > span, .secondary-action > span, .guide-arrow { transition: translate 180ms, color 180ms; }
+.core-guides a { transition: background-color 180ms; }
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .primary-action:not(:disabled):hover, .secondary-action:not(:disabled):hover { translate: 0 -2px; }
+  .primary-action:hover > span, .secondary-action:hover > span, .core-guides a:hover .guide-arrow { translate: 2px -2px; }
+}
+.primary-action:not(:disabled):active, .secondary-action:not(:disabled):active { translate: 0 0; }
+@media (prefers-reduced-motion: reduce) {
+  .lobby-intro, .play-panel, .guide-intro, .article-intro, .core-guides > li, .game-flow > li, .hero-card { animation: none; }
+  .primary-action, .secondary-action, .primary-action > span, .secondary-action > span, .guide-arrow, .core-guides a { transition: none; translate: none; }
+}
+:root.reduce-motion :is(.lobby-intro, .play-panel, .guide-intro, .article-intro, .core-guides > li, .game-flow > li, .hero-card) { animation: none; }
+:root.reduce-motion :is(.primary-action, .secondary-action, .primary-action > span, .secondary-action > span, .guide-arrow, .core-guides a) { transition: none; translate: none; }
