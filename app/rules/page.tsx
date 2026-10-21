@@ -48,11 +48,15 @@ function MiniCard({ cardId, alt }: { cardId: string; alt: string }) {
 
 export default function RulesPage() {
   return (
-    <main className="reading-page flex min-h-screen w-full flex-col items-center gap-6 px-4 py-10 sm:py-14 xl:flex-row xl:justify-center">
+    <main className="reading-page rules-layout">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+
+        <nav className="rules-nav" aria-label="규칙 목차">
+          <a href="#game-flow">게임 진행</a><a href="#betting">베팅 방법</a><a href="#special-hands">특수 족보</a><a href="#hand-rankings">일반 족보</a><a href="#points">끗 계산</a>
+        </nav>
 
       <div className="mx-auto flex w-full max-w-2xl flex-col">
         <Link
@@ -71,9 +75,7 @@ export default function RulesPage() {
           게임 중에도 ‘족보 가이드’에서 언제든 확인할 수 있어요.
         </p>
 
-        <nav className="rules-nav" aria-label="규칙 목차">
-          <a href="#game-flow">게임 진행</a><a href="#betting">베팅 방법</a><a href="#special-hands">특수 족보</a><a href="#hand-rankings">일반 족보</a><a href="#points">끗 계산</a>
-        </nav>
+
 
         <section id="game-flow" className="rules-section mb-8">
           <h2 className="mb-3 text-[18px] font-bold text-zinc-200">

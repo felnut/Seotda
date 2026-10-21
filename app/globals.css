@@ -450,3 +450,15 @@ button:not(:disabled), summary { cursor: pointer; }
   .hand-rankings { grid-template-columns: 1fr; }
   .first-reads { padding: 18px; }
 }
+
+/* Keep the rules index beside the full article so it remains available throughout the scroll. */
+.rules-layout { display: grid; grid-template-columns: 164px minmax(0, 672px); align-items: start; gap: 40px; width: min(940px, 100%); margin-inline: auto; padding: 48px 24px; }
+.rules-layout .rules-nav { position: sticky; top: 24px; display: flex; flex-direction: column; flex-wrap: nowrap; gap: 6px; margin: 0; padding: 10px; border: 1px solid var(--t-hairline); border-radius: 14px; background: var(--t-zinc-900); box-shadow: var(--s-md); }
+.rules-layout .rules-nav a { border-color: transparent; }
+.rules-layout .rules-nav a:hover { background: var(--t-zinc-800); border-color: var(--t-hairline); }
+@media (max-width: 900px) {
+  .rules-layout { display: block; padding: 24px 20px; }
+  .rules-layout .rules-nav { top: 8px; z-index: 20; flex-direction: row; flex-wrap: wrap; gap: 4px; width: min(672px, 100%); margin: 0 auto 28px; padding: 8px; }
+  .rules-layout .rules-nav a { flex-grow: 1; justify-content: center; padding-inline: 10px; }
+  .rules-layout .rules-section { scroll-margin-top: 144px; }
+}
