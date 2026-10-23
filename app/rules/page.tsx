@@ -1,240 +1,116 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
-import { HAND_GUIDE, SPECIAL_HAND_GUIDE } from "@/lib/seotda/handGuide";
-import { buildJsonLd } from "@/lib/seo/structuredData";
-
-const PAGE_URL = "https://seotda.felnut.com/rules";
-const TITLE = "섯다 족보 가이드 - 광땡부터 망통까지 순위 총정리";
-const DESCRIPTION =
-  "섯다의 모든 족보를 순위대로 정리했습니다. 광땡·땡·알리·독사 같은 일반 족보부터 구사·땡잡이 같은 특수 족보까지 한눈에 확인하세요.";
+import { SPECIAL_HAND_GUIDE } from "@/lib/seotda/handGuide";
+import { HandRankings, CardPair } from "@/app/components/HandRankings";
+import { SiteFooter } from "@/app/components/SiteHeader";
 
 export const metadata: Metadata = {
-  title: TITLE,
-  description: DESCRIPTION,
-  alternates: {
-    canonical: PAGE_URL,
-  },
-  openGraph: {
-    title: TITLE,
-    description: DESCRIPTION,
-  },
+  title: "섯다 족보와 규칙",
+  description:
+    "광땡부터 망통까지 실제 카드로 확인하는 족보표. 특수 족보, 끗 계산과 세 장 섯다 규칙을 안내합니다.",
+  alternates: { canonical: "https://seotda.felnut.com/rules" },
 };
-
-const jsonLd = buildJsonLd({
-  url: PAGE_URL,
-  name: TITLE,
-  description: DESCRIPTION,
-  // git 히스토리 기준: 이 파일의 첫 커밋일이 곧 최신 커밋일(같은 날 작성).
-  datePublished: "2026-09-12",
-  dateModified: "2026-09-12",
-  image: "https://seotda.felnut.com/opengraph-image",
-});
-
-function MiniCard({ cardId, alt }: { cardId: string; alt: string }) {
-  return (
-    <div className="relative h-16 w-10.5 shrink-0 overflow-hidden rounded-md border border-hairline">
-      <Image
-        src={`/card/${cardId}.png`}
-        alt={alt}
-        fill
-        sizes="42px"
-        className="object-cover"
-      />
-    </div>
-  );
-}
 
 export default function RulesPage() {
   return (
-    <main className="flex min-h-screen w-full flex-col items-center gap-6 px-4 py-10 sm:py-14 xl:flex-row xl:justify-center">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-
-      <div className="mx-auto flex w-full max-w-2xl flex-col">
-        <Link
-          href="/"
-          className="mb-6 inline-block w-fit text-[13.5px] text-zinc-500 hover:text-zinc-300"
-        >
-          ← 메인으로
-        </Link>
-
-        <h1 className="font-serif mb-2 text-[28px] font-black tracking-tight text-black sm:text-[32px]">
-          섯다 족보 가이드
-        </h1>
-
-        <p className="mb-8 text-[14.5px] leading-relaxed text-zinc-400">
-          섯다는 두 장(때로는 세 장 중 두 장)의 카드가 이루는 월(月) 숫자 조합,
-          즉 족보로 승부를 겨룹니다. 아래는 특수 족보와 일반 족보를 순위 높은
-          순으로 정리한 표입니다. 게임 화면에서도 같은 내용을 가이드 패널로 바로
-          확인할 수 있지만, 미리 훑어보고 들어가면 처음 하는 분도 훨씬 수월하게
-          즐길 수 있습니다.
-        </p>
-
-        <section className="mb-8">
-          <h2 className="mb-3 text-[18px] font-bold text-zinc-200">
-            게임은 이렇게 진행됩니다
-          </h2>
-
-          <ol className="space-y-2 text-[14.5px] leading-relaxed text-zinc-400">
-            <li>
-              <span className="font-semibold text-zinc-200">
-                1. 시작금(앤티) 징수
-              </span>{" "}
-              — 참가자 전원이 100칩씩 자동으로 판돈에 냅니다.
-            </li>
-            <li>
-              <span className="font-semibold text-zinc-200">2. 카드 배분</span>{" "}
-              — 화투 카드 2장을 받아 자신만 확인합니다.
-            </li>
-            <li>
-              <span className="font-semibold text-zinc-200">3. 1차 베팅</span> —
-              체크·콜·하프/쿼터/더블·올인·다이 중 하나를 골라 판을 키우거나
-              접습니다.
-            </li>
-            <li>
-              <span className="font-semibold text-zinc-200">
-                4. 3번째 카드 & 공개
-              </span>{" "}
-              — 한 장을 더 받아 3장이 되고, 그중 한 장을 상대에게 공개합니다.
-            </li>
-            <li>
-              <span className="font-semibold text-zinc-200">5. 2차 베팅</span> —
-              공개된 카드를 참고해 다시 한 번 베팅합니다.
-            </li>
-            <li>
-              <span className="font-semibold text-zinc-200">
-                6. 족보 선택 &amp; 쇼다운
-              </span>{" "}
-              — 3장 중 최종 족보로 쓸 2장을 스스로 고르면, 남은 참가자끼리
-              족보를 비교해 승자가 판돈을 가져갑니다.
-            </li>
-          </ol>
-        </section>
-
-        <section className="mb-8">
-          <h2 className="mb-3 text-[18px] font-bold text-zinc-200">
-            베팅 액션 알아보기
-          </h2>
-
-          <ul className="space-y-2 text-[14.5px] leading-relaxed text-zinc-400">
-            <li>
-              <span className="font-semibold text-zinc-200">체크</span> — 추가로
-              내는 돈 없이 차례를 넘깁니다. 현재 베팅액과 자신의 베팅액이 같을
-              때만 가능합니다.
-            </li>
-            <li>
-              <span className="font-semibold text-zinc-200">콜</span> — 현재
-              최고 베팅 금액까지 자신의 베팅액을 맞춥니다.
-            </li>
-            <li>
-              <span className="font-semibold text-zinc-200">
-                하프 / 쿼터 / 더블
-              </span>{" "}
-              — 섯다 특유의 배율 베팅입니다. 현재 판돈의 1/2, 1/4, 2배를 베팅해
-              판을 키웁니다.
-            </li>
-            <li>
-              <span className="font-semibold text-zinc-200">올인</span> — 남은
-              칩을 전부 겁니다. 여러 명이 서로 다른 금액으로 올인하면 사이드
-              팟으로 나뉘어 정산됩니다.
-            </li>
-            <li>
-              <span className="font-semibold text-zinc-200">다이</span> — 승부를
-              포기하고 이번 판에서 빠집니다.
-            </li>
-          </ul>
-
-          <p className="mt-4 text-[13.5px] text-zinc-500">
-            모든 참가자는 10,000칩으로 시작하며, 판마다 참가자 평균 보유 칩을
-            기준으로 판당 최대 베팅 한도가 정해져 한 판에 너무 큰 칩이 걸리지
-            않도록 합니다.
+    <>
+      <main className="rules-layout ornament-corners">
+        <aside className="rules-sidebar">
+          <nav aria-label="규칙 목차">
+            <a href="#rankings">일반 족보</a>
+            <a href="#special-hands">특수 족보</a>
+            <a href="#points">끗 계산</a>
+            <a href="#flow">게임 규칙</a>
+          </nav>
+        </aside>
+        <div className="rules-content">
+          <p className="breadcrumb">
+            <Link href="/">홈</Link>
+            <span>/</span>족보와 규칙
           </p>
-        </section>
-
-        <section className="mb-8">
-          <h2 className="mb-3 text-[18px] font-bold text-zinc-200">
-            특수 족보
-          </h2>
-
-          <p className="mb-4 text-[14.5px] leading-relaxed text-zinc-400">
-            조건이 맞으면 순위표와 무관하게 즉시 무승부·재경기가 되거나 승패가
-            뒤바뀌는 조합입니다. 상대의 패를 미처 예상하지 못했을 때 가장 짜릿한
-            반전을 만들어냅니다.
+          <h1 className="page-title">족보와 규칙</h1>
+          <p className="page-description">
+            두 장의 조합을 확인하고, 한 판의 흐름을 익혀보세요.
           </p>
-
-          <ul className="space-y-2.5">
-            {SPECIAL_HAND_GUIDE.map((entry) => (
-              <li
-                key={entry.name}
-                className="flex items-center gap-3 rounded-lg border border-hairline bg-zinc-950 p-3"
-              >
-                <div className="flex gap-1">
-                  <MiniCard cardId={entry.cardIds[0]} alt={entry.name} />
-                  <MiniCard cardId={entry.cardIds[1]} alt={entry.name} />
-                </div>
-
-                <div>
-                  <p className="text-[17px] font-semibold text-zinc-100">
-                    {entry.name}
-                  </p>
-                  <p className="text-[13.5px] text-zinc-500">{entry.months}</p>
-                  <p className="text-[13.5px] text-felt-bright">
-                    {entry.effect}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section>
-          <h2 className="mb-3 text-[18px] font-bold text-zinc-200">
-            일반 족보 (높은 순)
-          </h2>
-
-          <p className="mb-4 text-[14.5px] leading-relaxed text-zinc-400">
-            특수 족보에 해당하지 않으면, 아래 순위표에 따라 더 높은 족보를 가진
-            쪽이 이깁니다. 가장 높은 광땡부터 가장 낮은 망통까지, 총{" "}
-            {HAND_GUIDE.length}개의 족보가 있습니다.
-          </p>
-
-          <ol className="space-y-2">
-            {HAND_GUIDE.map((entry, index) => (
-              <li
-                key={entry.name}
-                className="flex items-center gap-3 rounded-lg border border-hairline bg-zinc-950 p-3"
-              >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-950 text-[13px] font-bold text-zinc-400">
-                  {index + 1}
-                </span>
-
-                <div className="flex gap-1">
-                  <MiniCard cardId={entry.cardIds[0]} alt={entry.name} />
-                  <MiniCard cardId={entry.cardIds[1]} alt={entry.name} />
-                </div>
-
-                <div>
-                  <p className="text-[17px] font-semibold text-zinc-100">
-                    {entry.name}
-                  </p>
-                  <p className="text-[13.5px] text-zinc-500">{entry.months}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        <Link
-          href="/rooms"
-          className="mt-10 w-full rounded-full bg-gold px-6 py-3.5 text-center text-[17.5px] font-semibold text-white transition hover:bg-gold-deep active:scale-[0.98]"
-        >
-          족보를 익혔다면, 방 찾아 바로 시작하기
-        </Link>
-      </div>
-
-    </main>
+          <section id="rankings" className="rules-section">
+            <div className="section-heading">
+              <h2>일반 족보</h2>
+              <span>높은 순서</span>
+            </div>
+            <HandRankings />
+          </section>
+          <section id="special-hands" className="rules-section">
+            <h2>특수 족보</h2>
+            <ul className="special-hands">
+              {SPECIAL_HAND_GUIDE.map((hand) => (
+                <li key={hand.name}>
+                  <h3>{hand.name}</h3>
+                  <CardPair ids={hand.cardIds} name={hand.name} />
+                  <p>{hand.months}</p>
+                  <p>{hand.effect}</p>
+                </li>
+              ))}
+            </ul>
+            <p className="rules-note">
+              땡잡이는 장땡을, 암행어사는 38광땡을 이길 수 없습니다. 구사 계열은
+              조건에 맞을 때 재경기합니다.
+            </p>
+          </section>
+          <section id="points" className="rules-section text-section">
+            <h2>끗 계산</h2>
+            <p>
+              이름이 붙은 족보가 아니라면 두 카드의 월을 더한 끝자리가 끗입니다.
+              7월과 8월은 15이므로 5끗입니다. 9끗은 갑오, 0끗은 망통이라고
+              부릅니다.
+            </p>
+          </section>
+          <section id="flow" className="rules-section text-section">
+            <h2>게임 규칙</h2>
+            <p>
+              1~10월 화투를 두 장씩, 총 20장 사용합니다. 이 사이트는 세 장을
+              받아 마지막에 두 장을 고르는 방식입니다.
+            </p>
+            <ol className="flow-steps">
+              <li>100칩씩 내고 카드 두 장을 받습니다.</li>
+              <li>1차 베팅 후 한 장을 더 받습니다.</li>
+              <li>세 장 중 한 장을 상대에게 공개합니다.</li>
+              <li>2차 베팅 후 족보로 쓸 두 장을 고릅니다.</li>
+              <li>남은 참가자의 족보를 비교해 판돈을 나눕니다.</li>
+            </ol>
+          </section>
+          <section id="betting" className="rules-section text-section">
+            <h2>베팅 금액</h2>
+            <p>
+              체크는 추가 금액 없이 차례를 넘기고, 콜은 상대가 올린 금액을
+              맞춥니다. 쿼터·하프·더블은 콜 금액에 현재 판돈의 1/4·1/2·2배를 더
+              냅니다. 버튼에 표시된 숫자가 실제로 낼 금액입니다.
+            </p>
+            <p>
+              판돈 1,200칩에 콜 200칩이 필요하다면 쿼터는 500칩, 하프는 800칩,
+              더블은 2,600칩입니다. 다이하면 이미 낸 칩은 돌려받지 못합니다.
+            </p>
+          </section>
+          <section id="settlement" className="rules-section text-section">
+            <h2>정산과 땡값</h2>
+            <p>
+              같은 족보로 이기면 판돈을 나눠 갖습니다. 올인 금액이 다르면 팟을
+              나누고, 각자 참여한 팟에서만 승부합니다.
+            </p>
+            <p>
+              광땡은 받은 판돈의 5%, 장땡은 1%를 같은 팟에서 끝까지 대결한
+              상대에게 땡값으로 받습니다. 상대에게 남은 칩보다 많이 받을 수는
+              없습니다.
+            </p>
+          </section>
+          <div className="guide-callout">
+            <span>플레이 방법이 궁금하다면</span>
+            <Link className="paper-button primary" href="/guide">
+              가이드 보기 <span aria-hidden="true">→</span>
+            </Link>
+          </div>
+        </div>
+      </main>
+      <SiteFooter />
+    </>
   );
 }

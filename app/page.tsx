@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import Image from "next/image";
 import {
   BankruptcyNotice,
   ChatMessage,
@@ -34,7 +35,9 @@ import {
   playSoundFile,
   CHIP_SOUND_PATHS,
 } from "@/lib/sound";
-import { HamburgerMenu } from "./components/HamburgerMenu";
+import { SiteHeader, SiteFooter } from "./components/SiteHeader";
+import { Modal } from "./components/Modal";
+import { RoomsPageClient } from "./rooms/RoomsPageClient";
 import { ShareButtons } from "./components/ShareButtons";
 import { buildJsonLd } from "@/lib/seo/structuredData";
 import APP_VERSION from "@/lib/version.json";
@@ -54,15 +57,14 @@ const GameRoomView = dynamic(() => import("./components/GameRoomView"), {
 
 // layout.tsx의 메타데이터와 같은 값을 쓰지만, 서버 컴포넌트인
 // layout.tsx를 클라이언트 컴포넌트인 이 파일에서 직접 import하면
-// next/font 호출까지 클라이언트 번들에 끼어들 위험이 있어 값만 그대로
-// 복사해 둔다.
+// 서버 전용 코드가 클라이언트 번들에 들어오지 않도록 값을 따로 둔다.
 const jsonLd = buildJsonLd({
   url: "https://seotda.felnut.com/",
   name: "섯다 - 친구와 온라인으로 즐기는 전통 카드 게임",
   description: "친구와 온라인으로 즐기는 전통 섯다 카드 게임",
   // git 히스토리 기준: 첫 커밋(2026-08-27) / 최신 커밋(2026-09-12).
   datePublished: "2026-08-27",
-  dateModified: "2026-09-12",
+  dateModified: "2026-10-21",
   image: "https://seotda.felnut.com/opengraph-image",
 });
 
@@ -295,6 +297,12 @@ function SettingsContent({
 
 export default function Home() {
   const [roomId, setRoomId] = useState("");
+  const [createMode, setCreateMode] = useState<"friends" | "practice" | null>(
+    null,
+  );
+  const practiceRequested = useRef(false);
+  const createTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [roomName, setRoomName] = useState("");
   const [roomHasPassword, setRoomHasPassword] = useState(false);
 
@@ -495,11 +503,15 @@ export default function Home() {
   // 게스트가 예전에 입력해둔 닉네임이 있으면 불러온다(로그인 계정의
   // 프로필 이름이 아래 effect에서 먼저 채워졌다면 덮어쓰지 않는다).
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("practice") === "1") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Initial URL intent is only available in the browser.
+      setCreateMode("practice");
+    }
     const saved = loadNickname();
 
     if (saved) {
       // localStorage는 서버에서 읽을 수 없어 마운트 이후에 동기화해야 한다.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDisplayName((prev) => prev || saved);
     }
   }, []);
@@ -645,6 +657,13 @@ export default function Home() {
 
   useEffect(() => {
     socket.on("room-created", (info: RoomInfo) => {
+      if (createTimeout.current) clearTimeout(createTimeout.current);
+      setCreateMode(null);
+      if (practiceRequested.current) {
+        practiceRequested.current = false;
+        socket.emit("add-ai-player", { roomId: info.roomId, level: "easy" });
+        socket.emit("start-game", info.roomId);
+      }
       setRoomId(info.roomId);
       setRoomName(info.name);
       setRoomHasPassword(info.hasPassword);
@@ -793,12 +812,15 @@ export default function Home() {
     );
 
     socket.on("error-message", ({ message }: { message: string }) => {
+      if (createTimeout.current) clearTimeout(createTimeout.current);
+      practiceRequested.current = false;
       setError(message);
       setHasVotedRestart(false);
       setIsSubmittingRoom(false);
     });
 
     return () => {
+      if (createTimeout.current) clearTimeout(createTimeout.current);
       socket.off("room-created");
       socket.off("room-joined");
       socket.off("rejoin-failed");
@@ -895,21 +917,31 @@ export default function Home() {
   }, [user]);
 
   // 7. 방 만들기
-  const createRoom = async () => {
+  const createRoom = async (practice = false) => {
     if (isSubmittingRoom) return;
-
     setError("");
     setIsSubmittingRoom(true);
-
-    const idToken = user ? await user.getIdToken() : undefined;
-
-    // 정원은 정하지 않고 보낸다 — 방을 만든 뒤 대기실에서 방장이 조정한다.
-    socket.emit("create-room", {
-      name: displayName.trim() || undefined,
-      roomName: createRoomName.trim() || undefined,
-      password: createPassword.trim() || undefined,
-      idToken,
-    });
+    practiceRequested.current = practice;
+    try {
+      const idToken = user ? await user.getIdToken() : undefined;
+      createTimeout.current = setTimeout(() => {
+        practiceRequested.current = false;
+        setIsSubmittingRoom(false);
+        setError(
+          "게임 서버의 응답이 늦어지고 있습니다. 잠시 후 다시 시도해 주세요.",
+        );
+      }, 10000);
+      socket.emit("create-room", {
+        name: displayName.trim() || undefined,
+        roomName: practice ? "AI와 연습" : createRoomName.trim() || undefined,
+        password: practice ? undefined : createPassword.trim() || undefined,
+        idToken,
+      });
+    } catch {
+      practiceRequested.current = false;
+      setIsSubmittingRoom(false);
+      setError("로그인 상태를 확인하지 못했습니다. 다시 시도해 주세요.");
+    }
   };
 
   // 9. 게임 시작
@@ -1173,148 +1205,182 @@ export default function Home() {
     setHasUnreadChat(false);
   };
 
-  /*
-   * 아직 방에 들어가지 않은 상태
-   */
+  const siteHeader = (
+    <SiteHeader
+      balance={chips} displayName={profileName}
+      onOpenProfile={() => {
+        setProfileError("");
+        setProfileSaved(false);
+        setIsProfileOpen(true);
+      }}
+      settings={
+        <SettingsContent
+          soundEffects={soundEffects}
+          onToggleSoundEffects={toggleSoundEffects}
+          reduceMotion={reduceMotion}
+          onToggleReduceMotion={toggleReduceMotion}
+          confirmBets={confirmBets}
+          onToggleConfirmBets={toggleConfirmBets}
+        />
+      }
+    />
+  );
+
   if (!roomId) {
     return (
-      <main className="relative flex min-h-screen flex-col">
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
-
-        <header className="flex items-center justify-end gap-1.5 px-4 pt-4 sm:gap-2 sm:px-6">
-          {user && chips !== null && (
-            <span className="flex h-10 shrink-0 items-center whitespace-nowrap rounded-xl border border-hairline bg-gold/10 px-3 font-mono sm:px-4 text-[15px] font-semibold tabular-nums text-black">
-              칩 {chips.toLocaleString()}
-            </span>
-          )}
-
-          <HamburgerMenu
-            userName={
-              user ? (profileName ?? user.displayName ?? "플레이어") : null
-            }
-            onOpenProfile={() => {
-              setProfileError("");
-              setProfileSaved(false);
-              setIsProfileOpen(true);
-            }}
-            settings={
-              <SettingsContent
-                soundEffects={soundEffects}
-                onToggleSoundEffects={toggleSoundEffects}
-                reduceMotion={reduceMotion}
-                onToggleReduceMotion={toggleReduceMotion}
-                confirmBets={confirmBets}
-                onToggleConfirmBets={toggleConfirmBets}
-              />
-            }
+      <div className="paper-site">
+        {siteHeader}
+        <main className="home-page">
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
           />
-        </header>
-
-        <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 pt-4 pb-8 xl:flex-row">
-          <div className="flex w-full max-w-md flex-col items-center">
-            <h1 className="mb-6 text-center">
-              <span className="block font-serif text-[52px] leading-none font-black tracking-tight text-black">
-                섯다
-              </span>
-              <span className="mt-3 block text-[19px] font-semibold text-zinc-100">
-                친구와 온라인으로 즐기는 전통 카드 게임
-              </span>
-            </h1>
-
-            {/* 닉네임 → 방 정보 → 시작 버튼 순서로 한 카드 안에 이어 붙여,
-              "무엇을 어떤 순서로 하면 되는지"가 한눈에 보이게 한다. */}
-            <section className="animate-fade-up w-full rounded-2xl border border-hairline bg-zinc-900/70 p-5 sm:p-6">
-              <label
-                htmlFor="lobby-nickname"
-                className="mb-1.5 block pl-[17px] text-[14px] font-semibold text-zinc-200"
-              >
-                닉네임
-              </label>
-
+          <section className="home-hero">
+            <div className="hero-copy">
+              <h1>
+                가볍게 모여,
+                <br className="mobile-break" /> 진하게 한 판.
+              </h1>
+              <p>
+                친구와 함께, 혼자라면 AI와.
+                <br />
+                설치 없이 바로 즐기는 섯다
+              </p>
+              <div className="hero-actions" id="create-room">
+                <div>
+                  <button
+                    className="paper-button primary"
+                    onClick={() => setCreateMode("friends")}
+                  >
+                    친구와 방 만들기 <span aria-hidden="true">→</span>
+                  </button>
+                  <small>친구들과 바로 시작하세요</small>
+                </div>
+                <div>
+                  <button
+                    className="paper-button"
+                    disabled={isSubmittingRoom}
+                    onClick={() => void createRoom(true)}
+                  >
+                    {isSubmittingRoom ? "방 만드는 중…" : "AI와 연습하기"}{" "}
+                    <span aria-hidden="true">→</span>
+                  </button>
+                  <small>언제든지, 혼자서도 즐길 수 있어요</small>
+                </div>
+              </div>
+              {error && (
+                <p role="alert" className="form-error">
+                  {error}
+                </p>
+              )}
+            </div>
+            <div className="hero-art" aria-hidden="true">
+              <span className="art-sun" />
+              <span className="art-cloud cloud-top" />
+              <span className="art-cloud cloud-bottom" />
+              <Image
+                src="/card/3-light.png"
+                alt=""
+                width={170}
+                height={255}
+                className="hero-card first"
+                preload
+              />
+              <Image
+                src="/card/1-light.png"
+                alt=""
+                width={170}
+                height={255}
+                className="hero-card second"
+                preload
+              />
+            </div>
+          </section>
+          <div className="home-bottom">
+            <RoomsPageClient embedded />
+            <aside className="home-help ornament-corners">
+              <h2>처음이어도 괜찮아요</h2>
+              <p>
+                섯다의 기본부터 차근차근.
+                <br />
+                누구나 쉽게 즐길 수 있어요.
+              </p>
+              <Link href="/rules">
+                족보 한눈에 보기 <span aria-hidden="true">→</span>
+              </Link>
+              <Link href="/guide">
+                플레이 가이드 <span aria-hidden="true">→</span>
+              </Link>
+              <small>2~6명 · 가상 칩으로만 플레이</small>
+            </aside>
+          </div>
+        </main>
+        <SiteFooter />
+        {createMode && (
+          <Modal titleId="create-title" onClose={() => setCreateMode(null)}>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                void createRoom(createMode === "practice");
+              }}
+            >
+              <h2 id="create-title">
+                {createMode === "practice"
+                  ? "AI와 연습하기"
+                  : "친구와 방 만들기"}
+              </h2>
+              <p>로그인 없이도 시작할 수 있어요.</p>
+              <label htmlFor="lobby-nickname">닉네임</label>
               <input
                 id="lobby-nickname"
                 value={displayName}
+                maxLength={13}
                 onChange={(event) => {
                   setDisplayName(event.target.value);
                   saveNickname(event.target.value.trim());
                 }}
-                placeholder="비워두면 기본 이름이 부여돼요"
-                maxLength={13}
-                className="mb-4 h-12 w-full rounded-lg border border-hairline bg-white px-4 text-[16px] text-black outline-none transition placeholder:text-zinc-500 focus:border-black focus:ring-2 focus:ring-black/10"
+                placeholder="닉네임 (선택)"
+                autoFocus
               />
-
-              <div className="mb-4 grid grid-cols-2 gap-2">
-                <input
-                  value={createRoomName}
-                  onChange={(event) => setCreateRoomName(event.target.value)}
-                  placeholder="방 이름 (선택)"
-                  aria-label="방 이름"
-                  maxLength={20}
-                  className="h-12 w-full rounded-lg border border-hairline bg-white px-4 text-[15px] text-black outline-none transition placeholder:text-zinc-500 focus:border-black focus:ring-2 focus:ring-black/10"
-                />
-
-                <input
-                  value={createPassword}
-                  onChange={(event) => setCreatePassword(event.target.value)}
-                  placeholder="비밀번호 (선택)"
-                  aria-label="비밀번호"
-                  maxLength={20}
-                  className="h-12 w-full rounded-lg border border-hairline bg-white px-4 text-[15px] text-black outline-none transition placeholder:text-zinc-500 focus:border-black focus:ring-2 focus:ring-black/10"
-                />
-              </div>
-
-              {/* 7. 방 만들기 */}
+              {createMode === "friends" && (
+                <>
+                  <label htmlFor="create-room-name">방 이름</label>
+                  <input
+                    id="create-room-name"
+                    value={createRoomName}
+                    maxLength={20}
+                    onChange={(event) => setCreateRoomName(event.target.value)}
+                    placeholder="우리들의 섯다 (선택)"
+                  />
+                  <label htmlFor="create-password">비밀번호</label>
+                  <input
+                    id="create-password"
+                    type="password"
+                    value={createPassword}
+                    maxLength={20}
+                    onChange={(event) => setCreatePassword(event.target.value)}
+                    placeholder="공개 방은 비워두세요"
+                  />
+                </>
+              )}
+              {error && (
+                <p role="alert" className="form-error">
+                  {error}
+                </p>
+              )}
               <button
-                type="button"
-                onClick={createRoom}
+                className="paper-button primary"
                 disabled={isSubmittingRoom}
-                className="h-14 w-full rounded-full bg-gold text-[18px] font-bold text-white transition hover:bg-gold-deep active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSubmittingRoom ? "만드는 중..." : "▶ 방 만들고 시작하기"}
+                {isSubmittingRoom
+                  ? "만드는 중…"
+                  : createMode === "practice"
+                    ? "AI와 시작하기 →"
+                    : "방 만들기 →"}
               </button>
-
-              {/* 8. 방 찾기 */}
-              <Link
-                href="/rooms"
-                className="mt-2 flex h-12 w-full items-center justify-center rounded-full border border-black bg-white text-[16px] font-semibold text-zinc-100 transition hover:bg-zinc-950 active:scale-[0.98]"
-              >
-                열린 방에 참가하기
-              </Link>
-            </section>
-
-            {error && (
-              <p className="animate-fade-up mt-4 w-full rounded-xl border border-crimson/40 bg-crimson/10 p-3 text-center text-[16px] font-medium text-crimson-bright">
-                {error}
-              </p>
-            )}
-
-            <nav className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-0 text-[13.5px] text-zinc-400">
-              <Link href="/about" className="py-2.5 hover:text-zinc-100">
-                섯다란?
-              </Link>
-              <Link href="/guide" className="py-2.5 hover:text-zinc-100">
-                가이드
-              </Link>
-              <Link href="/rules" className="py-2.5 hover:text-zinc-100">
-                게임 규칙
-              </Link>
-              <Link href="/privacy" className="py-2.5 hover:text-zinc-100">
-                개인정보처리방침
-              </Link>
-              <Link href="/terms" className="py-2.5 hover:text-zinc-100">
-                이용약관
-              </Link>
-            </nav>
-          </div>
-        </div>
-
-        <p className="pb-6 text-center text-[13.5px] text-zinc-500">
-          © {new Date().getFullYear()} 섯다
-        </p>
-
+            </form>
+          </Modal>
+        )}
         {user && (
           <ProfilePanel
             open={isProfileOpen}
@@ -1333,57 +1399,61 @@ export default function Home() {
             linkNotice={linkNotice}
           />
         )}
-      </main>
+      </div>
     );
   }
 
   return (
-    <GameRoomView
-      roomName={roomName}
-      roomHasPassword={roomHasPassword}
-      playerId={playerId}
-      playerCount={playerCount}
-      maxPlayers={maxPlayers}
-      roomPlayers={roomPlayers}
-      gameState={gameState}
-      error={error}
-      leaveNotice={leaveNotice}
-      chatMessages={chatMessages}
-      isChatOpen={isChatOpen}
-      hasUnreadChat={hasUnreadChat}
-      chatInput={chatInput}
-      typingUsers={typingUsers}
-      isGuideOpen={isGuideOpen}
-      pendingSelection={pendingSelection}
-      soundEffects={soundEffects}
-      hasVotedRestart={hasVotedRestart}
-      restartVotes={restartVotes}
-      restartVotesTotal={restartVotesTotal}
-      bankruptcyNotice={bankruptcyNotice}
-      hasDecidedBankruptcy={hasDecidedBankruptcy}
-      onAddAiPlayer={addAiPlayer}
-      onRemoveAiPlayer={removeAiPlayer}
-      onChangeMaxPlayers={changeMaxPlayers}
-      onStartGame={startGame}
-      onToggleReady={toggleReady}
-      onLeaveRoom={leaveRoom}
-      onOpenChat={openChat}
-      onCloseChat={() => setIsChatOpen(false)}
-      onOpenGuide={() => setIsGuideOpen(true)}
-      onCloseGuide={() => setIsGuideOpen(false)}
-      onChatInputChange={handleChatInputChange}
-      onSendChat={sendChatMessage}
-      onRevealCard={revealCard}
-      onToggleSelect={toggleSelect}
-      onConfirmSelect={confirmSelect}
-      onJoinNextRound={joinNextRound}
-      onDecideBankruptcy={decideBankruptcy}
-      onRestartGame={restartGame}
-      onCheck={check}
-      onCall={call}
-      onRaiseByRatio={raiseByRatio}
-      onAllIn={allIn}
-      onFold={fold}
-    />
+    <div className="game-shell">
+      {siteHeader}
+      <GameRoomView
+        roomId={roomId}
+        roomName={roomName}
+        roomHasPassword={roomHasPassword}
+        playerId={playerId}
+        playerCount={playerCount}
+        maxPlayers={maxPlayers}
+        roomPlayers={roomPlayers}
+        gameState={gameState}
+        error={error}
+        leaveNotice={leaveNotice}
+        chatMessages={chatMessages}
+        isChatOpen={isChatOpen}
+        hasUnreadChat={hasUnreadChat}
+        chatInput={chatInput}
+        typingUsers={typingUsers}
+        isGuideOpen={isGuideOpen}
+        pendingSelection={pendingSelection}
+        soundEffects={soundEffects}
+        hasVotedRestart={hasVotedRestart}
+        restartVotes={restartVotes}
+        restartVotesTotal={restartVotesTotal}
+        bankruptcyNotice={bankruptcyNotice}
+        hasDecidedBankruptcy={hasDecidedBankruptcy}
+        onAddAiPlayer={addAiPlayer}
+        onRemoveAiPlayer={removeAiPlayer}
+        onChangeMaxPlayers={changeMaxPlayers}
+        onStartGame={startGame}
+        onToggleReady={toggleReady}
+        onLeaveRoom={leaveRoom}
+        onOpenChat={openChat}
+        onCloseChat={() => setIsChatOpen(false)}
+        onOpenGuide={() => setIsGuideOpen(true)}
+        onCloseGuide={() => setIsGuideOpen(false)}
+        onChatInputChange={handleChatInputChange}
+        onSendChat={sendChatMessage}
+        onRevealCard={revealCard}
+        onToggleSelect={toggleSelect}
+        onConfirmSelect={confirmSelect}
+        onJoinNextRound={joinNextRound}
+        onDecideBankruptcy={decideBankruptcy}
+        onRestartGame={restartGame}
+        onCheck={check}
+        onCall={call}
+        onRaiseByRatio={raiseByRatio}
+        onAllIn={allIn}
+        onFold={fold}
+      />
+    </div>
   );
 }

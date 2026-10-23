@@ -18,6 +18,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  devIndicators: false,
   async headers() {
     return [
       {
@@ -52,6 +53,86 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      {
+        source: "/guide/getting-started",
+        destination: "/guide#start",
+        permanent: true,
+      },
+      {
+        source: "/guide/room-guide",
+        destination: "/guide#start",
+        permanent: true,
+      },
+      {
+        source: "/guide/ai-opponents",
+        destination: "/guide#start",
+        permanent: true,
+      },
+      {
+        source: "/guide/play-responsibly",
+        destination: "/guide#start",
+        permanent: true,
+      },
+      {
+        source: "/guide/hand-rankings",
+        destination: "/rules#rankings",
+        permanent: true,
+      },
+      {
+        source: "/guide/card-basics",
+        destination: "/rules#rankings",
+        permanent: true,
+      },
+      {
+        source: "/guide/hwatu-months",
+        destination: "/rules#rankings",
+        permanent: true,
+      },
+      {
+        source: "/guide/special-hands",
+        destination: "/rules#special-hands",
+        permanent: true,
+      },
+      {
+        source: "/guide/betting-ratios",
+        destination: "/rules#betting",
+        permanent: true,
+      },
+      {
+        source: "/guide/when-to-fold",
+        destination: "/rules#betting",
+        permanent: true,
+      },
+      {
+        source: "/guide/glossary",
+        destination: "/rules#betting",
+        permanent: true,
+      },
+      {
+        source: "/guide/common-mistakes",
+        destination: "/rules#betting",
+        permanent: true,
+      },
+      {
+        source: "/guide/reveal-strategy",
+        destination: "/rules#flow",
+        permanent: true,
+      },
+      {
+        source: "/guide/all-in-side-pot",
+        destination: "/rules#settlement",
+        permanent: true,
+      },
+      {
+        source: "/guide/ddaeng-fee",
+        destination: "/rules#settlement",
+        permanent: true,
+      },
+      {
+        source: "/guide/chip-management",
+        destination: "/rules#settlement",
+        permanent: true,
+      },
       {
         // RFC 9116은 /.well-known/security.txt를 정식 위치로 두지만,
         // 루트 경로만 확인하는 스캐너/도구도 있어 리다이렉트를 열어둔다.

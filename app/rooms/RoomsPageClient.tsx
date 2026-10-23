@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { RoomInfo, RoomListEntry } from "@/types/seotda";
@@ -8,229 +8,236 @@ import { socket } from "@/lib/socket";
 import { saveSession } from "@/lib/session";
 import { loadNickname } from "@/lib/nickname";
 import { useAuth } from "@/lib/useAuth";
-import { EmptyState } from "../components/EmptyState";
+import { Modal } from "../components/Modal";
 
-export function RoomsPageClient() {
+type Filter = "all" | "waiting" | "playing";
+export function RoomsPageClient({ embedded = false }: { embedded?: boolean }) {
   const router = useRouter();
   const user = useAuth();
-
-  const [roomList, setRoomList] = useState<RoomListEntry[]>([]);
+  const [rooms, setRooms] = useState<RoomListEntry[]>([]);
+  const [filter, setFilter] = useState<Filter>("all");
+  const [connected, setConnected] = useState(false);
+  const [invitedId, setInvitedId] = useState("");
   const [error, setError] = useState("");
   const [isJoining, setIsJoining] = useState(false);
-
-  // 비밀번호가 걸린 방을 클릭했을 때 팝업으로 띄우는 입력창의 대상 방
-  const [passwordPromptRoom, setPasswordPromptRoom] =
-    useState<RoomListEntry | null>(null);
-  const [passwordInput, setPasswordInput] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-
-  // 방 목록을 주기적으로 새로 받아온다.
-  useEffect(() => {
-    const fetchRoomList = () => socket.emit("list-rooms");
-
-    fetchRoomList();
-
-    const interval = window.setInterval(fetchRoomList, 4000);
-
-    return () => window.clearInterval(interval);
-  }, []);
+  const [passwordRoom, setPasswordRoom] = useState<RoomListEntry | null>(null);
+  const [password, setPassword] = useState("");
+  const cleanupJoin = useRef<(() => void) | null>(null);
+  const joining = useRef(false);
 
   useEffect(() => {
-    socket.on("rooms-list", (list: RoomListEntry[]) => {
-      setRoomList(list);
-    });
-
+    const refresh = () => socket.emit("list-rooms");
+    const receive = (list: RoomListEntry[]) => {
+      setRooms(list);
+      setConnected(true);
+      setInvitedId(
+        new URLSearchParams(window.location.search).get("room") ?? "",
+      );
+    };
+    const disconnect = () => setConnected(false);
+    socket.on("rooms-list", receive);
+    socket.on("connect", refresh);
+    socket.on("disconnect", disconnect);
+    refresh();
+    const interval = window.setInterval(refresh, 4000);
     return () => {
-      socket.off("rooms-list");
+      clearInterval(interval);
+      socket.off("rooms-list", receive);
+      socket.off("connect", refresh);
+      socket.off("disconnect", disconnect);
+      cleanupJoin.current?.();
     };
   }, []);
 
-  const joinRoom = async (roomId: string, password?: string) => {
-    if (isJoining) return;
-
+  const join = async (room: RoomListEntry, roomPassword?: string) => {
+    if (joining.current) return;
+    joining.current = true;
     setIsJoining(true);
     setError("");
-    setPasswordError("");
-
-    const idToken = user ? await user.getIdToken() : undefined;
-
-    const handleJoined = (info: RoomInfo) => {
-      cleanup();
-
-      saveSession({
-        roomId: info.roomId,
-        playerId: info.playerId,
-        rejoinToken: info.rejoinToken,
-      });
-
-      router.push("/");
-    };
-
-    const handleError = ({ message }: { message: string }) => {
-      cleanup();
-      setIsJoining(false);
-
-      if (password !== undefined) {
-        setPasswordError(message);
-      } else {
+    try {
+      const idToken = user ? await user.getIdToken() : undefined;
+      const cleanup = () => {
+        clearTimeout(timer);
+        socket.off("room-joined", joined);
+        socket.off("error-message", failed);
+        joining.current = false;
+        cleanupJoin.current = null;
+      };
+      const joined = (info: RoomInfo) => {
+        cleanup();
+        setIsJoining(false);
+        setPasswordRoom(null);
+        saveSession({
+          roomId: info.roomId,
+          playerId: info.playerId,
+          rejoinToken: info.rejoinToken,
+        });
+        if (!embedded) router.push("/");
+      };
+      const failed = ({ message }: { message: string }) => {
+        cleanup();
         setError(message);
-      }
-    };
-
-    const cleanup = () => {
-      socket.off("room-joined", handleJoined);
-      socket.off("error-message", handleError);
-    };
-
-    socket.on("room-joined", handleJoined);
-    socket.on("error-message", handleError);
-
-    socket.emit("join-room", {
-      roomId,
-      name: loadNickname().trim() || undefined,
-      password: password?.trim() || undefined,
-      idToken,
-    });
-  };
-
-  const handleRoomClick = (room: RoomListEntry) => {
-    if (room.playerCount >= room.maxPlayers) return;
-
-    if (room.hasPassword) {
-      setPasswordPromptRoom(room);
-      setPasswordInput("");
-      setPasswordError("");
-      return;
+        setIsJoining(false);
+      };
+      const timer = setTimeout(
+        () =>
+          failed({
+            message:
+              "서버 응답이 늦어지고 있습니다. 잠시 후 다시 시도해 주세요.",
+          }),
+        10000,
+      );
+      cleanupJoin.current = cleanup;
+      socket.on("room-joined", joined);
+      socket.on("error-message", failed);
+      socket.emit("join-room", {
+        roomId: room.roomId,
+        name: loadNickname().trim() || undefined,
+        password: roomPassword?.trim() || undefined,
+        idToken,
+      });
+    } catch {
+      joining.current = false;
+      setIsJoining(false);
+      setError("로그인 상태를 확인하지 못했습니다. 다시 시도해 주세요.");
     }
-
-    joinRoom(room.roomId);
   };
-
+  const choose = (room: RoomListEntry) => {
+    setError("");
+    if (room.hasPassword) {
+      setPasswordRoom(room);
+      setPassword("");
+    } else void join(room);
+  };
+  const filtered = rooms.filter(
+    (room) =>
+      filter === "all" ||
+      (filter === "playing" ? room.inProgress : !room.inProgress),
+  );
+  const Wrapper = embedded ? "section" : "main";
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col px-4 py-10 sm:py-14">
-      <Link
-        href="/"
-        className="mb-6 inline-block w-fit text-[13.5px] text-zinc-500 hover:text-zinc-300"
-      >
-        ← 메인으로
-      </Link>
-
-      <h1 className="font-serif mb-1 text-[32px] font-black tracking-tight text-black">
-        방 찾기
-      </h1>
-
-      <div className="flex min-h-64 flex-col gap-2 rounded-2xl border border-hairline bg-zinc-950 p-3">
-        {roomList.length === 0 && (
-          <EmptyState
-            title="참가할 수 있는 방이 없습니다"
-            subtitle="아래에서 새 방을 만들고 친구를 초대해보세요."
-          />
-        )}
-
-        {roomList.map((room) => {
-          const isFull = room.playerCount >= room.maxPlayers;
-
-          return (
-            <button
-              key={room.roomId}
-              type="button"
-              onClick={() => handleRoomClick(room)}
-              disabled={isJoining || isFull}
-              className="animate-fade-up flex w-full items-center justify-between gap-3 rounded-xl border border-hairline bg-zinc-950 px-4 py-3.5 text-left transition hover:border-hairline hover:bg-gold/8 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <span className="flex min-w-0 items-center gap-2">
-                <span className="truncate text-[17px] font-semibold text-zinc-100">
-                  {room.hasPassword ? "🔒 " : ""}
-                  {room.name}
-                </span>
-
-                {room.inProgress && (
-                  <span className="shrink-0 rounded-full bg-gold/15 px-2 py-0.5 text-[12.5px] font-bold text-black">
-                    진행중 · 관전 참가
-                  </span>
-                )}
-              </span>
-
-              <span className="shrink-0 font-mono text-[15px] tabular-nums text-zinc-500">
-                {isFull
-                  ? "가득 참"
-                  : `${room.playerCount}/${room.maxPlayers}명`}
-              </span>
-            </button>
-          );
-        })}
+    <Wrapper
+      className={embedded ? "room-list" : "rooms-page"}
+      aria-labelledby="rooms-title"
+    >
+      <h2 id="rooms-title" className="section-title">
+        함께할 테이블
+      </h2>
+      {invitedId && (
+        <p className="invite-notice">
+          {rooms.some((room) => room.roomId === invitedId)
+            ? "초대받은 방을 아래에서 선택해 주세요."
+            : "초대받은 방이 종료되었거나 목록을 확인 중입니다."}
+        </p>
+      )}
+      <div className="room-filters" aria-label="방 목록 필터">
+        {(
+          [
+            ["all", "전체"],
+            ["waiting", "대기 중"],
+            ["playing", "진행 중"],
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            key={value}
+            aria-pressed={filter === value}
+            onClick={() => setFilter(value)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
-
-      {error && (
-        <p className="animate-fade-up mt-6 rounded-xl border border-crimson/40 bg-crimson/10 p-4 text-center text-[17.5px] font-medium text-crimson-bright">
+      <ul className="room-rows">
+        {filtered.map((room) => (
+          <li key={room.roomId} data-invited={room.roomId === invitedId}>
+            <h3>
+              {room.name}
+              {room.roomId === invitedId && <small>초대받은 방</small>}
+            </h3>
+            <p className="room-meta">
+              <span
+                className={
+                  room.inProgress ? "status-playing" : "status-waiting"
+                }
+              >
+                {room.inProgress ? "진행 중" : "대기 중"}
+              </span>
+              <span>
+                {room.playerCount}/{room.maxPlayers}
+              </span>
+              <span>{room.hasPassword ? "비밀번호" : "공개"}</span>
+            </p>
+            <button
+              className={`paper-button ${room.inProgress ? "" : "primary"}`}
+              disabled={isJoining || room.playerCount >= room.maxPlayers}
+              onClick={() => choose(room)}
+            >
+              {room.playerCount >= room.maxPlayers
+                ? "가득 참"
+                : room.inProgress
+                  ? "관전하기"
+                  : "참가하기"}
+              <span aria-hidden="true">→</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      {filtered.length === 0 && (
+        <div className="rooms-empty">
+          <p>
+            {!connected
+              ? "테이블을 불러오고 있어요."
+              : filter === "all"
+                ? "아직 열린 테이블이 없어요."
+                : "이 조건에 맞는 테이블이 없어요."}
+          </p>
+          <span>
+            {connected
+              ? "새 방을 만들거나 AI와 먼저 한 판 즐겨보세요."
+              : "게임 서버 연결을 확인하고 있습니다."}
+          </span>
+        </div>
+      )}
+      {error && !passwordRoom && (
+        <p role="alert" className="form-error">
           {error}
         </p>
       )}
-
-      <Link
-        href="/"
-        className="mt-8 w-full rounded-full bg-gold px-6 py-3.5 text-center text-[17.5px] font-semibold text-white transition hover:bg-gold-deep active:scale-[0.98]"
-      >
-        새 방 만들기
-      </Link>
-
-      {passwordPromptRoom && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          onClick={() => setPasswordPromptRoom(null)}
-        >
+      {!embedded && (
+        <Link className="paper-button primary" href="/#create-room">
+          새 방 만들기 →
+        </Link>
+      )}
+      {passwordRoom && (
+        <Modal titleId="password-title" onClose={() => setPasswordRoom(null)}>
           <form
-            onClick={(event) => event.stopPropagation()}
             onSubmit={(event) => {
               event.preventDefault();
-              joinRoom(passwordPromptRoom.roomId, passwordInput);
+              void join(passwordRoom, password);
             }}
-            className="animate-pop-in w-full max-w-xs rounded-2xl border border-hairline bg-zinc-950 p-6"
           >
-            <h2 className="mb-1 text-[19px] font-bold">
-              🔒 {passwordPromptRoom.name}
-            </h2>
-
-            <p className="mb-4 text-[14px] text-zinc-500">
-              이 방은 비밀번호가 걸려 있습니다.
-            </p>
-
+            <h2 id="password-title">{passwordRoom.name}</h2>
+            <p>비밀번호가 있는 방입니다.</p>
+            <label htmlFor="room-password">비밀번호</label>
             <input
-              autoFocus
+              id="room-password"
               type="password"
-              value={passwordInput}
-              onChange={(event) => setPasswordInput(event.target.value)}
-              placeholder="비밀번호"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
               maxLength={20}
-              className="mb-2 w-full rounded-lg border border-hairline bg-white px-4 py-2.5 text-[17.5px] text-black outline-none transition focus:border-black focus:ring-2 focus:ring-black/10"
+              autoFocus
             />
-
-            {passwordError && (
-              <p className="mb-3 text-[13.5px] font-medium text-crimson-bright">
-                {passwordError}
+            {error && (
+              <p role="alert" className="form-error">
+                {error}
               </p>
             )}
-
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setPasswordPromptRoom(null)}
-                className="flex-1 rounded-full border border-hairline bg-white px-5 py-2.5 text-[15px] font-semibold text-zinc-200 transition hover:bg-zinc-800"
-              >
-                취소
-              </button>
-
-              <button
-                type="submit"
-                disabled={isJoining}
-                className="flex-1 rounded-full bg-gold px-5 py-2.5 text-[15px] font-semibold text-white transition hover:bg-gold-deep disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isJoining ? "입장 중..." : "입장"}
-              </button>
-            </div>
+            <button className="paper-button primary" disabled={isJoining}>
+              {isJoining ? "입장 중…" : "입장하기 →"}
+            </button>
           </form>
-        </div>
+        </Modal>
       )}
-    </main>
+    </Wrapper>
   );
 }

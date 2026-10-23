@@ -1,79 +1,138 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { GUIDE_ARTICLES } from "@/lib/guide/articles";
-import { buildJsonLd } from "@/lib/seo/structuredData";
-
-const PAGE_URL = "https://seotda.felnut.com/guide";
-const TITLE = "섯다 가이드 - 규칙·족보·베팅 전략 모음";
-const DESCRIPTION =
-  "섯다를 처음 시작하는 방법부터 족보 순위, 특수 족보, 하프·쿼터·더블 베팅, 사이드 팟, 확률과 전략까지 정리한 가이드 글 모음입니다.";
+import { SiteFooter } from "@/app/components/SiteHeader";
 
 export const metadata: Metadata = {
-  title: TITLE,
-  description: DESCRIPTION,
-  alternates: { canonical: PAGE_URL },
-  openGraph: { title: TITLE, description: DESCRIPTION },
+  title: "섯다 플레이 가이드",
+  description:
+    "방 만들기와 친구 초대, 족보 읽기, 첫 베팅까지. 온라인 섯다를 시작하는 데 필요한 세 가지 안내입니다.",
+  alternates: { canonical: "https://seotda.felnut.com/guide" },
 };
 
-const jsonLd = buildJsonLd({
-  url: PAGE_URL,
-  name: TITLE,
-  description: DESCRIPTION,
-  datePublished: "2026-09-30",
-  dateModified: "2026-09-30",
-  image: "https://seotda.felnut.com/opengraph-image",
-});
-
-export default function GuideIndexPage() {
+export default function GuidePage() {
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col px-4 py-10 sm:py-14">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-
-      <Link
-        href="/"
-        className="mb-6 inline-block w-fit py-1 text-[13.5px] text-zinc-500 hover:text-zinc-300"
-      >
-        ← 메인으로
-      </Link>
-
-      <h1 className="mb-2 font-serif text-[28px] font-black tracking-tight text-black sm:text-[32px]">
-        섯다 가이드
-      </h1>
-
-      <p className="mb-8 text-[14.5px] leading-relaxed text-zinc-400">
-        처음 시작하는 분도, 이미 몇 판 해 본 분도 참고할 수 있도록 섯다의
-        규칙과 족보, 베팅, 확률, 전략을 글로 정리했습니다. 이 사이트에서
-        진행되는 실제 규칙을 기준으로 썼습니다.
-      </p>
-
-      <ul className="flex flex-col gap-3">
-        {GUIDE_ARTICLES.map((article) => (
-          <li key={article.slug}>
-            <Link
-              href={`/guide/${article.slug}`}
-              className="block rounded-xl border border-hairline bg-zinc-950 p-4 transition hover:border-hairline hover:bg-zinc-800"
-            >
-              <h2 className="mb-1 text-[17px] font-semibold text-zinc-100">
-                {article.title}
-              </h2>
-
-              <p className="text-[13.5px] leading-relaxed text-zinc-400">
-                {article.summary}
+    <>
+      <main className="guide-page ornament-corners">
+        <p className="breadcrumb">
+          <Link href="/">홈</Link>
+          <span>/</span>가이드
+        </p>
+        <h1 className="page-title">한 판에 필요한 것만.</h1>
+        <p className="page-description">
+          시작부터 첫 베팅까지, 차근차근 알아보세요.
+        </p>
+        <div className="guide-accordions">
+          <details open id="start">
+            <summary>
+              <span className="guide-number">01</span>
+              <span>
+                <h2>처음 시작하기</h2>
+                <p>방을 만들고, 친구를 초대하고, 함께 시작해요.</p>
+              </span>
+              <span className="disclosure-icon" aria-hidden="true" />
+            </summary>
+            <div className="guide-body">
+              <ol className="onboarding-steps">
+                <li>
+                  <span className="step-number">1</span>
+                  <div>
+                    <h3>방 만들기</h3>
+                    <p>홈에서 닉네임과 방 이름을 입력하세요.</p>
+                    <div className="guide-example">
+                      우리들의 섯다 <small>방 이름 예시</small>
+                    </div>
+                  </div>
+                </li>
+                <li>
+                  <span className="step-number">2</span>
+                  <div>
+                    <h3>초대 링크 공유</h3>
+                    <p>방의 ‘초대 링크’ 버튼으로 주소를 복사하세요.</p>
+                    <div className="guide-example">
+                      친구에게 링크 보내기 <span aria-hidden="true">↗</span>
+                    </div>
+                  </div>
+                </li>
+                <li>
+                  <span className="step-number">3</span>
+                  <div>
+                    <h3>준비 후 시작</h3>
+                    <p>참가자가 준비하면 방장이 시작합니다.</p>
+                    <div className="guide-example">
+                      참가자 준비 <span className="ready-label">준비</span>
+                    </div>
+                  </div>
+                </li>
+              </ol>
+              <p className="guide-bottom-note">
+                혼자라면 홈의 ‘AI와 연습하기’로 바로 시작할 수 있어요. 로그인은
+                선택입니다.
               </p>
-            </Link>
-          </li>
-        ))}
-      </ul>
-
-      <Link
-        href="/rooms"
-        className="mt-10 w-full rounded-full bg-gold px-6 py-3.5 text-center text-[17.5px] font-semibold text-white transition hover:bg-gold-deep active:scale-[0.98]"
-      >
-        읽었다면, 방 찾아 바로 시작하기
-      </Link>
-    </main>
+            </div>
+          </details>
+          <details id="hands">
+            <summary>
+              <span className="guide-number">02</span>
+              <span>
+                <h2>족보 읽는 법</h2>
+                <p>두 장의 조합과 특수 족보를 확인하세요.</p>
+              </span>
+              <span className="disclosure-icon" aria-hidden="true" />
+            </summary>
+            <div className="guide-body text-section">
+              <p>
+                같은 월 두 장은 땡입니다. 광 카드 두 장은 광땡이고, 이름이 붙은
+                조합이 아니면 월을 더한 끝자리로 끗을 셉니다.
+              </p>
+              <p>
+                이곳에서는 카드 세 장 중 두 장을 골라 족보를 만듭니다. 게임
+                화면에 가능한 조합이 표시되고, ‘족보’ 버튼으로 순위표를 볼 수
+                있습니다.
+              </p>
+              <Link className="text-link" href="/rules">
+                카드 그림으로 족보 확인하기 →
+              </Link>
+            </div>
+          </details>
+          <details id="betting">
+            <summary>
+              <span className="guide-number">03</span>
+              <span>
+                <h2>베팅하는 법</h2>
+                <p>체크와 콜, 하프와 쿼터의 차이를 알아보세요.</p>
+              </span>
+              <span className="disclosure-icon" aria-hidden="true" />
+            </summary>
+            <div className="guide-body text-section">
+              <p>
+                체크는 추가로 칩을 내지 않고 차례를 넘기는 행동입니다. 상대가
+                베팅했다면 콜로 금액을 맞추거나 다이로 이번 판에서 빠질 수
+                있습니다.
+              </p>
+              <p>
+                쿼터·하프·더블은 콜 금액에 현재 판돈의 1/4·1/2·2배를 더 냅니다.
+                버튼에 실제로 낼 금액이 표시되니, 남은 칩과 함께 확인하세요.
+              </p>
+              <p>
+                올인은 남은 칩을 전부 겁니다. 칩은 게임 안에서만 사용하며
+                현금으로 바꿀 수 없습니다.
+              </p>
+              <Link className="text-link" href="/rules#betting">
+                금액 계산과 정산 규칙 →
+              </Link>
+            </div>
+          </details>
+        </div>
+        <div className="guide-ending">
+          <Link className="text-link" href="/rules">
+            족보표 확인하기 →
+          </Link>
+          <Link className="paper-button primary" href="/?practice=1">
+            AI와 연습 시작하기 <span aria-hidden="true">→</span>
+          </Link>
+        </div>
+      </main>
+      <SiteFooter />
+    </>
   );
 }

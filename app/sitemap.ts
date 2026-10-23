@@ -1,5 +1,4 @@
 import type { MetadataRoute } from "next";
-import { GUIDE_ARTICLES } from "@/lib/guide/articles";
 
 const SITE_URL = "https://seotda.felnut.com";
 
@@ -20,22 +19,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.6,
     },
+    { url: `${SITE_URL}/guide`, changeFrequency: "monthly", priority: 0.6 },
     {
       url: `${SITE_URL}/about`,
       changeFrequency: "monthly",
       priority: 0.6,
     },
-    {
-      url: `${SITE_URL}/guide`,
-      changeFrequency: "monthly",
-      priority: 0.7,
-    },
-    ...GUIDE_ARTICLES.map((article) => ({
-      url: `${SITE_URL}/guide/${article.slug}`,
-      lastModified: article.dateModified,
-      changeFrequency: "monthly" as const,
-      priority: 0.6,
-    })),
     {
       url: `${SITE_URL}/privacy`,
       changeFrequency: "yearly",

@@ -31,8 +31,8 @@ type CardSize = "compact" | "cozy";
 // 연속적으로 커지도록 clamp()로 정의했다 — 창 크기를 드래그하면 카드가
 // 계단식이 아니라 부드럽게 늘어난다.
 const CARD_SIZE_CLASS: Record<CardSize, string> = {
-  compact: "w-[clamp(2.25rem,3vw,3rem)]",
-  cozy: "w-[clamp(4.5rem,6vw,6rem)]",
+  compact: "w-[clamp(2.25rem,4vw,4rem)]",
+  cozy: "w-[clamp(4rem,6.5vw,6.25rem)]",
 };
 
 interface CardProps {
@@ -44,7 +44,7 @@ interface CardProps {
 function Card({ card, index = 0, size = "cozy" }: CardProps) {
   return (
     <div
-      className={`animate-card-in relative aspect-2/3 shrink-0 overflow-hidden rounded-lg border border-hairline ${CARD_SIZE_CLASS[size]}`}
+      className={`game-card animate-card-in relative aspect-2/3 shrink-0 overflow-hidden rounded-lg border border-hairline ${CARD_SIZE_CLASS[size]}`}
       style={{ animationDelay: `${index * 80}ms` }}
     >
       <Image
@@ -71,7 +71,7 @@ function CardBack({
 }) {
   return (
     <div
-      className={`animate-fade-up flex aspect-2/3 shrink-0 items-center justify-center rounded-lg border border-hairline bg-linear-to-br from-zinc-800 to-zinc-900 ${CARD_SIZE_CLASS[size]}`}
+      className={`game-card-back animate-fade-up flex aspect-2/3 shrink-0 items-center justify-center rounded-lg border border-hairline bg-linear-to-br from-zinc-800 to-zinc-900 ${CARD_SIZE_CLASS[size]}`}
       style={{ animationDelay: `${index * 80}ms` }}
     >
       <span className="text-[22.5px] font-bold text-black/30 sm:text-3xl">
@@ -607,6 +607,7 @@ function ChatPanel({
   onSend: () => void;
   typingNames: string[];
 }) {
+  const [panel, setPanel] = useState<"chat" | "hands">("chat");
   const listRef = useRef<HTMLDivElement | null>(null);
   const [isEmojiOpen, setIsEmojiOpen] = useState(false);
   const [emojiCategoryIndex, setEmojiCategoryIndex] = useState(0);
@@ -662,7 +663,7 @@ function ChatPanel({
     if (!isVisible || isDockCollapsed) return;
 
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
-  }, [isVisible, isDockCollapsed, messages]);
+  }, [isVisible, isDockCollapsed, messages, panel]);
 
   // 데스크톱(sm 이상)에서는 레이아웃에 자리를 차지하는 도킹 패널로,
   // 모바일에서는 문서 흐름 밖의 fixed 오버레이로 오른쪽에서 슬라이드인한다.
@@ -672,8 +673,8 @@ function ChatPanel({
       // 입력창/버튼이 키보드 탭 이동으로 포커스되지 않도록 inert 처리한다.
       // 데스크톱에서는 항상 보이므로 inert를 걸지 않는다.
       inert={!isVisible}
-      className={`z-40 flex shrink-0 flex-col overflow-hidden border-hairline bg-zinc-950/95 transition-[width,transform] duration-300 sm:relative sm:translate-x-0 sm:border-l sm:bg-zinc-950/60 sm:shadow-none ${
-        isDockCollapsed ? "sm:w-12" : "w-56 sm:w-[clamp(14rem,22vw,20rem)]"
+      className={`game-chat z-40 flex shrink-0 flex-col overflow-hidden border-hairline bg-zinc-950/95 transition-[width,transform] duration-300 lg:relative lg:translate-x-0 lg:border-l lg:bg-zinc-950/60 lg:shadow-none ${
+        isDockCollapsed ? "lg:w-12" : "w-56 lg:w-[clamp(14rem,22vw,20rem)]"
       } ${
         open
           ? "fixed inset-y-0 right-0 translate-x-0 border-l"
@@ -694,8 +695,26 @@ function ChatPanel({
         </button>
       ) : (
         <>
-          <div className="flex shrink-0 items-center justify-between border-b border-hairline px-4 py-3 sm:py-4">
-            <h3 className="text-[17.5px] font-bold sm:text-[22.5px]">채팅</h3>
+          <div className="flex shrink-0 items-center justify-between border-b border-hairline px-4 py-3 lg:py-4">
+            <div className="game-panel-tabs">
+              <button
+                type="button"
+                aria-pressed={panel === "chat"}
+                onClick={() => setPanel("chat")}
+              >
+                채팅
+              </button>
+              <button
+                type="button"
+                aria-pressed={panel === "hands"}
+                onClick={() => {
+                  setPanel("hands");
+                  setIsEmojiOpen(false);
+                }}
+              >
+                족보
+              </button>
+            </div>
 
             <div className="flex items-center gap-1">
               <button
@@ -703,7 +722,7 @@ function ChatPanel({
                 onClick={() => setIsCollapsed(true)}
                 aria-label="채팅 접기"
                 title="채팅 접기"
-                className="hidden rounded-full p-2 text-zinc-400 transition hover:bg-zinc-800 hover:text-black sm:inline-flex"
+                className="hidden rounded-full p-2 text-zinc-400 transition hover:bg-zinc-800 hover:text-black lg:inline-flex"
               >
                 »
               </button>
@@ -712,156 +731,181 @@ function ChatPanel({
                 type="button"
                 onClick={onClose}
                 aria-label="닫기"
-                className="rounded-full p-2 text-zinc-400 transition hover:bg-zinc-800 hover:text-black sm:hidden"
+                className="rounded-full p-2 text-zinc-400 transition hover:bg-zinc-800 hover:text-black lg:hidden"
               >
                 ✕
               </button>
             </div>
           </div>
 
-          <div
-            ref={listRef}
-            className="flex-1 space-y-2 overflow-y-auto px-3 py-3 sm:px-4 sm:py-4"
-          >
-            {messages.length === 0 && (
-              <p className="py-8 text-center text-[13.5px] text-zinc-500">
-                아직 메시지가 없습니다.
-              </p>
-            )}
-
-            {messages.map((message) => {
-              const isMine = message.playerId === myPlayerId;
-
-              return (
-                <div
-                  key={message.id}
-                  className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
-                >
-                  <span className="mb-0.5 max-w-[85%] truncate text-[11px] font-medium text-zinc-500">
-                    {isMine ? "나" : message.name}
-                  </span>
-
-                  <p
-                    className={`max-w-[85%] rounded-2xl px-3 py-1.5 text-[13.5px] wrap-break-word sm:px-3.5 sm:py-2 sm:text-[15px] ${
-                      isMine
-                        ? "bg-gold text-white"
-                        : "bg-zinc-950 text-zinc-100"
-                    }`}
-                  >
-                    {message.text}
+          {panel === "chat" ? (
+            <>
+              <div
+                ref={listRef}
+                className="flex-1 space-y-2 overflow-y-auto px-3 py-3 lg:px-4 lg:py-4"
+              >
+                {messages.length === 0 && (
+                  <p className="py-8 text-center text-[13.5px] text-zinc-500">
+                    아직 메시지가 없습니다.
                   </p>
-                </div>
-              );
-            })}
-          </div>
+                )}
 
-          <div className="shrink-0 px-3 sm:px-4">
-            <p
-              className={`h-4 truncate text-[11.5px] text-zinc-500 transition-opacity ${
-                typingNames.length > 0 ? "opacity-100" : "opacity-0"
-              }`}
-            >
-              {typingNames.length === 1
-                ? `${typingNames[0]}님이 입력 중...`
-                : typingNames.length > 1
-                  ? `${typingNames.slice(0, 2).join(", ")} 외 ${
-                      typingNames.length - 2 > 0 ? typingNames.length - 2 : ""
-                    }명이 입력 중...`
-                  : " "}
-            </p>
-          </div>
+                {messages.map((message) => {
+                  const isMine = message.playerId === myPlayerId;
 
-          <div ref={emojiAnchorRef} className="relative shrink-0">
-            {isEmojiOpen &&
-              emojiPopupPos &&
-              createPortal(
-                <div
-                  style={{
-                    bottom: emojiPopupPos.bottom,
-                    right: emojiPopupPos.right,
-                  }}
-                  className="fixed z-50 w-72 rounded-xl border border-hairline bg-zinc-900"
-                >
-                  <div className="flex gap-0.5 overflow-x-auto border-b border-hairline p-1.5">
-                    {EMOJI_CATEGORIES.map((category, index) => (
-                      <button
-                        key={category.label}
-                        type="button"
-                        title={category.label}
-                        aria-label={category.label}
-                        aria-pressed={emojiCategoryIndex === index}
-                        onClick={() => setEmojiCategoryIndex(index)}
-                        className={`shrink-0 rounded-lg px-2 py-1 text-[16px] transition ${
-                          emojiCategoryIndex === index
-                            ? "bg-gold/15 ring-1 ring-gold/40"
-                            : "hover:bg-zinc-800"
+                  return (
+                    <div
+                      key={message.id}
+                      className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
+                    >
+                      <span className="mb-0.5 max-w-[85%] truncate text-[11px] font-medium text-zinc-500">
+                        {isMine ? "나" : message.name}
+                      </span>
+
+                      <p
+                        className={`max-w-[85%] rounded-2xl px-3 py-1.5 text-[13.5px] wrap-break-word lg:px-3.5 lg:py-2 lg:text-[15px] ${
+                          isMine
+                            ? "bg-gold text-white"
+                            : "bg-zinc-950 text-zinc-100"
                         }`}
                       >
-                        {category.icon}
-                      </button>
-                    ))}
-                  </div>
+                        {message.text}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
 
-                  <div className="grid max-h-40 grid-cols-6 gap-1 overflow-y-auto p-2">
-                    {EMOJI_CATEGORIES[emojiCategoryIndex].emojis.map(
-                      (emoji, index) => (
-                        <button
-                          key={`${emoji}-${index}`}
-                          type="button"
-                          onClick={() => {
-                            onInputChange(`${input}${emoji}`);
-                            setIsEmojiOpen(false);
-                          }}
-                          className="rounded-lg py-1 text-[19px] transition hover:bg-zinc-800"
-                        >
-                          {emoji}
-                        </button>
-                      ),
-                    )}
-                  </div>
-                </div>,
-                document.body,
-              )}
+              <div className="shrink-0 px-3 lg:px-4">
+                <p
+                  className={`h-4 truncate text-[11.5px] text-zinc-500 transition-opacity ${
+                    typingNames.length > 0 ? "opacity-100" : "opacity-0"
+                  }`}
+                >
+                  {typingNames.length === 1
+                    ? `${typingNames[0]}님이 입력 중...`
+                    : typingNames.length > 1
+                      ? `${typingNames.slice(0, 2).join(", ")} 외 ${
+                          typingNames.length - 2 > 0
+                            ? typingNames.length - 2
+                            : ""
+                        }명이 입력 중...`
+                      : " "}
+                </p>
+              </div>
 
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                onSend();
-                setIsEmojiOpen(false);
-              }}
-              className="flex gap-1.5 border-t border-hairline p-2.5 sm:gap-2 sm:p-3"
-            >
-              <button
-                type="button"
-                onClick={() => setIsEmojiOpen((prev) => !prev)}
-                aria-label="이모티콘"
-                aria-expanded={isEmojiOpen}
-                className={`shrink-0 rounded-xl border px-2.5 text-[17px] transition ${
-                  isEmojiOpen
-                    ? "border-hairline bg-gold/10"
-                    : "border-hairline bg-white hover:border-hairline"
-                }`}
-              >
-                😊
-              </button>
+              <div ref={emojiAnchorRef} className="relative shrink-0">
+                {isEmojiOpen &&
+                  emojiPopupPos &&
+                  createPortal(
+                    <div
+                      style={{
+                        bottom: emojiPopupPos.bottom,
+                        right: emojiPopupPos.right,
+                      }}
+                      className="fixed z-50 w-72 rounded-xl border border-hairline bg-zinc-900"
+                    >
+                      <div className="flex gap-0.5 overflow-x-auto border-b border-hairline p-1.5">
+                        {EMOJI_CATEGORIES.map((category, index) => (
+                          <button
+                            key={category.label}
+                            type="button"
+                            title={category.label}
+                            aria-label={category.label}
+                            aria-pressed={emojiCategoryIndex === index}
+                            onClick={() => setEmojiCategoryIndex(index)}
+                            className={`shrink-0 rounded-lg px-2 py-1 text-[16px] transition ${
+                              emojiCategoryIndex === index
+                                ? "bg-gold/15 ring-1 ring-gold/40"
+                                : "hover:bg-zinc-800"
+                            }`}
+                          >
+                            {category.icon}
+                          </button>
+                        ))}
+                      </div>
 
-              <input
-                value={input}
-                onChange={(event) => onInputChange(event.target.value)}
-                placeholder="메시지 입력..."
-                maxLength={200}
-                className="min-w-0 flex-1 rounded-lg border border-hairline bg-white px-3 py-2 text-[13.5px] text-black outline-none transition focus:border-black focus:ring-2 focus:ring-black/10 sm:px-3.5 sm:py-2.5 sm:text-[15px]"
-              />
+                      <div className="grid max-h-40 grid-cols-6 gap-1 overflow-y-auto p-2">
+                        {EMOJI_CATEGORIES[emojiCategoryIndex].emojis.map(
+                          (emoji, index) => (
+                            <button
+                              key={`${emoji}-${index}`}
+                              type="button"
+                              onClick={() => {
+                                onInputChange(`${input}${emoji}`);
+                                setIsEmojiOpen(false);
+                              }}
+                              className="rounded-lg py-1 text-[19px] transition hover:bg-zinc-800"
+                            >
+                              {emoji}
+                            </button>
+                          ),
+                        )}
+                      </div>
+                    </div>,
+                    document.body,
+                  )}
 
-              <button
-                type="submit"
-                disabled={!input.trim()}
-                className="shrink-0 rounded-full bg-gold px-3 py-2 text-[13.5px] font-semibold text-white transition hover:bg-gold-deep active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 sm:px-4 sm:py-2.5 sm:text-[15px]"
-              >
-                전송
-              </button>
-            </form>
-          </div>
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    onSend();
+                    setIsEmojiOpen(false);
+                  }}
+                  className="flex gap-1.5 border-t border-hairline p-2.5 lg:gap-2 lg:p-3"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setIsEmojiOpen((prev) => !prev)}
+                    aria-label="이모티콘"
+                    aria-expanded={isEmojiOpen}
+                    className={`shrink-0 rounded-xl border px-2.5 text-[17px] transition ${
+                      isEmojiOpen
+                        ? "border-hairline bg-gold/10"
+                        : "border-hairline bg-white hover:border-hairline"
+                    }`}
+                  >
+                    😊
+                  </button>
+
+                  <input
+                    value={input}
+                    onChange={(event) => onInputChange(event.target.value)}
+                    placeholder="메시지 입력..."
+                    maxLength={200}
+                    className="min-w-0 flex-1 rounded-lg border border-hairline bg-white px-3 py-2 text-[13.5px] text-black outline-none transition focus:border-black focus:ring-2 focus:ring-black/10 lg:px-3.5 lg:py-2.5 lg:text-[15px]"
+                  />
+
+                  <button
+                    type="submit"
+                    disabled={!input.trim()}
+                    className="shrink-0 rounded-full bg-gold px-3 py-2 text-[13.5px] font-semibold text-white transition hover:bg-gold-deep active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 lg:px-4 lg:py-2.5 lg:text-[15px]"
+                  >
+                    전송
+                  </button>
+                </form>
+              </div>
+            </>
+          ) : (
+            <section className="game-hand-reference" aria-label="족보 참고">
+              <h3>높은 족보부터</h3>
+              <ol>
+                {HAND_GUIDE.map((hand) => (
+                  <li key={hand.name}>
+                    <strong>{hand.name}</strong>
+                    <span>{hand.months}</span>
+                  </li>
+                ))}
+              </ol>
+              <h3 className="mt-6">특수 족보</h3>
+              {SPECIAL_HAND_GUIDE.map((hand) => (
+                <div key={hand.name}>
+                  <strong>{hand.name}</strong>
+                  <p>{hand.effect}</p>
+                </div>
+              ))}
+            </section>
+          )}
         </>
       )}
     </aside>
@@ -953,95 +997,31 @@ function chipDenominationFor(amount: number) {
   );
 }
 
-const CHIP_PILE_SIZE = 28;
-// 칩의 두께(옆면 높이) — box-shadow로 칩 아래에 진한 색 띠를 깔아,
-// 위(윗면)와 옆(옆면)이 함께 보이는 원통형 칩처럼 보이게 한다.
-const CHIP_PILE_THICKNESS = 6;
-// 가로 간격을 칩 지름보다 넉넉히 크게 둬서, 종류(단위)가 다른 칩끼리는
-// 옆면(그림자)까지 포함해도 절대 서로 겹치지 않게 한다 — 세로 간격은
-// 계단처럼 올라가는 느낌만 주면 되므로 그보다 작아도 된다.
-const CHIP_PILE_H_STEP = 35;
-const CHIP_PILE_V_STEP = 18;
-// 맨 아래(0번) 칩의 그림자(옆면 두께 + 번짐)는 그 칩 자신의 박스 밑으로
-// 삐져나오는데, 그 칩이 컨테이너 맨 아래에 딱 붙어 있으면 이 그림자가
-// 컨테이너 밖으로, 즉 바로 밑의 POT 박스 쪽으로 새어나간다. 모든 칩을
-// 이만큼 위로 올려 그 여백을 컨테이너 안에 미리 확보해둔다.
-const CHIP_PILE_SHADOW_RESERVE = CHIP_PILE_THICKNESS + 6;
-
-// 판돈 규모에 따라, 그 금액이 걸쳐 있는 단위의 칩들을 사선으로 쌓아 올린
-// 무더기 그림이다 — 정확한 금액은 항상 바로 아래 텍스트로 표기하므로, 이
-// 그림은 판돈이 얼마나 두둑한지 눈대중으로 보여주는 용도일 뿐이다. 낮은
-// 단위일수록 왼쪽 아래, 높은 단위일수록 오른쪽 위로 계단처럼 쌓아, 각
-// 칩의 윗면(숫자)과 옆면(두께)이 함께 드러나게 한다.
-function ChipStack({ amount }: { amount: number }) {
-  const denominations = CHIP_DENOMINATIONS.filter(
-    (d) => amount >= d.value,
-  ).reverse();
-
-  if (denominations.length === 0) return null;
-
-  const width = CHIP_PILE_SIZE + (denominations.length - 1) * CHIP_PILE_H_STEP;
-  const height =
-    CHIP_PILE_SIZE +
-    CHIP_PILE_SHADOW_RESERVE +
-    (denominations.length - 1) * CHIP_PILE_V_STEP;
-
+function PotBadge({
+  pot,
+  turnLabel,
+  currentBet,
+}: {
+  pot: number;
+  turnLabel: string;
+  currentBet: number;
+}) {
   return (
-    <div className="relative" style={{ width, height }} aria-hidden>
-      {denominations.map((d, index) => (
-        <span
-          key={d.value}
-          className={`absolute flex items-center justify-center rounded-full border-2 font-mono text-[11px] leading-none font-bold text-white ${d.bg} ${d.border}`}
-          style={{
-            width: CHIP_PILE_SIZE,
-            height: CHIP_PILE_SIZE,
-            left: index * CHIP_PILE_H_STEP,
-            bottom: index * CHIP_PILE_V_STEP + CHIP_PILE_SHADOW_RESERVE,
-            zIndex: index,
-            // 왼쪽 위에서 빛을 받는 듯한 하이라이트 + 가장자리를 따라 도는
-            // 얇은 점선형 테두리로, 평면 원이 아니라 광택 있는 실물 칩처럼
-            // 보이게 한다.
-            backgroundImage: `radial-gradient(circle at 32% 28%, rgba(255,255,255,0.55), rgba(255,255,255,0) 45%), repeating-conic-gradient(rgba(255,255,255,0.4) 0deg 6deg, transparent 6deg 18deg)`,
-            backgroundBlendMode: "overlay, normal",
-            boxShadow: `0 ${CHIP_PILE_THICKNESS}px 0 0 ${d.side}, 0 ${
-              CHIP_PILE_THICKNESS + 2
-            }px 5px rgba(0,0,0,0.4), inset 0 0 0 3px rgba(0,0,0,0.15), inset 0 1px 1px rgba(255,255,255,0.4)`,
-          }}
-        >
-          {d.label}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function PotBadge({ pot, turnLabel }: { pot: number; turnLabel: string }) {
-  return (
-    <div className="flex shrink-0 flex-col items-center justify-center gap-1.5 py-1">
-      <ChipStack amount={pot} />
-
-      <div
-        className="flex flex-col items-center rounded-2xl border border-hairline bg-zinc-950/80 px-5 py-1.5 sm:px-6 sm:py-2"
-        style={{
-          boxShadow:
-            "0 0 24px -4px rgba(0,102,255,0.1), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -2px 6px rgba(0,0,0,0.5)",
-        }}
-      >
-        <p className="text-[10px] font-bold tracking-widest text-black sm:text-[11px]">
-          POT
-        </p>
-
-        <p
-          key={pot}
-          className="animate-pop-in font-mono text-[17.5px] font-bold tabular-nums text-black sm:text-[22px]"
-        >
-          {pot.toLocaleString()}
-        </p>
-      </div>
-
-      <p className="text-[13px] font-medium text-zinc-400 sm:text-[15px]">
-        {turnLabel}
+    <div className="table-pot">
+      <span className="pot-ornament" aria-hidden="true">
+        一 ◇ 一
+      </span>
+      <span>총 판돈</span>
+      <strong>
+        {pot.toLocaleString()}
+        <small>칩</small>
+      </strong>
+      <p>
+        현재 최고 베팅 <b>{currentBet.toLocaleString()}칩</b>
       </p>
+      <span className="sr-only" aria-live="polite">
+        {turnLabel}
+      </span>
     </div>
   );
 }
@@ -1124,18 +1104,12 @@ function PlayerPanel({
 
   return (
     <div
-      className={`rounded-2xl border px-4 py-2.5 transition sm:px-5 ${
-        compact ? "sm:py-3" : "sm:py-3.5"
-      } ${isMe ? "border-hairline bg-gold/4" : "border-hairline bg-zinc-950"} ${
-        isCurrent
-          ? "animate-turn-glow ring-2 ring-gold/70 ring-offset-2 ring-offset-zinc-950"
-          : ""
-      }`}
+      className={`player-seat ${isMe ? "is-me" : "is-opponent"} ${isCurrent ? "is-current" : ""} ${player.status === "folded" ? "is-folded" : ""}`}
     >
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+      <div className="seat-heading mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <div className="seat-identity flex min-w-0 items-center gap-2 sm:gap-3">
           <div
-            className={`flex shrink-0 items-center justify-center rounded-full bg-gold font-bold text-white ${
+            className={`seat-avatar flex shrink-0 items-center justify-center rounded-full bg-gold font-bold text-white ${
               compact
                 ? "h-6 w-6 text-[15px]"
                 : "h-8 w-8 text-[17.5px] sm:h-9 sm:w-9"
@@ -1198,7 +1172,7 @@ function PlayerPanel({
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="seat-status flex items-center gap-2">
           {player.lastAction && player.status !== "folded" && (
             <span className="animate-pop-in rounded-full bg-felt/15 px-2.5 py-0.5 text-[14px] font-bold text-felt-bright">
               {player.lastAction}
@@ -1237,7 +1211,7 @@ function PlayerPanel({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+      <div className="seat-cards flex flex-wrap items-center justify-center gap-2 sm:gap-3">
         {player.cards.map((visibleCard, index) => {
           const isPendingSelected = pendingSelection.includes(index);
 
@@ -1250,11 +1224,10 @@ function PlayerPanel({
                 <button
                   type="button"
                   disabled={!canSelectNow}
+                  aria-pressed={canSelectNow ? isPendingSelected : undefined}
                   onClick={() => onToggleSelect(index)}
                   className={`rounded-lg transition ${
-                    canSelectNow
-                      ? "cursor-pointer"
-                      : "cursor-default"
+                    canSelectNow ? "cursor-pointer" : "cursor-default"
                   } ${
                     isPendingSelected
                       ? "ring-2 ring-gold ring-offset-2 ring-offset-zinc-950"
@@ -1307,7 +1280,7 @@ function PlayerPanel({
           (isMe || phase === "showdown" || phase === "finished") && (
             <div
               key={player.handName}
-              className="animate-pop-in flex flex-col items-center justify-center rounded-xl border border-hairline bg-black/20 px-3 py-1.5 text-center sm:px-4"
+              className="seat-hand animate-pop-in flex flex-col items-center justify-center rounded-xl border border-hairline bg-black/20 px-3 py-1.5 text-center sm:px-4"
             >
               <p className="text-[11px] font-medium text-zinc-400">족보</p>
               <p className="text-[22.5px] font-bold text-black sm:text-[25px]">
@@ -1492,50 +1465,71 @@ function GameBoard({
     ? `${currentPlayer?.name ?? ""}의 차례`
     : (PHASE_LABEL[gameState.phase] ?? gameState.phase);
 
+  const stages = ["1차 베팅", "패 공개", "2차 베팅", "족보 선택", "결과"];
+  const activeStage =
+    gameState.phase === "betting1"
+      ? 0
+      : gameState.phase === "reveal"
+        ? 1
+        : gameState.phase === "betting2"
+          ? 2
+          : gameState.phase === "select"
+            ? 3
+            : 4;
   return (
-    <div className="table-felt relative flex flex-1 flex-col justify-between gap-[clamp(0.5rem,1.2vw,0.75rem)] rounded-4xl border border-hairline p-[clamp(0.625rem,2vw,1.5rem)]">
-      {/* 상대방은 테이블 위쪽에 가로로 둘러앉는다(둥근 테이블 흉내) */}
-      {opponents.length > 0 && (
-        <div className="flex min-h-0 flex-1 flex-wrap content-start justify-center gap-1.5 overflow-y-auto sm:gap-2">
-          {opponents.map((opponent) => (
-            <div
-              key={opponent.id}
-              className="w-full sm:max-w-[calc(50%-0.25rem)]"
-            >
-              <PlayerPanel
-                player={opponent}
-                isMe={false}
-                isCurrent={isBettingPhase && opponent.id === currentPlayer?.id}
-                compact
-                phase={gameState.phase}
-                pendingSelection={pendingSelection}
-                onRevealCard={onRevealCard}
-                onToggleSelect={onToggleSelect}
-                onConfirmSelect={onConfirmSelect}
-                soundEffects={soundEffects}
-              />
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* 테이블 한가운데 팟 */}
-      <PotBadge pot={gameState.pot} turnLabel={turnLabel} />
-
-      {/* 나는 항상 테이블 앞자리(맨 아래)에 앉는다 */}
+    <div className="table-felt table-board ornament-corners">
+      <ol className="game-stages" aria-label="게임 진행 단계">
+        {stages.map((stage, index) => (
+          <li
+            key={stage}
+            aria-current={index === activeStage ? "step" : undefined}
+          >
+            {stage}
+          </li>
+        ))}
+      </ol>
+      <div className="opponent-seats">
+        {opponents.map((opponent, index) => (
+          <div
+            className="opponent-position"
+            data-seat={index}
+            key={opponent.id}
+          >
+            <PlayerPanel
+              player={opponent}
+              isMe={false}
+              isCurrent={isBettingPhase && opponent.id === currentPlayer?.id}
+              compact
+              phase={gameState.phase}
+              pendingSelection={pendingSelection}
+              onRevealCard={onRevealCard}
+              onToggleSelect={onToggleSelect}
+              onConfirmSelect={onConfirmSelect}
+              soundEffects={soundEffects}
+            />
+          </div>
+        ))}
+      </div>
+      <PotBadge
+        pot={gameState.pot}
+        currentBet={gameState.currentBet}
+        turnLabel={turnLabel}
+      />
       {me && (
-        <PlayerPanel
-          player={me}
-          isMe
-          isCurrent={isBettingPhase && me.id === currentPlayer?.id}
-          compact={false}
-          phase={gameState.phase}
-          pendingSelection={pendingSelection}
-          onRevealCard={onRevealCard}
-          onToggleSelect={onToggleSelect}
-          onConfirmSelect={onConfirmSelect}
-          soundEffects={soundEffects}
-        />
+        <div className="my-position">
+          <PlayerPanel
+            player={me}
+            isMe
+            isCurrent={isBettingPhase && me.id === currentPlayer?.id}
+            compact={false}
+            phase={gameState.phase}
+            pendingSelection={pendingSelection}
+            onRevealCard={onRevealCard}
+            onToggleSelect={onToggleSelect}
+            onConfirmSelect={onConfirmSelect}
+            soundEffects={soundEffects}
+          />
+        </div>
       )}
     </div>
   );
@@ -1606,6 +1600,7 @@ function SpectateButton({
 }
 
 export interface GameRoomViewProps {
+  roomId: string;
   roomName: string;
   roomHasPassword: boolean;
   playerId: string;
@@ -1654,6 +1649,7 @@ export interface GameRoomViewProps {
 }
 
 export default function GameRoomView({
+  roomId,
   roomName,
   roomHasPassword,
   playerId,
@@ -1700,6 +1696,18 @@ export default function GameRoomView({
   onAllIn,
   onFold,
 }: GameRoomViewProps) {
+  const [inviteCopied, setInviteCopied] = useState(false);
+  const copyInvite = async () => {
+    const url = new URL("/rooms", window.location.origin);
+    url.searchParams.set("room", roomId);
+    try {
+      await navigator.clipboard.writeText(url.toString());
+      setInviteCopied(true);
+    } catch {
+      window.prompt("초대 링크를 복사해 주세요.", url.toString());
+    }
+  };
+
   /*
    * 방에 들어왔지만 아직 게임이 시작되지 않은 상태
    * — 코드만 덩그러니 보여주지 않고, 실제 게임 화면과 같은 테이블 구도로 대기한다.
@@ -1751,11 +1759,11 @@ export default function GameRoomView({
     const canStart = isHost && allOthersReady;
 
     return (
-      <main className="flex h-dvh flex-col overflow-hidden px-3 py-2 sm:flex-row sm:gap-0 sm:px-6 sm:py-4">
+      <main className="game-room waiting-room">
         <LeaveNoticeToast message={leaveNotice} />
 
-        <div className="mx-auto flex w-full min-w-0 flex-1 flex-col overflow-hidden sm:pr-4">
-          <header className="mb-2 flex shrink-0 items-center justify-between gap-3 sm:mb-4">
+        <div className="game-table-panel">
+          <header className="game-table-header">
             <div className="flex min-w-0 items-baseline gap-2">
               <h1 className="font-serif shrink-0 text-[22px] font-black tracking-tight text-black sm:text-[26px]">
                 섯다
@@ -1767,11 +1775,18 @@ export default function GameRoomView({
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="game-header-actions flex items-center gap-2">
+              <button
+                type="button"
+                onClick={copyInvite}
+                className="invite-button"
+              >
+                {inviteCopied ? "복사됨 ✓" : "↗ 초대 링크"}
+              </button>
               <button
                 type="button"
                 onClick={onOpenChat}
-                className="relative rounded-full border border-hairline bg-white px-2.5 py-1.5 text-[15px] font-semibold text-zinc-300 transition hover:border-hairline hover:text-black active:scale-95 sm:hidden"
+                className="relative rounded-full border border-hairline bg-white px-2.5 py-1.5 text-[15px] font-semibold text-zinc-300 transition hover:border-hairline hover:text-black active:scale-95 lg:hidden"
               >
                 채팅
                 {hasUnreadChat && (
@@ -1946,69 +1961,30 @@ export default function GameRoomView({
   const isMyTurn =
     gameState.players[gameState.currentPlayerIndex]?.id === playerId;
 
-  const infoRailPhaseLabel =
-    PHASE_LABEL[gameState.phase] ??
-    (gameState.phase === "betting1" || gameState.phase === "betting2"
-      ? "베팅 중"
-      : gameState.phase);
-
   /*
    * 게임 화면 — 스크롤 없이 한 화면(h-dvh)에 들어오도록 세로 구성
    */
   return (
-    <main className="flex h-dvh flex-col overflow-hidden px-3 py-2 sm:flex-row sm:gap-4 sm:px-6 sm:py-4">
+    <main className="game-room">
       <LeaveNoticeToast message={leaveNotice} />
 
-      {/* 노트북/데스크톱처럼 넓은 화면에서는 채팅을 접어도 테이블 반대편에
-          빈 공간이 남는다 — 그 공간을 장식이 아니라 실제 있는 정보(방·내
-          현황)를 상시 보여주는 패널로 채운다. xl 미만에서는 아예 렌더링하지
-          않아 좁은 화면 레이아웃에는 영향이 없다. */}
-      <aside className="hidden w-56 shrink-0 flex-col gap-3 xl:flex">
-        <div className="rounded-2xl border border-hairline bg-zinc-950 p-4">
-          <p className="mb-1 truncate text-[15px] font-semibold text-zinc-200">
-            {roomHasPassword ? "🔒 " : ""}
-            {roomName}
-          </p>
-          <p className="text-[13px] text-zinc-500">
-            {gameState.players.length}/{maxPlayers}명 참가 중
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-hairline bg-zinc-950 p-4">
-          <p className="mb-3 text-[12px] font-semibold tracking-wide text-zinc-500">
-            내 현황
-          </p>
-
-          <div className="mb-2.5 flex items-baseline justify-between">
-            <span className="text-[13.5px] text-zinc-400">보유 칩</span>
-            <span className="font-mono text-[16px] font-bold tabular-nums text-black">
-              {(myPlayer?.chips ?? 0).toLocaleString()}
+      <div className="game-table-panel">
+        <header className="game-table-header">
+          <h1 className="game-room-title">
+            {roomName}{" "}
+            <span>
+              · {gameState.players.length}/{maxPlayers}명
             </span>
-          </div>
-
-          <div className="flex items-baseline justify-between">
-            <span className="text-[13.5px] text-zinc-400">이번 판 팟</span>
-            <span className="font-mono text-[16px] font-bold tabular-nums text-black">
-              {gameState.pot.toLocaleString()}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-center gap-2 rounded-2xl border border-hairline bg-gold/4 p-3">
-          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-gold-bright" />
-          <p className="text-[13.5px] font-medium text-zinc-300">
-            {infoRailPhaseLabel}
-          </p>
-        </div>
-      </aside>
-
-      <div className="mx-auto flex w-full min-w-0 flex-1 flex-col overflow-hidden sm:pr-4 2xl:max-w-350">
-        <header className="mb-2 flex shrink-0 items-center justify-between gap-3 sm:mb-4">
-          <h1 className="font-serif text-[25px] font-bold tracking-tight text-black sm:text-3xl">
-            섯다
           </h1>
 
-          <div className="flex items-center gap-2">
+          <div className="game-header-actions flex items-center gap-2">
+            <button
+              type="button"
+              onClick={copyInvite}
+              className="invite-button"
+            >
+              {inviteCopied ? "복사됨 ✓" : "↗ 초대 링크"}
+            </button>
             <button
               type="button"
               onClick={onOpenGuide}
@@ -2020,7 +1996,7 @@ export default function GameRoomView({
             <button
               type="button"
               onClick={onOpenChat}
-              className="relative rounded-full border border-hairline bg-white px-2.5 py-1.5 text-[15px] font-semibold text-zinc-300 transition hover:border-hairline hover:text-black active:scale-95 sm:hidden"
+              className="relative rounded-full border border-hairline bg-white px-2.5 py-1.5 text-[15px] font-semibold text-zinc-300 transition hover:border-hairline hover:text-black active:scale-95 lg:hidden"
             >
               채팅
               {hasUnreadChat && (
@@ -2038,7 +2014,7 @@ export default function GameRoomView({
           </div>
         </header>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <div className="game-board-scroll">
           <GameBoard
             gameState={gameState}
             playerId={playerId}
@@ -2050,7 +2026,7 @@ export default function GameRoomView({
           />
         </div>
 
-        <div className="shrink-0 pt-2">
+        <div className="betting-bar shrink-0 pt-2">
           {myPlayer?.isSpectator && (
             <div className="mb-2 flex flex-col items-center gap-1.5">
               {myPlayer.pendingActivation ? (
@@ -2140,22 +2116,31 @@ export default function GameRoomView({
             !myPlayer?.isSpectator &&
             bettingAmounts && (
               <>
-                <p className="mb-1.5 text-center text-[13px] text-zinc-500 sm:text-[14px]">
-                  이번 판 베팅 한도{" "}
-                  <span className="font-mono text-zinc-300">
-                    {bettingAmounts.totalBet.toLocaleString()}
+                <p className="betting-summary">
+                  <strong>
+                    {isMyTurn ? "내 차례입니다" : "상대의 차례입니다"}
+                  </strong>
+                  <span>
+                    콜 {bettingAmounts.callAmount.toLocaleString()}칩 · 추가
+                    베팅 가능 {bettingAmounts.remainingRoom.toLocaleString()}칩
                   </span>
-                  {" / "}
-                  <span className="font-mono text-zinc-300">
-                    {bettingAmounts.maxBet.toLocaleString()}
-                  </span>
-                  {" · 남은 여유 "}
-                  <span className="font-mono font-semibold text-black">
-                    {bettingAmounts.remainingRoom.toLocaleString()}
+                  <span className="sr-only">
+                    이번 판 베팅 한도{" "}
+                    <span className="font-mono text-zinc-300">
+                      {bettingAmounts.totalBet.toLocaleString()}
+                    </span>
+                    {" / "}
+                    <span className="font-mono text-zinc-300">
+                      {bettingAmounts.maxBet.toLocaleString()}
+                    </span>
+                    {" · 남은 여유 "}
+                    <span className="font-mono font-semibold text-black">
+                      {bettingAmounts.remainingRoom.toLocaleString()}
+                    </span>
                   </span>
                 </p>
 
-                <div className="animate-fade-up grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:justify-center sm:gap-3">
+                <div className="betting-buttons">
                   {gameState.currentBet === 0 ? (
                     <button
                       type="button"
@@ -2183,22 +2168,6 @@ export default function GameRoomView({
 
                   <button
                     type="button"
-                    onClick={() => onRaiseByRatio("half")}
-                    disabled={
-                      !isMyTurn ||
-                      bettingAmounts.raiseAmounts.half <= 0 ||
-                      bettingAmounts.raiseAmounts.half >
-                        bettingAmounts.allInAmount ||
-                      bettingAmounts.raiseAmounts.half >
-                        bettingAmounts.remainingRoom
-                    }
-                    className="rounded-full bg-felt/90 text-white px-5 py-2.5 text-[17.5px] font-semibold transition hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 sm:px-7 sm:py-3"
-                  >
-                    하프 {bettingAmounts.raiseAmounts.half.toLocaleString()}
-                  </button>
-
-                  <button
-                    type="button"
                     onClick={() => onRaiseByRatio("quarter")}
                     disabled={
                       !isMyTurn ||
@@ -2211,6 +2180,22 @@ export default function GameRoomView({
                     className="rounded-full bg-felt/90 text-white px-5 py-2.5 text-[17.5px] font-semibold transition hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 sm:px-7 sm:py-3"
                   >
                     쿼터 {bettingAmounts.raiseAmounts.quarter.toLocaleString()}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => onRaiseByRatio("half")}
+                    disabled={
+                      !isMyTurn ||
+                      bettingAmounts.raiseAmounts.half <= 0 ||
+                      bettingAmounts.raiseAmounts.half >
+                        bettingAmounts.allInAmount ||
+                      bettingAmounts.raiseAmounts.half >
+                        bettingAmounts.remainingRoom
+                    }
+                    className="rounded-full bg-felt/90 text-white px-5 py-2.5 text-[17.5px] font-semibold transition hover:bg-felt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 sm:px-7 sm:py-3"
+                  >
+                    하프 {bettingAmounts.raiseAmounts.half.toLocaleString()}
                   </button>
 
                   <button
