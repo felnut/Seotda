@@ -6,7 +6,7 @@ const PAGE_URL = "https://seotda.felnut.com/privacy";
 const TITLE = "개인정보처리방침 - 섯다";
 const DESCRIPTION =
   "섯다 사이트가 수집하는 개인정보 항목, 이용 목적, 보관 기간과 광고·분석 도구 사용 내역을 안내합니다.";
-const EFFECTIVE_DATE = "2026-09-21";
+const EFFECTIVE_DATE = "2026-10-27";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -68,9 +68,9 @@ export default function PrivacyPage() {
             저장되고 서버에 계정으로 보관되지 않습니다.
           </li>
           <li>
-            Google 로그인 시: 이메일 주소, 표시 이름 등 Google 계정 정보
-            일부와, 사이트 내에서 설정한 닉네임·보유 칩(뱅크롤)·승패
-            기록이 Firestore(Google Firebase)에 저장됩니다.
+            Google·GitHub·네이버·카카오 로그인 시: 제공자의 계정 식별자와
+            표시 이름, 로그인 연결 정보 및 사이트에서 설정한 닉네임·보유
+            칩(뱅크롤)·승패 기록을 Firebase 인증과 Firestore에 저장합니다.
           </li>
           <li>
             서비스 이용 과정에서 자동으로 생성되는 접속 로그, 기기·브라우저
@@ -94,7 +94,7 @@ export default function PrivacyPage() {
         </h2>
 
         <p className="mb-8 text-[14.5px] leading-relaxed text-zinc-400">
-          Google 계정으로 로그인한 정보는 이용자가 직접 삭제를 요청하거나
+          소셜 계정으로 로그인한 정보는 이용자가 직접 삭제를 요청하거나
           계정을 탈퇴할 때까지 보관됩니다. 게스트로 입력한 닉네임은
           브라우저의 로컬 저장소에만 남으며, 브라우저 데이터를 지우면 함께
           삭제됩니다.
@@ -110,8 +110,8 @@ export default function PrivacyPage() {
             로그인 인증과 프로필·랭킹 데이터 저장에 사용합니다.
           </li>
           <li>
-            <strong className="text-zinc-200">Google AdSense</strong> — 광고
-            게재와 맞춤 광고 제공을 위해 쿠키를 사용할 수 있습니다. 맞춤
+            <strong className="text-zinc-200">Google AdSense</strong> — 현재
+            광고 게재와 광고 스크립트 로딩을 중지한 상태입니다. 맞춤
             광고는{" "}
             <a
               href="https://adssettings.google.com/"

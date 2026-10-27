@@ -20,6 +20,7 @@ import { ChatMessage, ClientGameState, RoomListEntry } from "@/types/seotda";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
 import { RANKINGS_COLLECTION, RankingEntry } from "@/lib/ranking";
 import { PROFILES_COLLECTION, UserProfile } from "@/lib/profile";
+import { isValidSocketPayload } from "./socketPayload";
 
 const httpServer = createServer();
 
@@ -295,6 +296,14 @@ interface Room {
 
 const rooms = new Map<string, Room>();
 
+function hasOtherSocketSeat(socketId: string, allowedRoomId?: string, allowedPlayerId?: string): boolean {
+  for (const [roomId, room] of rooms) {
+    if (room.joinedPlayers.some((player) => player.socketId === socketId &&
+      (roomId !== allowedRoomId || player.id !== allowedPlayerId))) return true;
+  }
+  return false;
+}
+
 function createClientGameState(room: Room, playerId: string): ClientGameState {
   const game = room.game;
 
@@ -331,7 +340,8 @@ function createClientGameState(room: Room, playerId: string): ClientGameState {
               (state.phase !== "reveal" && index === player.revealedCardIndex);
 
             return {
-              id: card.id,
+              // Card IDs encode the month/type, so hidden cards need opaque UI keys too.
+              id: revealed ? card.id : `hidden-${index}`,
               revealed,
               card: revealed ? card : undefined,
             };
@@ -984,6 +994,26 @@ function createAiName(room: Room, level: AiLevel): string {
 io.on("connection", (socket) => {
   console.log("연결:", socket.id);
 
+  // Reject malformed input before any listener destructures or uses it.
+  socket.use(([event, payload], next) => {
+    if (!isValidSocketPayload(event, payload)) {
+      if (event === "rejoin-room") socket.emit("rejoin-failed");
+      else socket.emit("error-message", { message: "요청 형식이 올바르지 않습니다." });
+      return;
+    }
+    // A connection may control only one seat; an idempotent rejoin of that seat is safe.
+    if (["create-room", "join-room", "rejoin-room"].includes(event) && hasOtherSocketSeat(
+      socket.id,
+      event === "rejoin-room" ? payload.roomId : undefined,
+      event === "rejoin-room" ? payload.playerId : undefined,
+    )) {
+      if (event === "rejoin-room") socket.emit("rejoin-failed");
+      else socket.emit("error-message", { message: "이미 참가 중인 방에서 먼저 나가주세요." });
+      return;
+    }
+    next();
+  });
+
   socket.on(
     "create-room",
     ({
@@ -1157,6 +1187,12 @@ io.on("connection", (socket) => {
       // 상태가 꼬인다.
       const resolved = await resolveJoiningPlayer(idToken, name);
 
+      // Another join/create or a disconnect can run while identity lookup is pending.
+      if (!socket.connected || rooms.get(roomId) !== room || hasOtherSocketSeat(socket.id)) {
+        socket.emit("error-message", { message: "이미 참가 중이거나 입장할 수 없는 방입니다." });
+        return;
+      }
+
       if (room.joinedPlayers.length >= room.maxPlayers) {
         socket.emit("error-message", {
           message: "방이 가득 찼습니다.",
@@ -1297,6 +1333,12 @@ io.on("connection", (socket) => {
       }
 
       if (!(await verifyRejoinIdentity(idToken, joined.uid))) {
+        socket.emit("rejoin-failed");
+        return;
+      }
+
+      if (!socket.connected || rooms.get(roomId) !== room || !room.joinedPlayers.includes(joined) ||
+        hasOtherSocketSeat(socket.id, roomId, playerId)) {
         socket.emit("rejoin-failed");
         return;
       }
@@ -1940,5 +1982,6 @@ io.on("connection", (socket) => {
 });
 
 httpServer.listen(PORT, () => {
-  console.log(`Socket.IO server running on port ${PORT}`);
+  const address = httpServer.address();
+  console.log(`Socket.IO server running on port ${typeof address === "object" && address ? address.port : PORT}`);
 });

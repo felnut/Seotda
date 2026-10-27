@@ -4,8 +4,11 @@ import { useEffect, useState } from "react";
 import type { User } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase/client";
 
-export function useAuth(): User | null {
-  const [user, setUser] = useState<User | null>(null);
+export function useAuthState(): { user: User | null; ready: boolean } {
+  const [state, setState] = useState<{ user: User | null; ready: boolean }>({
+    user: null,
+    ready: false,
+  });
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
@@ -27,13 +30,24 @@ export function useAuth(): User | null {
 
     const idleId = runWhenIdle(() => {
       getFirebaseAuth().then(async (auth) => {
-        if (!auth || cancelled) return;
+        if (cancelled) return;
+
+        if (!auth) {
+          setState({ user: null, ready: true });
+          return;
+        }
 
         const { onAuthStateChanged } = await import("firebase/auth");
 
         if (cancelled) return;
 
-        unsubscribe = onAuthStateChanged(auth, setUser);
+        unsubscribe = onAuthStateChanged(auth, (user) => {
+          if (!cancelled) setState({ user, ready: true });
+        });
+      }).catch((error) => {
+        console.error("로그인 상태를 복원하지 못했습니다:", error);
+        // 복원 실패는 게스트 확정이 아니다. 저장된 계정 좌석을 지우지 않도록
+        // ready=false를 유지하고 새로고침으로 다시 시도할 수 있게 한다.
       });
     });
 
@@ -44,5 +58,9 @@ export function useAuth(): User | null {
     };
   }, []);
 
-  return user;
+  return state;
+}
+
+export function useAuth(): User | null {
+  return useAuthState().user;
 }

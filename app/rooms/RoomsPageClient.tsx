@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { RoomInfo, RoomListEntry } from "@/types/seotda";
@@ -17,6 +17,7 @@ export function RoomsPageClient() {
   const [roomList, setRoomList] = useState<RoomListEntry[]>([]);
   const [error, setError] = useState("");
   const [isJoining, setIsJoining] = useState(false);
+  const pendingJoinCleanup = useRef<(() => void) | null>(null);
 
   // 비밀번호가 걸린 방을 클릭했을 때 팝업으로 띄우는 입력창의 대상 방
   const [passwordPromptRoom, setPasswordPromptRoom] =
@@ -36,25 +37,26 @@ export function RoomsPageClient() {
   }, []);
 
   useEffect(() => {
-    socket.on("rooms-list", (list: RoomListEntry[]) => {
+    const handleRoomList = (list: RoomListEntry[]) => {
       setRoomList(list);
-    });
+    };
+    socket.on("rooms-list", handleRoomList);
 
     return () => {
-      socket.off("rooms-list");
+      socket.off("rooms-list", handleRoomList);
+      pendingJoinCleanup.current?.();
     };
   }, []);
 
   const joinRoom = async (roomId: string, password?: string) => {
-    if (isJoining) return;
+    if (isJoining || pendingJoinCleanup.current) return;
 
     setIsJoining(true);
     setError("");
     setPasswordError("");
 
-    const idToken = user ? await user.getIdToken() : undefined;
-
     const handleJoined = (info: RoomInfo) => {
+      if (info.roomId !== roomId) return;
       cleanup();
 
       saveSession({
@@ -77,20 +79,51 @@ export function RoomsPageClient() {
       }
     };
 
-    const cleanup = () => {
-      socket.off("room-joined", handleJoined);
-      socket.off("error-message", handleError);
+    const handleDisconnect = () => {
+      handleError({ message: "서버 연결이 끊겼어요. 연결 후 다시 입장해주세요." });
     };
 
+    // 토큰 갱신이나 서버 응답이 끝나지 않아도 입장 버튼을 다시 쓸 수 있게 한다.
+    const timeout = window.setTimeout(() => {
+      handleError({ message: "입장 응답이 지연되고 있어요. 다시 시도해주세요." });
+      // 이미 보낸 입장이 뒤늦게 좌석을 만들지 않도록 이전 연결을 종료한다.
+      // 서버는 인증 조회 뒤 연결 상태를 다시 검사해 취소된 입장을 거부한다.
+      socket.disconnect().connect();
+    }, 15000);
+
+    const cleanup = () => {
+      window.clearTimeout(timeout);
+      socket.off("room-joined", handleJoined);
+      socket.off("error-message", handleError);
+      socket.off("disconnect", handleDisconnect);
+      if (pendingJoinCleanup.current === cleanup) pendingJoinCleanup.current = null;
+    };
+
+    pendingJoinCleanup.current = cleanup;
     socket.on("room-joined", handleJoined);
     socket.on("error-message", handleError);
+    socket.on("disconnect", handleDisconnect);
 
-    socket.emit("join-room", {
-      roomId,
-      name: loadNickname().trim() || undefined,
-      password: password?.trim() || undefined,
-      idToken,
-    });
+    try {
+      const idToken = user ? await user.getIdToken() : undefined;
+      // 갱신 중 화면을 떠났거나 제한 시간을 넘겼다면 뒤늦게 입장하지 않는다.
+      if (pendingJoinCleanup.current !== cleanup) return;
+      if (!socket.connected) {
+        handleDisconnect();
+        return;
+      }
+
+      socket.emit("join-room", {
+        roomId,
+        name: loadNickname().trim() || undefined,
+        password: password?.trim() || undefined,
+        idToken,
+      });
+    } catch {
+      if (pendingJoinCleanup.current === cleanup) {
+        handleError({ message: "로그인 정보를 확인하지 못했어요. 다시 시도해주세요." });
+      }
+    }
   };
 
   const handleRoomClick = (room: RoomListEntry) => {

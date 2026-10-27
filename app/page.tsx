@@ -19,7 +19,7 @@ import {
 } from "@/lib/seotda/bettingDisplay";
 import { MIN_ROOM_PLAYERS } from "@/lib/seotda/constants";
 import { getFirebaseAuth, getFirebaseDb } from "@/lib/firebase/client";
-import { useAuth } from "@/lib/useAuth";
+import { useAuthState } from "@/lib/useAuth";
 import { useIsDesktop } from "@/lib/useIsDesktop";
 import { PROFILES_COLLECTION, UserProfile } from "@/lib/profile";
 import { authErrorMessage } from "@/lib/auth/messages";
@@ -29,6 +29,7 @@ import { RANKINGS_COLLECTION, RankingEntry } from "@/lib/ranking";
 import { STARTING_CHIPS } from "@/lib/seotda/game";
 import { socket } from "@/lib/socket";
 import { clearSession, loadSession, saveSession } from "@/lib/session";
+import { restoreRoomSession } from "@/lib/rejoin";
 import { loadNickname, saveNickname } from "@/lib/nickname";
 import {
   playChatSound,
@@ -465,7 +466,7 @@ export default function Home() {
   const [linkNotice, setLinkNotice] = useState<LinkNotice | null>(null);
 
   // 로그인한 계정 — null이면 게스트. 랭킹은 로그인했을 때만 집계된다.
-  const user = useAuth();
+  const { user, ready: authReady } = useAuthState();
 
   // 프로필 페이지에서 설정한 닉네임. 없으면 구글 계정 이름으로 대체 표시한다.
   const [profileName, setProfileName] = useState<string | null>(null);
@@ -871,42 +872,13 @@ export default function Home() {
     return () => window.clearTimeout(timer);
   }, [error]);
 
-  // 마운트 시 이전에 있던 방이 저장돼 있으면 자동으로 재접속을 시도한다.
-  //
-  // 로그인 계정 자리는 서버가 idToken으로 uid까지 확인하므로, Firebase
-  // 로그인 상태(user)가 아직 복구되지 않은 시점에 idToken 없이 보내면
-  // 정당한 재접속도 실패한다. 로그인 상태가 이미 있으면 바로 시도하고,
-  // 아직 없다면(게스트이거나 로그인 복구가 느린 경우) 잠시 기다렸다가
-  // 그때 값으로 한 번만 시도한다 — 그사이 로그인이 복구되면 effect가
-  // 다시 실행되면서 대기 중이던 시도는 취소되고 올바른 토큰으로 재시도된다.
+  // 인증 복원이 끝난 뒤 재접속한다. 네트워크가 끊겼다가 새 소켓으로
+  // 연결될 때도 같은 좌석을 다시 연결해야 이후 게임 이벤트가 전달된다.
   useEffect(() => {
-    const session = loadSession();
-
-    if (!session) return;
-
-    let cancelled = false;
-    let timer: number | undefined;
-
-    const attemptRejoin = async () => {
-      const idToken = user ? await user.getIdToken() : undefined;
-
-      if (!cancelled) {
-        socket.emit("rejoin-room", { ...session, idToken });
-      }
-    };
-
-    if (user) {
-      attemptRejoin();
-    } else {
-      timer = window.setTimeout(attemptRejoin, 700);
-    }
-
-    return () => {
-      cancelled = true;
-
-      if (timer !== undefined) window.clearTimeout(timer);
-    };
-  }, [user]);
+    return restoreRoomSession(socket, loadSession(), user, authReady, () => {
+      setError("로그인 정보를 확인하지 못했어요. 다시 시도해주세요.");
+    });
+  }, [user, authReady, roomId]);
 
   // 7. 방 만들기
   const createRoom = async (solo = false) => {
@@ -1283,7 +1255,7 @@ export default function Home() {
         </nav>
         <footer className="lobby-footer"><span>© {new Date().getFullYear()} 섯다</span><nav aria-label="사이트 안내"><Link href="/about">서비스 소개</Link><Link href="/privacy">개인정보처리방침</Link><Link href="/terms">이용약관</Link></nav></footer>
 
-        {user && (
+        {user && isProfileOpen && (
           <ProfilePanel
             open={isProfileOpen}
             onClose={() => setIsProfileOpen(false)}

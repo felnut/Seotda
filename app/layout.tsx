@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import { DEFAULT_THEME, THEME_STORAGE_KEY, THEMES } from "@/lib/themes";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
@@ -74,11 +73,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <Analytics />
         <SpeedInsights />
-        {/* 로그인/로그아웃으로 버튼이 다시 마운트돼도 다시 로드하지 않도록 앱
-            전체에서 한 번만 불러온다. */}
-        {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
-          <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
-        )}
         {/* 클라이언트 ID가 없는 로컬/프리뷰 환경에서는 애드센스 스크립트
             자체를 건너뛴다 — AdSlot도 같은 값으로 렌더 여부를 판단한다.
             beforeInteractive는 애드센스 검토 크롤러가 raw HTML에서 바로

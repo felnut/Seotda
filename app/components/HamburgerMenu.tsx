@@ -87,15 +87,10 @@ export function HamburgerMenu({
         </svg>
       </button>
 
-      <div
+      {view === "menu" && <div
         role="menu"
         aria-label="메뉴"
-        inert={view !== "menu"}
-        className={`absolute right-0 top-12 z-30 w-56 origin-top-right rounded-2xl border border-hairline bg-zinc-900 p-1.5 transition duration-150 ${
-          view === "menu"
-            ? "scale-100 opacity-100"
-            : "pointer-events-none scale-95 opacity-0"
-        }`}
+        className="absolute right-0 top-12 z-30 w-56 rounded-2xl border border-hairline bg-zinc-900 p-1.5"
       >
         {showHome && (
           <Link
@@ -177,18 +172,13 @@ export function HamburgerMenu({
           </span>
         </button>
 
-      </div>
+      </div>}
 
       {/* 설정 뷰포트 — 햄버거 버튼 바로 아래에 펼쳐진다. */}
-      {settings && (
+      {settings && view === "settings" && (
         <section
           aria-label="설정"
-          inert={view !== "settings"}
-          className={`absolute right-0 top-12 z-30 flex max-h-[calc(100dvh-6rem)] w-[min(22rem,calc(100vw-2rem))] origin-top-right flex-col rounded-2xl border border-hairline bg-zinc-900 transition duration-150 ${
-            view === "settings"
-              ? "scale-100 opacity-100"
-              : "pointer-events-none scale-95 opacity-0"
-          }`}
+          className="absolute right-0 top-12 z-30 flex max-h-[calc(100dvh-6rem)] w-[min(22rem,calc(100vw-2rem))] flex-col rounded-2xl border border-hairline bg-zinc-900"
         >
           <div className="flex items-center gap-1 border-b border-hairline px-2 py-2">
             <button
@@ -207,14 +197,9 @@ export function HamburgerMenu({
       )}
 
       {/* 테마 뷰포트 — 테마를 고르면 바로 적용된다. */}
-      <section
+      {view === "themes" && <section
         aria-label="테마"
-        inert={view !== "themes"}
-        className={`absolute right-0 top-12 z-30 flex max-h-[calc(100dvh-6rem)] w-[min(20rem,calc(100vw-2rem))] origin-top-right flex-col rounded-2xl border border-hairline bg-zinc-900 transition duration-150 ${
-          view === "themes"
-            ? "scale-100 opacity-100"
-            : "pointer-events-none scale-95 opacity-0"
-        }`}
+        className="absolute right-0 top-12 z-30 flex max-h-[calc(100dvh-6rem)] w-[min(20rem,calc(100vw-2rem))] flex-col rounded-2xl border border-hairline bg-zinc-900"
       >
         <div className="flex items-center gap-1 border-b border-hairline px-2 py-2">
           <button
@@ -256,7 +241,7 @@ export function HamburgerMenu({
             );
           })}
         </ul>
-      </section>
+      </section>}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import Script from "next/script";
 import { getFirebaseAuth } from "@/lib/firebase/client";
 import { authErrorMessage } from "@/lib/auth/messages";
 
@@ -12,9 +13,8 @@ import { authErrorMessage } from "@/lib/auth/messages";
 //
 // mode="link"이면 로그인 대신 "지금 로그인한 계정에 구글을 연결"한다.
 //
-// 스크립트 자체는 app/layout.tsx에서 앱 전체에 한 번만 로드된다 — 이
-// 컴포넌트가 스크립트보다 먼저 나타날 수 있으므로 window.google이 준비될
-// 때까지 짧게 폴링한다.
+// 로그인 버튼이 필요할 때만 SDK를 로드한다. next/script가 중복 로드를 막고,
+// onReady는 이미 로드된 SDK로 버튼을 다시 마운트한 경우에도 호출된다.
 export function GoogleSignInButton({
   onError,
   onLinked,
@@ -31,6 +31,7 @@ export function GoogleSignInButton({
   const clientRef = useRef<GoogleTokenClient | null>(null);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [sdkReady, setSdkReady] = useState(false);
 
   // 콜백이 바뀔 때마다 토큰 클라이언트를 다시 만들지 않도록 ref로 들고 있는다.
   const onErrorRef = useRef(onError);
@@ -44,10 +45,9 @@ export function GoogleSignInButton({
   useEffect(() => {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
-    if (!clientId) return;
+    if (!clientId || !sdkReady) return;
 
     let cancelled = false;
-    let interval: ReturnType<typeof setInterval> | undefined;
 
     const handleToken = async (accessToken: string) => {
       try {
@@ -116,36 +116,36 @@ export function GoogleSignInButton({
       setReady(true);
     };
 
-    if (window.google) {
-      setup();
-    } else {
-      interval = setInterval(() => {
-        if (window.google) {
-          clearInterval(interval);
-          setup();
-        }
-      }, 100);
-    }
+    setup();
 
     return () => {
       cancelled = true;
-
-      if (interval) clearInterval(interval);
     };
-  }, [mode]);
+  }, [mode, sdkReady]);
 
   return (
-    <button
-      type="button"
-      disabled={!ready || busy}
-      onClick={() => {
-        setBusy(true);
-        // 팝업 차단을 피하려면 클릭 처리 안에서 바로 호출해야 한다.
-        clientRef.current?.requestAccessToken({ prompt: "select_account" });
-      }}
-      className={className}
-    >
-      {children}
-    </button>
+    <>
+      {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
+        <Script
+          src="https://accounts.google.com/gsi/client"
+          strategy="afterInteractive"
+          onReady={() => setSdkReady(true)}
+          onLoad={() => setSdkReady(true)}
+          onError={() => onErrorRef.current?.("Google 로그인을 불러오지 못했어요. 잠시 후 다시 시도해주세요.")}
+        />
+      )}
+      <button
+        type="button"
+        disabled={!ready || busy}
+        onClick={() => {
+          setBusy(true);
+          // 팝업 차단을 피하려면 클릭 처리 안에서 바로 호출해야 한다.
+          clientRef.current?.requestAccessToken({ prompt: "select_account" });
+        }}
+        className={className}
+      >
+        {children}
+      </button>
+    </>
   );
 }
