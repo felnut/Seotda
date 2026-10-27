@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AdSlot } from "@/app/components/AdSlot";
+// import { AdSlot } from "@/app/components/AdSlot";
 import { GUIDE_ARTICLES, getArticle } from "@/lib/guide/articles";
 import { buildJsonLd } from "@/lib/seo/structuredData";
 
 // 광고는 이렇게 실제 본문이 있는 글 페이지에만 싣는다.
 // 콘솔에서 만들어 둔 사각형(300x250) 광고 단위를 재사용한다.
-const ADSENSE_ARTICLE_SLOT_ID =
-  process.env.NEXT_PUBLIC_ADSENSE_ROOMS_RECT_SLOT_ID ?? "";
+// 보안 문제 점검 중 가이드 글 광고를 일시 중지한다.
+// const ADSENSE_ARTICLE_SLOT_ID =
+//   process.env.NEXT_PUBLIC_ADSENSE_ROOMS_RECT_SLOT_ID ?? "";
 
 type Params = Promise<{ slug: string }>;
 
@@ -109,7 +110,7 @@ export default async function GuideArticlePage({ params }: { params: Params }) {
         })}
       </article>
 
-      {ADSENSE_ARTICLE_SLOT_ID && <div className="mt-8 flex w-full justify-center"><AdSlot slotId={ADSENSE_ARTICLE_SLOT_ID} width={300} height={250} /></div>}
+      {/* {ADSENSE_ARTICLE_SLOT_ID && <div className="mt-8 flex w-full justify-center"><AdSlot slotId={ADSENSE_ARTICLE_SLOT_ID} width={300} height={250} /></div>} */}
 
       <nav className="mt-10 flex flex-col gap-3">
         {next && <Link

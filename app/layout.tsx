@@ -7,7 +7,8 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const THEME_INIT_SCRIPT = `(function(){try{var d=document.documentElement,ids=${JSON.stringify(THEMES.map((t) => t.id))},t=localStorage.getItem("${THEME_STORAGE_KEY}");if(localStorage.getItem("seotda-reduce-motion")==="1")d.classList.add("reduce-motion");d.dataset.theme=ids.indexOf(t)>=0?t:"${DEFAULT_THEME}"}catch(e){document.documentElement.dataset.theme="${DEFAULT_THEME}"}})();`;
 
-const ADSENSE_CLIENT_ID = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
+// 보안 문제 점검 중 광고를 일시 중지한다.
+// const ADSENSE_CLIENT_ID = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
 
 const SITE_URL = "https://seotda.felnut.com";
 const SITE_NAME = "섯다";
@@ -42,9 +43,9 @@ export const metadata: Metadata = {
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
   },
-  other: {
-    "google-adsense-account": "ca-pub-7832449160876742",
-  },
+  // other: {
+  //   "google-adsense-account": "ca-pub-7832449160876742",
+  // },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -85,6 +86,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             막아 모바일 LCP/TTI를 늦춘다. 애드센스 크롤러는 자바스크립트를
             실행한다고 알려져 있어 afterInteractive로도 승인엔 지장이
             없을 것으로 보고, 실사용자 성능을 우선해 되돌린다. */}
+        {/* 보안 문제 점검 중 광고 스크립트 로딩을 일시 중지한다.
         {ADSENSE_CLIENT_ID && (
           <Script
             async
@@ -93,6 +95,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             strategy="afterInteractive"
           />
         )}
+        */}
         {children}
       </body>
     </html>
