@@ -39,8 +39,6 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: SITE_TITLE,
-    description: SITE_DESCRIPTION,
   },
   // other: {
   //   "google-adsense-account": "ca-pub-7832449160876742",

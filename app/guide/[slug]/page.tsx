@@ -27,13 +27,14 @@ export async function generateMetadata({
   if (!article) return {};
 
   const url = `https://seotda.felnut.com/guide/${article.slug}`;
+  const title = `섯다 ${article.title} | 섯다 가이드`;
 
   return {
-    title: article.title,
+    title,
     description: article.description,
     alternates: { canonical: url },
     openGraph: {
-      title: article.title,
+      title,
       description: article.description,
       type: "article",
     },
